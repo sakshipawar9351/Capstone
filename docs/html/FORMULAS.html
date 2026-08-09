@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html" class="active"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / FORMULAS.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#0-how-to-read-this-document">0. How to read this document</a></li>
+<li><a href="#1-coordinate-systems-and-georeferencing">1. Coordinate systems and georeferencing</a><ul>
+<li><a href="#11-reference-frame">1.1 Reference frame</a></li>
+<li><a href="#12-grid-coordinate-mapping-pixel-registered-simple-cylindrical">1.2 Grid ↔ coordinate mapping (pixel-registered simple cylindrical)</a></li>
+<li><a href="#13-sphere-uv-parameterisation-for-the-3d-globe">1.3 Sphere UV parameterisation for the 3D globe</a></li>
+<li><a href="#14-geographic-cartesian">1.4 Geographic → Cartesian</a></li>
+</ul>
+</li>
+<li><a href="#2-distances-and-geodesy">2. Distances and geodesy</a><ul>
+<li><a href="#21-great-circle-distance-haversine">2.1 Great-circle distance (haversine)</a></li>
+<li><a href="#22-surface-distance-including-topography">2.2 Surface distance including topography</a></li>
+<li><a href="#23-initial-bearing">2.3 Initial bearing</a></li>
+<li><a href="#24-metric-scale-of-a-grid-cell-the-latitude-problem">2.4 Metric scale of a grid cell — the latitude problem</a></li>
+</ul>
+</li>
+<li><a href="#3-terrain-analysis">3. Terrain analysis</a><ul>
+<li><a href="#31-elevation-from-digital-number">3.1 Elevation from digital number</a></li>
+<li><a href="#32-slope-horns-operator">3.2 Slope — Horn's operator</a></li>
+<li><a href="#33-aspect">3.3 Aspect</a></li>
+<li><a href="#34-curvature-zevenbergen-thorne">3.4 Curvature — Zevenbergen &amp; Thorne</a></li>
+<li><a href="#35-roughness-and-the-noise-floor">3.5 Roughness, and the noise floor</a></li>
+<li><a href="#36-hillshade-visualisation-only">3.6 Hillshade (visualisation only)</a></li>
+</ul>
+</li>
+<li><a href="#4-crater-morphometry-and-classification">4. Crater morphometry and classification</a><ul>
+<li><a href="#41-depthdiameter-scaling">4.1 Depth–diameter scaling</a></li>
+<li><a href="#42-rim-height-and-excavation-depth">4.2 Rim height and excavation depth</a></li>
+<li><a href="#43-size-classification">4.3 Size classification</a></li>
+<li><a href="#44-degradation-state-and-crater-age-an-explicit-statement-of-limits">4.4 Degradation state and crater age — an explicit statement of limits</a></li>
+</ul>
+</li>
+<li><a href="#5-detection">5. Detection</a><ul>
+<li><a href="#51-dem-based-crater-detection">5.1 DEM-based crater detection</a></li>
+<li><a href="#52-boulder-height-from-shadow-length">5.2 Boulder height from shadow length</a></li>
+<li><a href="#53-boulder-sizefrequency-distribution">5.3 Boulder size–frequency distribution</a></li>
+</ul>
+</li>
+<li><a href="#6-hazard-risk-and-cost">6. Hazard, risk and cost</a><ul>
+<li><a href="#61-slope-hazard">6.1 Slope hazard</a></li>
+<li><a href="#62-boulder-and-roughness-hazard">6.2 Boulder and roughness hazard</a></li>
+<li><a href="#63-crater-proximity-hazard">6.3 Crater proximity hazard</a></li>
+<li><a href="#64-composite-cost-surface">6.4 Composite cost surface</a></li>
+<li><a href="#65-safety-score">6.5 Safety score</a></li>
+</ul>
+</li>
+<li><a href="#7-rover-mobility-model">7. Rover mobility model</a><ul>
+<li><a href="#71-power-limited-speed-on-a-slope">7.1 Power-limited speed on a slope</a></li>
+<li><a href="#72-traverse-time-and-energy">7.2 Traverse time and energy</a></li>
+</ul>
+</li>
+<li><a href="#8-rendering">8. Rendering</a><ul>
+<li><a href="#81-unlit-material-satisfying-the-no-sunlight-requirement">8.1 Unlit material — satisfying the "no sunlight" requirement</a></li>
+</ul>
+</li>
+<li><a href="#9-path-planning-mathematics">9. Path planning mathematics</a><ul>
+<li><a href="#91-admissibility-and-consistency-of-the-a-heuristic">9.1 Admissibility and consistency of the A* heuristic</a></li>
+<li><a href="#92-grid-discretisation-error-and-why-theta-is-included">9.2 Grid-discretisation error and why Theta* is included</a></li>
+</ul>
+</li>
+<li><a href="#10-summary-formula-to-requirement-traceability">10. Summary — formula-to-requirement traceability</a></li>
+<li><a href="#11-revision-history">11. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-mathematical-formulation-proofs-and-sources">LunarSerpent — Mathematical Formulation, Proofs and Sources</h1>
+<p><strong>Document ID:</strong> LS-DOC-005 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 5</strong> — every formula used, its proof/justification, its source, and <em>why</em> it was chosen.</p>
+<hr />
+<h2 id="0-how-to-read-this-document">0. How to read this document</h2>
+<p>Every formula below is presented in a fixed four-part structure, so that nothing is asserted
+without support:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Statement</strong></td>
+<td>The formula exactly as implemented in code</td>
+</tr>
+<tr>
+<td><strong>Derivation / Proof</strong></td>
+<td>Why it is mathematically true, or where it is empirically fitted</td>
+</tr>
+<tr>
+<td><strong>Why this one</strong></td>
+<td>What alternatives exist and why this was chosen over them</td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td>Peer-reviewed citation with DOI</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Notation used throughout:</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+<th>Units</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math-inline">\(R\)</span></td>
+<td>Lunar reference radius = 1 737 400</td>
+<td>m</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(\varphi\)</span></td>
+<td>Planetocentric latitude</td>
+<td>rad (deg where stated)</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(\lambda\)</span></td>
+<td>East longitude</td>
+<td>rad (deg where stated)</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(z\)</span></td>
+<td>Elevation above the reference sphere</td>
+<td>m</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(g\)</span></td>
+<td>Lunar surface gravity = 1.625</td>
+<td>m s⁻²</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(\theta\)</span></td>
+<td>Terrain slope angle</td>
+<td>deg</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(D\)</span></td>
+<td>Crater rim-crest diameter</td>
+<td>km</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(d\)</span></td>
+<td>Crater rim-to-floor depth</td>
+<td>km</td>
+</tr>
+<tr>
+<td><span class="math-inline">\(W, H\)</span></td>
+<td>DEM grid width, height</td>
+<td>pixels</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Units discipline.</strong> Crater morphometry formulas (§4) are stated in <strong>kilometres</strong>, because
+that is the unit in which they were originally fitted. Every other formula uses <strong>metres</strong>.
+Implementation converts explicitly at the boundary; silent unit mixing is the most common
+source of error in this class of software.</p>
+<hr />
+<h2 id="1-coordinate-systems-and-georeferencing">1. Coordinate systems and georeferencing</h2>
+<h3 id="11-reference-frame">1.1 Reference frame</h3>
+<p><strong>Statement.</strong> All positions are expressed in the IAU <strong>Mean Earth / Polar Axis (ME)</strong>
+body-fixed frame, DE421 realisation, on a <strong>sphere</strong> of radius <span class="math-inline">\(R = 1\,737\,400\)</span> m, with
+latitude planetocentric and longitude <strong>east-positive</strong> in <span class="math-inline">\([0°, 360°)\)</span>.</p>
+<p><strong>Derivation / Proof.</strong> This is not a modelling choice but an inherited constraint. The LOLA
+PDS3 label declares:</p>
+<pre><code>A_AXIS_RADIUS = B_AXIS_RADIUS = C_AXIS_RADIUS = 1737.4 &lt;km&gt;
+COORDINATE_SYSTEM_NAME = &quot;MEAN EARTH/POLAR AXIS OF DE421&quot;
+POSITIVE_LONGITUDE_DIRECTION = &quot;EAST&quot;
+</code></pre>
+<p>Since all three axis radii are <strong>equal</strong>, the reference figure is a sphere, and flattening
+<span class="math-inline">\(f = (a-c)/a = 0\)</span> <strong>exactly</strong>.</p>
+<p><strong>Why this one.</strong> Using any other frame would require reprojecting the source data, which
+introduces resampling error for no scientific gain. Working natively in the data's own frame
+means the only transformation in the system is the exactly-invertible grid mapping of §1.2.</p>
+<p>The Moon's true dynamic flattening is <span class="math-inline">\(\sim1.2\times10^{-3}\)</span>, so an ellipsoidal treatment
+would change surface positions by <span class="math-inline">\(\lesssim 2\)</span> km at mid-latitudes. <strong>This does not matter
+here</strong>, because all data used is <em>already gridded on the spherical datum</em> — adopting an
+ellipsoid would introduce an inconsistency, not remove one.</p>
+<p><strong>Source.</strong> Archinal, B. A. et al. (2018), <em>Report of the IAU Working Group on Cartographic
+Coordinates and Rotational Elements: 2015</em>, Celest. Mech. Dyn. Astron. <strong>130</strong>:22.
+DOI: <a href="https://doi.org/10.1007/s10569-017-9805-5">10.1007/s10569-017-9805-5</a></p>
+<hr />
+<h3 id="12-grid-coordinate-mapping-pixel-registered-simple-cylindrical">1.2 Grid ↔ coordinate mapping (pixel-registered simple cylindrical)</h3>
+<p><strong>Statement.</strong> For a DEM of <span class="math-inline">\(W\)</span> columns and <span class="math-inline">\(H\)</span> rows covering the full sphere:</p>
+<div class="math-block">\[\varphi(\text{row}) = 90° - (\text{row} + 0.5)\cdot\frac{180°}{H}\]</div>
+<div class="math-block">\[\lambda(\text{col}) = (\text{col} + 0.5)\cdot\frac{360°}{W}\]</div>
+<p>with inverses</p>
+<div class="math-block">\[\text{row} = (90° - \varphi)\cdot\frac{H}{180°} - 0.5, \qquad
+\text{col} = \lambda\cdot\frac{W}{360°} - 0.5\]</div>
+<p><strong>Derivation / Proof.</strong> The <span class="math-inline">\(+0.5\)</span> terms encode <strong>pixel registration</strong> — a pixel's coordinate
+refers to its <em>centre</em>, not its corner. The mapping is verified against the PDS label rather
+than assumed. For <code>LDEM_16</code> (<span class="math-inline">\(W=5760\)</span>, <span class="math-inline">\(H=2880\)</span>):</p>
+<ul>
+<li>Substituting <span class="math-inline">\(\lambda = 180°\)</span> gives <span class="math-inline">\(\text{col} = 180\cdot16 - 0.5 = 2879.5\)</span>, which equals
+  the label's <code>SAMPLE_PROJECTION_OFFSET</code> for this grid. ✅</li>
+<li>Substituting <span class="math-inline">\(\varphi = 0°\)</span> gives <span class="math-inline">\(\text{row} = 90\cdot16 - 0.5 = 1439.5\)</span>, equal to
+  <code>LINE_PROJECTION_OFFSET</code>. ✅</li>
+</ul>
+<p>For <code>LDEM_4</code> (<span class="math-inline">\(W=1440\)</span>, <span class="math-inline">\(H=720\)</span>) the same formulas give 719.5 and 359.5, again matching the
+label exactly. ✅ The mapping therefore reproduces the producer's own georeferencing at two
+independent resolutions.</p>
+<p><strong>Why this one.</strong> This satisfies the project requirement that <em>no pixel-based data</em> be used
+for positioning: pixel indices exist <strong>only</strong> as the output of this transform, never as an
+independent source of truth. Every feature position enters and leaves the system as
+<span class="math-inline">\((\varphi, \lambda)\)</span>.</p>
+<p><strong>Source.</strong> PDS3 label parameters, LOLA GDR <code>LDEM_4.LBL</code> / <code>LDEM_16.LBL</code> / <code>LDEM_64.LBL</code>,
+read directly from PDS Geosciences Node, 2026-08-04.</p>
+<hr />
+<h3 id="13-sphere-uv-parameterisation-for-the-3d-globe">1.3 Sphere UV parameterisation for the 3D globe</h3>
+<p><strong>Statement.</strong> A point on the rendered globe at parametric coordinates <span class="math-inline">\((u,v) \in [0,1]^2\)</span>
+corresponds to</p>
+<div class="math-block">\[\lambda = 360°\,u, \qquad \varphi = 90° - 180°\,v\]</div>
+<p><strong>Derivation / Proof.</strong> Compare with §1.2: the equirectangular texture's <span class="math-inline">\((u,v)\)</span> is exactly
+<span class="math-inline">\((\text{col}/W, \text{row}/H)\)</span>. Therefore a simple-cylindrical basemap tile maps onto a UV
+sphere <strong>with no reprojection whatsoever</strong> — the texture coordinate <em>is</em> the geographic
+coordinate, up to linear scaling.</p>
+<p><strong>Why this one.</strong> This is the reason the project can render a scientifically-correct globe
+with no GIS library. It also means the inverse operation — a mouse click → <span class="math-inline">\((\varphi,\lambda)\)</span>
+— is exact rather than approximate, which Part 1's coordinate-picking requirement demands.</p>
+<p>It is also why the project <strong>generates its sphere procedurally</strong> rather than loading the
+supplied <code>moon_small.glb</code>: an arbitrary mesh carries whatever UV layout its author chose,
+which is not guaranteed to be selenographically meaningful.</p>
+<hr />
+<h3 id="14-geographic-cartesian">1.4 Geographic → Cartesian</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[\mathbf{r}(\varphi,\lambda,z) = (R+z)\begin{pmatrix}\cos\varphi\cos\lambda\\ \cos\varphi\sin\lambda\\ \sin\varphi\end{pmatrix}\]</div>
+<p><strong>Derivation / Proof.</strong> Standard spherical-to-Cartesian conversion; exact for a sphere.
+Elevation enters as a radial offset because the vertical datum is the sphere itself (§1.1).</p>
+<p><strong>Why this one.</strong> Required for (a) placing feature markers in the 3D scene, (b) ray–sphere
+intersection for click-to-coordinate, and (c) the chord-vs-arc check in §2.2.</p>
+<hr />
+<h2 id="2-distances-and-geodesy">2. Distances and geodesy</h2>
+<h3 id="21-great-circle-distance-haversine">2.1 Great-circle distance (haversine)</h3>
+<p><strong>Statement.</strong> For two points <span class="math-inline">\((\varphi_1,\lambda_1)\)</span>, <span class="math-inline">\((\varphi_2,\lambda_2)\)</span>:</p>
+<div class="math-block">\[a = \sin^2\!\left(\frac{\Delta\varphi}{2}\right) + \cos\varphi_1\cos\varphi_2\sin^2\!\left(\frac{\Delta\lambda}{2}\right)\]</div>
+<div class="math-block">\[c = 2\,\operatorname{atan2}\!\left(\sqrt{a},\ \sqrt{1-a}\right), \qquad s = R\,c\]</div>
+<p><strong>Derivation / Proof.</strong> <em>This formula is exact, not approximate.</em> On a sphere the geodesic
+between two points is the minor arc of the great circle through them, and its length is
+<span class="math-inline">\(R\Delta\sigma\)</span> where <span class="math-inline">\(\Delta\sigma\)</span> is the central angle. The haversine expression is an
+algebraically equivalent rewriting of the spherical law of cosines
+<span class="math-inline">\(\cos\Delta\sigma = \sin\varphi_1\sin\varphi_2 + \cos\varphi_1\cos\varphi_2\cos\Delta\lambda\)</span>,
+chosen because it is <strong>numerically stable for small separations</strong>, where the law of cosines
+loses precision catastrophically to floating-point cancellation (<span class="math-inline">\(\cos\Delta\sigma \to 1\)</span>).</p>
+<p>Since the LunarSerpent datum is a sphere <strong>exactly</strong> (§1.1), no ellipsoidal correction exists
+to be neglected. The result is the true geodesic distance.</p>
+<p><strong>Why this one.</strong> Vincenty's or Karney's ellipsoidal geodesics would be the correct choice on
+Earth, but here they would model a flattening that the reference figure does not have. Using
+them would be <em>less</em> accurate, not more — and vastly slower inside the path-planner's inner
+loop, where this function is evaluated millions of times.</p>
+<p>The <code>atan2</code> form is used rather than <span class="math-inline">\(c = 2\arcsin\sqrt{a}\)</span> because the latter is
+ill-conditioned for near-antipodal points (<span class="math-inline">\(a \to 1\)</span>).</p>
+<p><strong>Source.</strong> Sinnott, R. W. (1984), <em>Virtues of the Haversine</em>, Sky and Telescope <strong>68</strong>(2), 158.
+Stability analysis: Karney, C. F. F. (2013), <em>Algorithms for geodesics</em>, J. Geodesy <strong>87</strong>, 43–55.
+DOI: <a href="https://doi.org/10.1007/s00190-012-0578-z">10.1007/s00190-012-0578-z</a></p>
+<hr />
+<h3 id="22-surface-distance-including-topography">2.2 Surface distance including topography</h3>
+<p><strong>Statement.</strong> The traversed length of a path segment accounts for the vertical rise:</p>
+<div class="math-block">\[s_{3D} = \sqrt{s_{\text{gc}}^2 + (\Delta z)^2}\]</div>
+<p><strong>Derivation / Proof.</strong> For a segment short enough that slope is approximately constant, the
+horizontal displacement <span class="math-inline">\(s_{\text{gc}}\)</span> and vertical displacement <span class="math-inline">\(\Delta z\)</span> form a right
+triangle whose hypotenuse is the distance actually driven. Equivalently
+<span class="math-inline">\(s_{3D} = s_{\text{gc}}/\cos\theta\)</span>.</p>
+<p><strong>Why this one.</strong> A rover drives <em>over</em> terrain, not through the chord. Ignoring this
+systematically <strong>under-estimates traverse distance, time and energy</strong> — the error is
+<span class="math-inline">\(1/\cos\theta - 1\)</span>, which is 3.5 % at 15° and 10 % at 25°. For mission planning that is not
+negligible.</p>
+<p><strong>Applicability limit.</strong> Valid where the segment length is small relative to the radius of
+curvature of the terrain. In LunarSerpent, segments are one DEM cell (≤ 1.9 km) whereas
+<span class="math-inline">\(R = 1737\)</span> km, so the flat-triangle approximation contributes error <span class="math-inline">\(O(s/R)^2 &lt; 10^{-6}\)</span>.</p>
+<hr />
+<h3 id="23-initial-bearing">2.3 Initial bearing</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[\alpha = \operatorname{atan2}\!\big(\sin\Delta\lambda\cos\varphi_2,\ \cos\varphi_1\sin\varphi_2 - \sin\varphi_1\cos\varphi_2\cos\Delta\lambda\big)\]</div>
+<p><strong>Derivation / Proof.</strong> Standard result from the spherical triangle formed by the two points
+and the north pole, obtained by applying the four-parts formula of spherical trigonometry.</p>
+<p><strong>Why this one.</strong> Required for rover heading commands and for the aspect-vs-heading
+comparison in §6.3 (whether the rover is climbing, descending or side-slopes a gradient).
+Note that on a sphere the bearing <strong>changes continuously along a great circle</strong>, so this is
+the <em>initial</em> bearing and must be recomputed per segment.</p>
+<hr />
+<h3 id="24-metric-scale-of-a-grid-cell-the-latitude-problem">2.4 Metric scale of a grid cell — the latitude problem</h3>
+<p><strong>Statement.</strong> In a simple-cylindrical grid, the ground spacing of one cell is</p>
+<div class="math-block">\[\Delta y = \frac{\pi R}{H} \quad (\text{constant}), \qquad
+\boxed{\Delta x(\varphi) = \frac{2\pi R}{W}\cos\varphi} \quad (\text{latitude-dependent})\]</div>
+<p><strong>Derivation / Proof.</strong> A row of the grid spans 180° of latitude over <span class="math-inline">\(H\)</span> pixels, and the
+meridional arc length per degree is constant on a sphere, giving <span class="math-inline">\(\Delta y = \pi R / H\)</span>. A
+column spans 360° of longitude over <span class="math-inline">\(W\)</span> pixels, but the <strong>radius of the parallel of latitude</strong>
+<span class="math-inline">\(\varphi\)</span> is <span class="math-inline">\(R\cos\varphi\)</span>, not <span class="math-inline">\(R\)</span>. Hence the east–west ground spacing contracts as
+<span class="math-inline">\(\cos\varphi\)</span>.</p>
+<p><em>Consistency check at the equator.</em> For LOLA grids <span class="math-inline">\(W = 2H\)</span>, so
+<span class="math-inline">\(\Delta x(0) = 2\pi R/(2H) = \pi R/H = \Delta y\)</span> — the cells are square at the equator, as
+expected. For <code>LDEM_16</code>: <span class="math-inline">\(\pi \cdot 1737400 / 2880 = 1895.2\)</span> m, matching the label's
+<code>MAP_SCALE = 1895.21 &lt;m/pix&gt;</code>. ✅</p>
+<p><strong>Why this one — and why it is the most important formula in this section.</strong> Slope is
+<span class="math-inline">\(\arctan\)</span> of a <em>ratio of metres to metres</em>. If <span class="math-inline">\(\Delta x\)</span> is treated as constant, then at
+60° latitude the east–west distance is over-estimated by a factor of 2, and the computed
+east–west slope is <strong>under-estimated by the same factor</strong>. At 80° the error is a factor of
+5.8. This is the single most common defect in naive planetary terrain analysis, and it
+produces hazard maps that are dangerously optimistic exactly where Artemis wants to land —
+the poles.</p>
+<p>LunarSerpent therefore computes <span class="math-inline">\(\Delta x\)</span> per-row and propagates it into §3.2.</p>
+<p><strong>Degeneracy.</strong> As <span class="math-inline">\(\varphi \to \pm 90°\)</span>, <span class="math-inline">\(\Delta x \to 0\)</span> and the slope expression becomes
+singular. This is a genuine defect of the <em>projection</em>, not of the terrain. Above
+<span class="math-inline">\(|\varphi| = 85°\)</span> the system switches to polar stereographic products
+(<code>DATASETS.md</code> §5.3) rather than reporting numbers it cannot justify.</p>
+<hr />
+<h2 id="3-terrain-analysis">3. Terrain analysis</h2>
+<h3 id="31-elevation-from-digital-number">3.1 Elevation from digital number</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[z = \mathrm{DN} \times 0.5\ \text{m}, \qquad r_{\text{planetary}} = z + 1\,737\,400\ \text{m}\]</div>
+<p><strong>Derivation / Proof.</strong> Quoted verbatim from the PDS label:</p>
+<pre><code>HEIGHT           = DN * SCALING_FACTOR      (SCALING_FACTOR = 0.5)
+PLANETARY_RADIUS = DN * SCALING_FACTOR + OFFSET  (OFFSET = 1737400.0)
+</code></pre>
+<p><strong>Why this one.</strong> It is the producer's own definition; there is no alternative. The
+consequence worth stating is that the <strong>vertical quantisation of the data is 0.5 m</strong> — the
+system must never report elevation differences to a finer precision than this, and derived
+slopes carry a corresponding noise floor (§3.5).</p>
+<p><strong>Source.</strong> LOLA GDR PDS3 labels, PDS Geosciences Node.</p>
+<hr />
+<h3 id="32-slope-horns-operator">3.2 Slope — Horn's operator</h3>
+<p><strong>Statement.</strong> For the 3×3 elevation neighbourhood</p>
+<div class="math-block">\[\begin{matrix} z_1 &amp; z_2 &amp; z_3\\ z_4 &amp; z_5 &amp; z_6\\ z_7 &amp; z_8 &amp; z_9\end{matrix}\]</div>
+<p>(row-major, <span class="math-inline">\(z_5\)</span> the centre, <span class="math-inline">\(z_1\)</span> at north-west):</p>
+<div class="math-block">\[\frac{\partial z}{\partial x} = \frac{(z_3 + 2z_6 + z_9) - (z_1 + 2z_4 + z_7)}{8\,\Delta x(\varphi)}\]</div>
+<div class="math-block">\[\frac{\partial z}{\partial y} = \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,\Delta y}\]</div>
+<div class="math-block">\[\theta = \arctan\sqrt{\left(\frac{\partial z}{\partial x}\right)^2 + \left(\frac{\partial z}{\partial y}\right)^2}\]</div>
+<p><strong>Derivation / Proof.</strong> Horn's estimator is a <strong>third-order finite difference</strong> weighted so
+that the four edge-adjacent neighbours receive weight 2 and the four diagonal neighbours
+weight 1, normalised by 8. The weighting is the discrete approximation to a distance-weighted
+plane fit: diagonal neighbours are <span class="math-inline">\(\sqrt2\)</span> further away and are therefore down-weighted by
+approximately that factor.</p>
+<p>The magnitude <span class="math-inline">\(\|\nabla z\|\)</span> is the <strong>maximum</strong> directional derivative of the fitted surface
+(steepest descent), because for a plane <span class="math-inline">\(z = ax+by+c\)</span> the directional derivative in unit
+direction <span class="math-inline">\(\mathbf{u}\)</span> is <span class="math-inline">\(\nabla z \cdot \mathbf{u}\)</span>, maximised at <span class="math-inline">\(\|\nabla z\|\)</span> when
+<span class="math-inline">\(\mathbf{u} \parallel \nabla z\)</span>. Slope is therefore correctly the <em>steepest</em> gradient at the
+point, which is the quantity relevant to vehicle stability.</p>
+<p>Note the appearance of <span class="math-inline">\(\Delta x(\varphi)\)</span> from §2.4 — <strong>this is where the latitude
+correction must enter.</strong></p>
+<p><strong>Why this one.</strong> Four estimators were considered:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Behaviour</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2-point central difference</td>
+<td>Uses only 4 neighbours; highly noise-sensitive</td>
+<td>Rejected — LOLA has 0.5 m quantisation noise</td>
+</tr>
+<tr>
+<td><strong>Horn (1981)</strong></td>
+<td>8 neighbours, distance-weighted</td>
+<td><strong>Selected</strong></td>
+</tr>
+<tr>
+<td>Zevenbergen &amp; Thorne (1987)</td>
+<td>Exact quadratic through 9 points</td>
+<td>Used for <em>curvature</em> (§3.4), not slope</td>
+</tr>
+<tr>
+<td>Maximum-neighbour difference</td>
+<td>Overestimates on noisy data</td>
+<td>Rejected</td>
+</tr>
+</tbody>
+</table></div>
+<p>Horn's operator was selected because independent evaluations on real (noisy) DEMs find it the
+most accurate of the 3×3 family, and because it is the operator implemented in ArcGIS,
+GDAL (<code>gdaldem slope</code>) and GRASS — making LunarSerpent's outputs <strong>directly comparable with
+standard GIS results</strong> rather than idiosyncratic.</p>
+<p>Zevenbergen &amp; Thorne fits an exact quadratic through all nine points, which is superior on
+<em>smooth analytic</em> surfaces but amplifies noise on measured ones, because exact interpolation
+reproduces the noise rather than smoothing it.</p>
+<p><strong>Source.</strong> Horn, B. K. P. (1981), <em>Hill Shading and the Reflectance Map</em>, Proc. IEEE
+<strong>69</strong>(1), 14–47. DOI: <a href="https://doi.org/10.1109/PROC.1981.11918">10.1109/PROC.1981.11918</a>
+Comparative evaluation: Jones, K. H. (1998), <em>A comparison of algorithms used to compute hill
+slope as a property of the DEM</em>, Computers &amp; Geosciences <strong>24</strong>(4), 315–323.
+DOI: <a href="https://doi.org/10.1016/S0098-3004(98)00032-6">10.1016/S0098-3004(98)00032-6</a></p>
+<hr />
+<h3 id="33-aspect">3.3 Aspect</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[\psi = \operatorname{atan2}\!\left(\frac{\partial z}{\partial y},\ -\frac{\partial z}{\partial x}\right),
+\qquad \psi_{\text{compass}} = (90° - \psi) \bmod 360°\]</div>
+<p><strong>Derivation / Proof.</strong> Aspect is the compass direction of steepest <strong>descent</strong>, i.e. the
+azimuth of <span class="math-inline">\(-\nabla z\)</span>. The sign convention and the <span class="math-inline">\(90° - \psi\)</span> rotation convert from
+mathematical convention (counter-clockwise from +x/east) to compass convention (clockwise
+from north).</p>
+<p><strong>Why this one.</strong> Needed for three purposes: (a) determining whether a traverse segment
+climbs, descends or cross-slopes, which changes the rover mobility model (§7.2);
+(b) illumination modelling for solar power at polar sites; (c) hillshade rendering (§3.6).</p>
+<p><strong>Undefined case.</strong> Where <span class="math-inline">\(\|\nabla z\| = 0\)</span> the aspect is undefined; the implementation
+returns a flag, not an arbitrary value such as 0° (which would falsely imply "north-facing").</p>
+<hr />
+<h3 id="34-curvature-zevenbergen-thorne">3.4 Curvature — Zevenbergen &amp; Thorne</h3>
+<p><strong>Statement.</strong> Fit the quadratic surface</p>
+<div class="math-block">\[z = Ax^2y^2 + Bx^2y + Cxy^2 + Dx^2 + Ey^2 + Fxy + Gx + Hy + I\]</div>
+<p>exactly through the 3×3 neighbourhood. Then</p>
+<div class="math-block">\[\kappa_{\text{profile}} = \frac{-2(DG^2 + EH^2 + FGH)}{(G^2+H^2)\,(1+G^2+H^2)^{3/2}}\]</div>
+<div class="math-block">\[\kappa_{\text{plan}} = \frac{2(DH^2 + EG^2 - FGH)}{(G^2+H^2)^{3/2}}\]</div>
+<p><strong>Derivation / Proof.</strong> With nine sample points and nine coefficients the fit is exact
+(interpolating, not least-squares). <span class="math-inline">\(G\)</span> and <span class="math-inline">\(H\)</span> are the first partial derivatives at the
+centre and <span class="math-inline">\(D, E, F\)</span> the second partials. <em>Profile</em> curvature is the curvature of the surface
+<strong>in the direction of steepest slope</strong>; <em>plan</em> curvature is the curvature <strong>perpendicular</strong>
+to it — obtained by projecting the Hessian onto the gradient direction and its normal
+respectively.</p>
+<p><strong>Why this one — physical meaning.</strong></p>
+<ul>
+<li><span class="math-inline">\(\kappa_{\text{profile}} &lt; 0\)</span> → surface is <strong>convex</strong> along the slope: a <strong>crater rim</strong> or
+  ridge crest. Convex-upward breaks are where a rover risks high-centering or tipping.</li>
+<li><span class="math-inline">\(\kappa_{\text{profile}} &gt; 0\)</span> → <strong>concave</strong>: a crater floor or valley, where regolith
+  and volatiles accumulate.</li>
+<li><span class="math-inline">\(\kappa_{\text{plan}}\)</span> distinguishes converging from diverging flow — used to separate
+  genuine circular crater rims from linear ridges in the detector of §5.1.</li>
+</ul>
+<p>Curvature is the <strong>primary discriminator for DEM-based crater detection</strong>, because a crater
+has a characteristic signature: an annulus of strongly negative profile curvature (the rim)
+enclosing a region of positive curvature (the floor). This is far more robust than intensity
+methods, which confound craters with albedo features.</p>
+<p><strong>Source.</strong> Zevenbergen, L. W. &amp; Thorne, C. R. (1987), <em>Quantitative analysis of land surface
+topography</em>, Earth Surface Processes and Landforms <strong>12</strong>(1), 47–56.
+DOI: <a href="https://doi.org/10.1002/esp.3290120107">10.1002/esp.3290120107</a></p>
+<hr />
+<h3 id="35-roughness-and-the-noise-floor">3.5 Roughness, and the noise floor</h3>
+<p><strong>Statement.</strong> Three complementary measures over a window <span class="math-inline">\(N\)</span> of <span class="math-inline">\(n\)</span> cells:</p>
+<p><strong>Terrain Ruggedness Index</strong> (Riley et al. 1999):
+<div class="math-block">\[\mathrm{TRI} = \sqrt{\frac{1}{n}\sum_{i\in N}(z_i - z_c)^2}\]</div></p>
+<p><strong>RMS slope</strong> at baseline <span class="math-inline">\(L\)</span> (Shepard et al. 2001):
+<div class="math-block">\[s(L) = \sqrt{\left\langle \left(\frac{z(x+L)-z(x)}{L}\right)^2\right\rangle}\]</div></p>
+<p><strong>Relief:</strong> <span class="math-inline">\(\Delta z_{\max} = \max_N z - \min_N z\)</span></p>
+<p><strong>Derivation / Proof.</strong> TRI is the root-mean-square deviation of neighbours from the centre
+cell — a direct measure of local vertical scatter. RMS slope is the second moment of the
+elevation-difference distribution at lag <span class="math-inline">\(L\)</span>, which for a self-affine surface obeys a power
+law <span class="math-inline">\(s(L) \propto L^{H-1}\)</span> with <span class="math-inline">\(H\)</span> the Hurst exponent.</p>
+<p><strong>Why this one — and the scale-dependence warning.</strong> Shepard et al. showed that natural
+planetary surfaces are <strong>self-affine</strong>: roughness is not a single number but a <em>function of
+baseline</em>. A surface that is smooth at 2 km baseline can be lethal at 2 m baseline. It is
+therefore <strong>scientifically meaningless to quote a slope or roughness without stating the
+baseline over which it was measured.</strong></p>
+<p>LunarSerpent enforces this: every slope and roughness value carries its baseline length in
+the API response and in the UI. At <code>LDEM_16</code> the baseline is <strong>1895 m</strong>; a rover wheel
+responds to something nearer 1 m. The system therefore explicitly distinguishes:</p>
+<ul>
+<li><strong>Corridor-scale slope</strong> (from LOLA) — valid for route selection over tens of kilometres</li>
+<li><strong>Rover-scale slope</strong> (from OHRC/NAC-derived products) — required for final traverse safety</li>
+</ul>
+<p>Conflating the two would be the most serious scientific error this project could make, and
+Part 6's hazard model is structured to prevent it.</p>
+<p><strong>Noise floor.</strong> With 0.5 m vertical quantisation (§3.1) and <span class="math-inline">\(\Delta x \approx 1895\)</span> m, a
+one-DN difference between adjacent cells corresponds to a slope of
+<span class="math-inline">\(\arctan(0.5/1895) = 0.015°\)</span>. Slopes below roughly 0.05° are therefore <strong>not resolvable</strong> and
+are reported as "below noise floor" rather than as small numbers implying false precision.</p>
+<p><strong>Sources.</strong>
+Riley, S. J., DeGloria, S. D. &amp; Elliot, R. (1999), <em>A terrain ruggedness index that quantifies
+topographic heterogeneity</em>, Intermountain Journal of Sciences <strong>5</strong>, 23–27.
+Shepard, M. K. et al. (2001), <em>The roughness of natural terrain: A planetary and remote
+sensing perspective</em>, JGR Planets <strong>106</strong>(E12), 32777–32795.
+DOI: <a href="https://doi.org/10.1029/2000JE001429">10.1029/2000JE001429</a></p>
+<hr />
+<h3 id="36-hillshade-visualisation-only">3.6 Hillshade (visualisation only)</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[I = 255\big[\cos\theta_z\cos\theta + \sin\theta_z\sin\theta\cos(\phi_a - \psi)\big]\]</div>
+<p>with <span class="math-inline">\(\theta_z\)</span> the solar zenith angle and <span class="math-inline">\(\phi_a\)</span> the solar azimuth.</p>
+<p><strong>Derivation / Proof.</strong> This is the Lambertian cosine law <span class="math-inline">\(I \propto \mathbf{n}\cdot\mathbf{l}\)</span>
+expanded in terms of slope and aspect, where <span class="math-inline">\(\mathbf{n}\)</span> is the surface normal and
+<span class="math-inline">\(\mathbf{l}\)</span> the illumination direction.</p>
+<p><strong>Why this one — and where it must NOT be used.</strong> Hillshade is used <strong>only</strong> for optional
+relief rendering in the analysis panels.</p>
+<blockquote>
+<p>⚠️ <strong>It is never applied to the 3D globe.</strong> Part 1 requires the globe to be free of
+illumination effects so that all 360°, including both poles, is uniformly legible. This is
+implemented by using an <strong>unlit material</strong> (§8.1) — the technical opposite of a hillshade.
+The two coexist deliberately: the globe shows <em>albedo and morphology</em>, while a hillshade
+panel can show <em>shape</em>, and the user chooses.</p>
+</blockquote>
+<p><strong>Source.</strong> Horn (1981), <em>op. cit.</em> — the same paper that gives the slope operator.</p>
+<hr />
+<h2 id="4-crater-morphometry-and-classification">4. Crater morphometry and classification</h2>
+<h3 id="41-depthdiameter-scaling">4.1 Depth–diameter scaling</h3>
+<p><strong>Statement.</strong> For lunar craters, with <span class="math-inline">\(d\)</span> and <span class="math-inline">\(D\)</span> in <strong>kilometres</strong>:</p>
+<p><div class="math-block">\[\text{Simple } (D &lt; 15\ \text{km}): \quad d = 0.196\,D^{1.010}\]</div>
+<div class="math-block">\[\text{Complex } (D &gt; 15\ \text{km}): \quad d = 1.044\,D^{0.301}\]</div></p>
+<p><strong>Derivation / Proof.</strong> These are <strong>empirical power-law fits</strong>, not analytic results. Pike
+measured rim-crest-to-floor depth for several hundred lunar craters from Lunar Orbiter and
+Apollo photogrammetry and regressed <span class="math-inline">\(\log d\)</span> on <span class="math-inline">\(\log D\)</span>. The near-unity exponent for simple
+craters (<span class="math-inline">\(1.010\)</span>) means simple craters are approximately <strong>geometrically similar</strong> — depth
+scales linearly with diameter, so <span class="math-inline">\(d/D \approx 0.196 \approx 1/5\)</span> is roughly constant.</p>
+<p>The complex-crater exponent (<span class="math-inline">\(0.301\)</span>) is dramatically shallower: doubling <span class="math-inline">\(D\)</span> increases depth
+by only <span class="math-inline">\(2^{0.301} = 1.23\times\)</span>. Large craters are <strong>proportionally much shallower</strong>.</p>
+<p><strong>Physical interpretation — why the exponent changes.</strong> The break occurs because gravity
+overwhelms the strength of the target rock. For a transient cavity of depth <span class="math-inline">\(d_t\)</span>, the
+lithostatic stress at the floor is <span class="math-inline">\(\rho g d_t\)</span>. When this exceeds the material's shear
+strength, the cavity <strong>collapses</strong>: the floor rebounds upward, the walls slump inward forming
+terraces, and a central peak forms by elastic rebound. The result is a wider, shallower final
+crater. This is the <em>simple-to-complex transition</em>, and it is why the transition diameter
+<span class="math-inline">\(D_t\)</span> scales approximately as <span class="math-inline">\(g^{-1}\)</span> across bodies — <span class="math-inline">\(\sim\)</span>15–20 km on the Moon
+(<span class="math-inline">\(g = 1.62\)</span>), but only <span class="math-inline">\(\sim\)</span>3 km on Earth (<span class="math-inline">\(g = 9.81\)</span>).</p>
+<p><strong>Why this one.</strong> Pike's relations remain the standard reference fit, reproduced by every
+subsequent survey including modern LOLA-based work. LunarSerpent uses them in three ways:</p>
+<ol>
+<li><strong>Prediction</strong> — estimate depth where DEM resolution cannot resolve it directly.</li>
+<li><strong>Validation</strong> — compare measured LOLA depth against predicted; large deviation is
+   physically meaningful, indicating a <strong>degraded/infilled</strong> crater (measured ≪ predicted)
+   or an anomalously fresh one.</li>
+<li><strong>Classification</strong> — the transition diameter is the <em>physically justified</em> boundary
+   between morphological classes (§4.3), rather than an arbitrary bin edge.</li>
+</ol>
+<p><strong>Stated uncertainty.</strong> Pike's fits have scatter of roughly ±30 % in <span class="math-inline">\(d\)</span> at fixed <span class="math-inline">\(D\)</span>, arising
+from genuine variation in target properties, impact angle and degradation state.
+<strong>LunarSerpent reports predicted depth with this uncertainty band, never as a point value.</strong></p>
+<p><strong>Sources.</strong>
+Pike, R. J. (1974), <em>Depth/diameter relations of fresh lunar craters: Revision from spacecraft
+data</em>, Geophys. Res. Lett. <strong>1</strong>(7), 291–294.
+DOI: <a href="https://doi.org/10.1029/GL001i007p00291">10.1029/GL001i007p00291</a>
+Pike, R. J. (1977), <em>Size-dependence in the shape of fresh impact craters on the Moon</em>, in
+<em>Impact and Explosion Cratering</em>, Pergamon, 489–509.
+Modern confirmation: Wang, Y. et al. (2021), JGR Planets <strong>126</strong>, e2020JE006728.
+DOI: <a href="https://doi.org/10.1029/2020JE006728">10.1029/2020JE006728</a></p>
+<hr />
+<h3 id="42-rim-height-and-excavation-depth">4.2 Rim height and excavation depth</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[h_{\text{rim}} = 0.036\,D^{1.014}\ \text{km}, \qquad d_{\text{exc}} \approx 0.1\,D\]</div>
+<p><strong>Derivation / Proof.</strong> The rim-height relation is Pike's companion empirical fit. The
+excavation-depth rule follows from the <em>proportional growth</em> model of transient cavity
+formation: material is excavated from roughly the upper one-third of the transient cavity,
+and with <span class="math-inline">\(d_t/D_t \approx 1/3\)</span> this yields <span class="math-inline">\(d_{\text{exc}} \approx D/10\)</span>.</p>
+<p><strong>Why this one.</strong> Excavation depth determines <strong>what stratigraphic layer a crater has exposed</strong>
+— it is the basis for using craters as natural boreholes into the crust, and it identifies
+which craters may have excavated deep-seated or volatile-bearing material. For rover
+traverse planning it also predicts <strong>ejecta block size</strong>, which feeds the boulder-hazard
+model of §6.2.</p>
+<p><strong>Source.</strong> Melosh, H. J. (1989), <em>Impact Cratering: A Geologic Process</em>, Oxford University
+Press, Ch. 5–7.</p>
+<hr />
+<h3 id="43-size-classification">4.3 Size classification</h3>
+<p><strong>Statement.</strong> Craters are assigned to classes by rim-crest diameter:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Diameter</th>
+<th>Physical basis</th>
+<th>Colour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Micro</strong></td>
+<td>&lt; 100 m</td>
+<td>Below LOLA resolution; regolith-scale</td>
+<td>grey</td>
+</tr>
+<tr>
+<td><strong>Very small</strong></td>
+<td>100 m – 1 km</td>
+<td>Below Robbins completeness limit</td>
+<td>light blue</td>
+</tr>
+<tr>
+<td><strong>Small</strong></td>
+<td>1 – 15 km</td>
+<td><strong>Simple morphology</strong>: bowl-shaped, <span class="math-inline">\(d/D \approx 0.2\)</span></td>
+<td>blue</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>15 – 50 km</td>
+<td><strong>Complex</strong>: terraced walls, central peak</td>
+<td>green</td>
+</tr>
+<tr>
+<td><strong>Large</strong></td>
+<td>50 – 200 km</td>
+<td>Complex with peak ring onset</td>
+<td>orange</td>
+</tr>
+<tr>
+<td><strong>Giant</strong></td>
+<td>200 – 300 km</td>
+<td>Peak-ring basin</td>
+<td>red</td>
+</tr>
+<tr>
+<td><strong>Basin</strong></td>
+<td>&gt; 300 km</td>
+<td>Multi-ring impact basin</td>
+<td>purple</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Derivation / Proof.</strong> The class boundaries are <strong>not arbitrary</strong>. Each corresponds to a
+documented physical or observational transition:</p>
+<ul>
+<li><strong>1 km</strong> — the completeness limit of the Robbins catalogue. Below it, no authoritative
+  global census exists, so LunarSerpent's own detections take over and are labelled as such.</li>
+<li><strong>15 km</strong> — the <strong>simple→complex transition</strong> on the Moon (§4.1). This is a change in
+  physics, not in nomenclature.</li>
+<li><strong>~50 km</strong> — onset of <strong>peak-ring</strong> structures replacing single central peaks.</li>
+<li><strong>~300 km</strong> — onset of <strong>multi-ring basins</strong>.</li>
+<li><strong>100 m</strong> — approximately the LROC WAC resolution limit and the practical floor for
+  global-scale work.</li>
+</ul>
+<p><strong>Why this one.</strong> The project requires classification "backed with proof/formulas". A scheme
+whose boundaries track morphological transitions is defensible from cratering mechanics; a
+scheme with round-number bins (10/100/1000 km) is not. Every boundary above can be cited.</p>
+<p><strong>Sources.</strong> Pike (1977) <em>op. cit.</em>; Melosh (1989) <em>op. cit.</em>;
+Head, J. W. et al. (2010), <em>Global Distribution of Large Lunar Craters</em>, Science <strong>329</strong>,
+1504–1507. DOI: <a href="https://doi.org/10.1126/science.1195050">10.1126/science.1195050</a></p>
+<hr />
+<h3 id="44-degradation-state-and-crater-age-an-explicit-statement-of-limits">4.4 Degradation state and crater age — an explicit statement of limits</h3>
+<blockquote>
+<p><strong>This section documents what the system will <em>not</em> claim.</strong></p>
+</blockquote>
+<p><strong>The problem.</strong> Crater age cannot be measured from topography. There is no formula
+<span class="math-inline">\(\text{age} = f(\text{shape})\)</span> with defensible accuracy for an individual crater.</p>
+<p><strong>What is defensible.</strong> Three distinct, separately-labelled quantities:</p>
+<p><strong>(a) Degradation index</strong> — a <em>measured, dimensionless</em> quantity:</p>
+<div class="math-block">\[\Delta = \frac{(d/D)_{\text{measured}}}{(d/D)_{\text{Pike}}} \in (0, 1]\]</div>
+<p><span class="math-inline">\(\Delta \to 1\)</span> indicates a pristine crater matching the fresh-crater fit; <span class="math-inline">\(\Delta \ll 1\)</span>
+indicates infilling and rim erosion. This is a <strong>direct observable</strong> and is reported as such.</p>
+<p><strong>(b) Stratigraphic epoch</strong> — assigned from the published Unified Geologic Map of the Moon
+for <em>named</em> craters. Categorical, authoritative, and carries the map's own uncertainty:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>System</th>
+<th>Approx. age (Ga)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Copernican</td>
+<td>0 – 1.1</td>
+</tr>
+<tr>
+<td>Eratosthenian</td>
+<td>1.1 – 3.2</td>
+</tr>
+<tr>
+<td>Imbrian</td>
+<td>3.2 – 3.85</td>
+</tr>
+<tr>
+<td>Nectarian</td>
+<td>3.85 – 3.92</td>
+</tr>
+<tr>
+<td>Pre-Nectarian</td>
+<td>&gt; 3.92</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>(c) Model age</strong> — from crater counting on a surface, using the Neukum production function
+<span class="math-inline">\(N(&gt;D)\)</span> and chronology function</p>
+<div class="math-block">\[N(1) = 5.44\times10^{-14}\left(e^{6.93\,T} - 1\right) + 8.38\times10^{-4}\,T\]</div>
+<p>with <span class="math-inline">\(T\)</span> in Gyr and <span class="math-inline">\(N(1)\)</span> the cumulative number of craters <span class="math-inline">\(\ge 1\)</span> km per km².</p>
+<p><strong>Why this structure.</strong> Reporting a single "age" number per crater would be scientifically
+indefensible, and the project brief demands scientific provability. LunarSerpent therefore
+reports the <strong>measured</strong> degradation index always, the <strong>stratigraphic epoch</strong> where the
+published map provides one, and a <strong>model age with explicit uncertainty</strong> only where a
+statistically adequate crater count is available (typically requiring ≥ 50 superposed
+craters on a mapped ejecta blanket).</p>
+<p><strong>Sources.</strong>
+Neukum, G., Ivanov, B. A. &amp; Hartmann, W. K. (2001), <em>Cratering records in the inner Solar
+System in relation to the lunar reference system</em>, Space Sci. Rev. <strong>96</strong>, 55–86.
+DOI: <a href="https://doi.org/10.1023/A:1011989004263">10.1023/A:1011989004263</a>
+Fortezzo, C. M., Spudis, P. D. &amp; Harrel, S. L. (2020), <em>Release of the Digital Unified Global
+Geologic Map of the Moon at 1:5,000,000 Scale</em>, LPSC 51, Abstract 2760.</p>
+<hr />
+<h2 id="5-detection">5. Detection</h2>
+<h3 id="51-dem-based-crater-detection">5.1 DEM-based crater detection</h3>
+<p><strong>Statement.</strong> A candidate crater is a connected region satisfying:</p>
+<ol>
+<li>An annulus of profile curvature <span class="math-inline">\(\kappa_{\text{profile}} &lt; -\tau_\kappa\)</span> (the rim),</li>
+<li>enclosing a region of <span class="math-inline">\(\kappa_{\text{profile}} &gt; 0\)</span> (the floor),</li>
+<li>with radial symmetry measured by the <strong>circular Hough accumulator</strong> exceeding <span class="math-inline">\(\tau_H\)</span>,</li>
+<li>and measured depth consistent with §4.1 to within the stated ±30 % band.</li>
+</ol>
+<p><strong>Derivation / Proof.</strong> Condition (1)–(2) is the topographic signature derived in §3.4.
+Condition (3) formalises circularity: for a candidate centre <span class="math-inline">\((x_0,y_0)\)</span> and radius <span class="math-inline">\(r\)</span>, the
+Hough score is</p>
+<div class="math-block">\[A(x_0,y_0,r) = \sum_{\text{edge pixels}} \mathbb{1}\big[\,\big|\|\mathbf{p}-\mathbf{c}\| - r\big| &lt; \epsilon\,\big]\]</div>
+<p>which is maximal when edge pixels lie on a circle. Condition (4) is a <strong>physical consistency
+filter</strong> and is what distinguishes this from generic blob detection: a circular depression
+whose depth is wildly inconsistent with impact scaling is probably not an impact crater.</p>
+<p><strong>Why this one.</strong> Intensity-based detection confounds craters with albedo features (fresh
+ejecta rays, mare/highland boundaries) which have no topographic expression. Topographic
+detection is immune to this by construction. Combining curvature + Hough + physical
+consistency gives three quasi-independent tests, so false positives must satisfy all three.</p>
+<p><strong>Validation.</strong> Because Robbins is complete for <span class="math-inline">\(D \ge 1\)</span> km, detector performance is measured
+against it on that range — yielding genuine precision/recall rather than self-assessment. The
+detector is then applied <strong>below</strong> 1 km where no ground truth exists, and its reported
+confidence is the value calibrated on the <span class="math-inline">\(\ge 1\)</span> km range.</p>
+<p><strong>Sources.</strong>
+Hough, P. V. C. (1962), <em>Method and Means for Recognizing Complex Patterns</em>, US Patent 3,069,654.
+Duda, R. O. &amp; Hart, P. E. (1972), <em>Use of the Hough transformation to detect lines and curves
+in pictures</em>, Comm. ACM <strong>15</strong>(1), 11–15. DOI: <a href="https://doi.org/10.1145/361237.361242">10.1145/361237.361242</a>
+Salamunićcar, G. &amp; Lončarić, S. (2010), <em>Method for crater detection from digital topography
+data</em>, Advances in Space Research <strong>45</strong>(1), 105–114.
+DOI: <a href="https://doi.org/10.1016/j.asr.2009.07.026">10.1016/j.asr.2009.07.026</a></p>
+<hr />
+<h3 id="52-boulder-height-from-shadow-length">5.2 Boulder height from shadow length</h3>
+<p><strong>Statement.</strong> For a boulder casting a shadow of measured length <span class="math-inline">\(L\)</span> on locally level ground,
+illuminated at solar <strong>incidence angle</strong> <span class="math-inline">\(i\)</span> (measured from the surface normal), with solar
+<strong>elevation</strong> <span class="math-inline">\(e = 90° - i\)</span>:</p>
+<div class="math-block">\[\boxed{\;h = L\,\tan e = \frac{L}{\tan i}\;}\]</div>
+<p><strong>Derivation / Proof.</strong> Consider a vertical object of height <span class="math-inline">\(h\)</span> on a horizontal plane. The
+sun's rays make angle <span class="math-inline">\(e\)</span> with the plane. The shadow tip lies where the ray grazing the top of
+the object meets the ground. By similar triangles, <span class="math-inline">\(\tan e = h / L\)</span>, hence <span class="math-inline">\(h = L\tan e\)</span>.
+Since <span class="math-inline">\(e = 90° - i\)</span> and <span class="math-inline">\(\tan(90° - i) = \cot i\)</span>, the second form follows.</p>
+<p><strong>Slope correction.</strong> On ground of slope <span class="math-inline">\(\theta\)</span> inclined along the illumination azimuth, the
+relation becomes</p>
+<div class="math-block">\[h = L\,\frac{\sin(e \pm \theta)}{\cos\theta}\]</div>
+<p>with the sign positive for slopes tilted away from the sun. LunarSerpent applies this
+correction using the local slope from §3.2.</p>
+<p><strong>Why this one.</strong> Shadow measurement is the <strong>only</strong> technique that recovers absolute boulder
+height from a single monoscopic image. Stereo photogrammetry needs an image pair; photoclinometry
+needs a calibrated reflectance model and known albedo. Shadow length needs only geometry, which
+is recorded exactly in the image label.</p>
+<p><strong>Why low sun matters.</strong> The measurement is most sensitive when <span class="math-inline">\(\partial L/\partial h = \cot e\)</span>
+is large — i.e. at <strong>low solar elevation</strong>. At <span class="math-inline">\(e = 10°\)</span> a 0.5 m boulder casts a 2.8 m shadow,
+resolvable at OHRC's 0.25 m/px; at <span class="math-inline">\(e = 60°\)</span> the same boulder casts only 0.29 m of shadow, barely
+one pixel. <strong>Boulder detection must therefore use low-sun imagery</strong>, and the pipeline records
+<span class="math-inline">\(e\)</span> per scene and reports the resulting minimum detectable boulder height.</p>
+<p><strong>Detection limit.</strong> With pixel scale <span class="math-inline">\(p\)</span> and a minimum resolvable shadow of <span class="math-inline">\(k\)</span> pixels
+(conservatively <span class="math-inline">\(k = 3\)</span>):</p>
+<div class="math-block">\[h_{\min} = k\,p\,\tan e\]</div>
+<p>For OHRC (<span class="math-inline">\(p = 0.25\)</span> m) at <span class="math-inline">\(e = 15°\)</span>: <span class="math-inline">\(h_{\min} = 3 \times 0.25 \times 0.268 = 0.20\)</span> m.
+<strong>LunarSerpent reports this limit alongside every boulder survey</strong>, so that "no boulders
+detected" is never confused with "no boulders present".</p>
+<p><strong>Sources.</strong>
+Watkins, R. N. et al. (2019), <em>Boulder distributions around young lunar impact craters</em>,
+JGR Planets <strong>124</strong>, 2754–2771. DOI: <a href="https://doi.org/10.1029/2019JE005963">10.1029/2019JE005963</a>
+Bandeira, L., Ding, W. &amp; Stepinski, T. F. (2012), <em>Detection of sub-kilometer craters in high
+resolution planetary images using shape and texture features</em>, Advances in Space Research
+<strong>49</strong>(1), 64–74. DOI: <a href="https://doi.org/10.1016/j.asr.2011.08.021">10.1016/j.asr.2011.08.021</a></p>
+<hr />
+<h3 id="53-boulder-sizefrequency-distribution">5.3 Boulder size–frequency distribution</h3>
+<p><strong>Statement.</strong> The cumulative number of boulders with diameter <span class="math-inline">\(&gt; D\)</span> per unit area follows</p>
+<div class="math-block">\[N(&gt;D) = k\,D^{-\beta}, \qquad \beta \approx 2.5 - 3.5\]</div>
+<p><strong>Derivation / Proof.</strong> Empirical power law observed for fragmentation products generally, and
+confirmed for lunar ejecta blocks. It is the signature of scale-invariant brittle fragmentation.</p>
+<p><strong>Why this one.</strong> It permits <strong>extrapolation below the detection limit</strong>. Having measured
+<span class="math-inline">\(N(&gt;D)\)</span> for <span class="math-inline">\(D &gt; h_{\min}\)</span>, the fitted law estimates the population of smaller, undetectable
+boulders — which is exactly what a rover hazard assessment needs, since sub-resolution
+boulders still threaten wheels. This converts "we cannot see them" into a <em>quantified
+probabilistic hazard</em> rather than an unstated gap.</p>
+<p><strong>Source.</strong> Watkins et al. (2019) <em>op. cit.</em>; Golombek, M. &amp; Rapp, D. (1997), <em>Size-frequency
+distributions of rocks on Mars and Earth analog sites</em>, JGR Planets <strong>102</strong>(E2), 4117–4129.
+DOI: <a href="https://doi.org/10.1029/96JE03319">10.1029/96JE03319</a></p>
+<hr />
+<h2 id="6-hazard-risk-and-cost">6. Hazard, risk and cost</h2>
+<h3 id="61-slope-hazard">6.1 Slope hazard</h3>
+<p><strong>Statement.</strong> With rover sustained gradeability <span class="math-inline">\(\theta_{\max}\)</span> and static stability limit
+<span class="math-inline">\(\theta_{\text{tip}}\)</span>:</p>
+<div class="math-block">\[H_\theta = \begin{cases}
+0 &amp; \theta &lt; 0.5\,\theta_{\max}\\[4pt]
+\dfrac{\theta - 0.5\theta_{\max}}{0.5\theta_{\max}} &amp; 0.5\theta_{\max} \le \theta &lt; \theta_{\max}\\[8pt]
+1 &amp; \theta \ge \theta_{\max}\ \ (\textbf{impassable})
+\end{cases}\]</div>
+<p><strong>Derivation / Proof.</strong> Piecewise-linear ramp: zero hazard well below the limit, rising
+linearly through the margin, saturating at the limit. The half-limit knee reflects standard
+engineering practice of a <strong>2× safety factor</strong> on a mobility limit.</p>
+<p><strong>Physical basis for <span class="math-inline">\(\theta_{\max}\)</span>.</strong> A rover ascends without slipping while the available
+traction exceeds the gravitational component along the slope:</p>
+<div class="math-block">\[\mu\, m g\cos\theta \ge m g\sin\theta \quad\Longrightarrow\quad \theta_{\max} = \arctan\mu\]</div>
+<p>For lunar regolith the wheel–soil friction coefficient is <span class="math-inline">\(\mu \approx 0.3 - 0.6\)</span>, giving
+<span class="math-inline">\(\theta_{\max} \approx 17° - 31°\)</span>. The default 15° for a VIPER-class rover sits conservatively
+inside this range. Tip-over is a separate, geometric limit set by the centre-of-mass position.</p>
+<p><strong>Why this one.</strong> A binary passable/impassable threshold makes the planner indifferent between
+a 1° and a 14° route. A graded cost makes it prefer gentler terrain while still permitting
+steep sections when necessary — which is the actual behaviour required.</p>
+<p><strong>Source.</strong> Bekker, M. G. (1969), <em>Introduction to Terrain-Vehicle Systems</em>, University of
+Michigan Press. Lunar friction values: Carrier, W. D., Olhoeft, G. R. &amp; Mendell, W. (1991),
+<em>Physical properties of the lunar surface</em>, in <em>Lunar Sourcebook</em>, Cambridge Univ. Press, Ch. 9.</p>
+<hr />
+<h3 id="62-boulder-and-roughness-hazard">6.2 Boulder and roughness hazard</h3>
+<p><strong>Statement.</strong> With ground clearance <span class="math-inline">\(c\)</span> and wheel diameter <span class="math-inline">\(d_w\)</span>:</p>
+<div class="math-block">\[H_b = \min\!\left(1,\ \frac{\text{TRI}}{c}\right), \qquad
+\text{blocked if } h_{\text{boulder}} &gt; \min(c,\ 0.5\,d_w)\]</div>
+<p><strong>Derivation / Proof.</strong> An obstacle is straddled if lower than the chassis clearance <span class="math-inline">\(c\)</span>, and
+climbed if lower than roughly half the wheel diameter — the standard step-obstacle rule for
+rigid-wheeled vehicles, arising because the wheel must be able to establish contact above the
+obstacle's centre to generate climbing torque.</p>
+<p><strong>Why this one.</strong> It ties the hazard directly to <strong>rover geometry</strong>, so changing the rover
+profile changes the hazard map correctly rather than requiring re-tuned abstract weights.</p>
+<hr />
+<h3 id="63-crater-proximity-hazard">6.3 Crater proximity hazard</h3>
+<p><strong>Statement.</strong> For a crater of radius <span class="math-inline">\(r_c\)</span> at distance <span class="math-inline">\(s\)</span> from the point:</p>
+<div class="math-block">\[H_c = \begin{cases}
+1 &amp; s &lt; r_c \quad (\text{inside the rim})\\
+\exp\!\left(-\dfrac{s - r_c}{\ell}\right) &amp; s \ge r_c
+\end{cases}\]</div>
+<p>with decay length <span class="math-inline">\(\ell = 0.5\,r_c\)</span>.</p>
+<p><strong>Derivation / Proof.</strong> Inside the rim the terrain is the crater wall — steep by construction
+(§4.1). Outside, hazard decays because <strong>ejecta block density falls off with distance</strong>,
+empirically as a steep power law, approximated here by an exponential with a scale
+proportional to crater size. The proportionality <span class="math-inline">\(\ell \propto r_c\)</span> reflects that ejecta
+blankets scale with the crater that produced them (continuous ejecta typically extends
+<span class="math-inline">\(\sim1\)</span> crater radius beyond the rim).</p>
+<p><strong>Why this one.</strong> It automatically produces a <strong>standoff distance</strong> that scales with crater
+size — the planner avoids a 10 km crater by a wide margin and a 100 m crater narrowly, without
+any hand-tuned per-crater rules.</p>
+<hr />
+<h3 id="64-composite-cost-surface">6.4 Composite cost surface</h3>
+<p><strong>Statement.</strong> The traversal cost of cell <span class="math-inline">\(i\)</span>:</p>
+<div class="math-block">\[C_i = \underbrace{\frac{s_{3D}}{v(\theta_i)}}_{\text{time}}\cdot\underbrace{\big(1 + \gamma\,H_i\big)}_{\text{risk multiplier}}, \qquad
+H_i = \max\big(H_\theta, H_b, H_c\big)\]</div>
+<p>and <span class="math-inline">\(C_i = \infty\)</span> where any hazard is blocking.</p>
+<p><strong>Derivation / Proof.</strong> The base term is <strong>traverse time</strong> — a physically meaningful,
+additive, non-negative quantity, which is exactly what a shortest-path algorithm requires. The
+multiplier inflates the effective cost of risky cells so the planner trades time against risk
+at a rate set by <span class="math-inline">\(\gamma\)</span>.</p>
+<p><strong>Why <span class="math-inline">\(\max\)</span> and not a weighted sum.</strong> Hazards are <strong>not independent and not compensatory</strong>:
+a cell with an impassable slope is impassable regardless of how smooth it is. A weighted sum
+would let a low roughness score dilute a fatal slope score. The max operator implements
+"a chain is as strong as its weakest link", which is the correct semantics for safety.</p>
+<p><strong>Why cost must be non-negative and additive.</strong> Dijkstra and A* are only correct for
+non-negative edge weights, and A*'s optimality additionally needs consistency. Defining cost
+as time × (positive multiplier) guarantees both by construction. This is proved in §9.1.</p>
+<p><span class="math-inline">\(\gamma\)</span> is user-exposed as a <strong>risk-aversion parameter</strong>: <span class="math-inline">\(\gamma = 0\)</span> gives the fastest
+route ignoring risk, large <span class="math-inline">\(\gamma\)</span> gives the safest route ignoring time. Presenting the
+route family across <span class="math-inline">\(\gamma\)</span> is more informative than asserting a single "best" answer.</p>
+<hr />
+<h3 id="65-safety-score">6.5 Safety score</h3>
+<p><strong>Statement.</strong> For a completed path <span class="math-inline">\(P\)</span>:</p>
+<div class="math-block">\[S = 100\left(1 - \frac{\sum_{i\in P} H_i\,s_i}{\sum_{i\in P} s_i}\right)\]</div>
+<p><strong>Derivation / Proof.</strong> The <strong>distance-weighted mean hazard</strong> along the route, mapped to
+0–100. Weighting by segment length (not cell count) is essential: a 10 m hazardous segment
+should not count as much as a 10 km one.</p>
+<p><strong>Why this one.</strong> It is interpretable ("this route is 87 % safe" means the length-weighted
+mean hazard is 0.13) and comparable between routes of different length — which the
+multi-algorithm comparison of Part 6 requires.</p>
+<hr />
+<h2 id="7-rover-mobility-model">7. Rover mobility model</h2>
+<h3 id="71-power-limited-speed-on-a-slope">7.1 Power-limited speed on a slope</h3>
+<p><strong>Statement.</strong> For a rover of mass <span class="math-inline">\(m\)</span> with available propulsive power <span class="math-inline">\(P\)</span> and rolling
+resistance coefficient <span class="math-inline">\(\mu_r\)</span>:</p>
+<div class="math-block">\[v(\theta) = \min\left(v_{\text{nom}},\ \frac{P}{m g\,(\sin\theta + \mu_r\cos\theta)}\right)\]</div>
+<p><strong>Derivation / Proof.</strong> Force balance on an incline. The tractive force required is</p>
+<div class="math-block">\[F = \underbrace{mg\sin\theta}_{\text{gravity}} + \underbrace{\mu_r\,mg\cos\theta}_{\text{rolling resistance}}\]</div>
+<p>Mechanical power is <span class="math-inline">\(P = Fv\)</span>, so <span class="math-inline">\(v = P/F\)</span>, giving the expression above. The <span class="math-inline">\(\min\)</span> imposes the
+commanded nominal speed on level ground, where the power limit is not binding.</p>
+<p><strong>Why this one.</strong> It is derived from first principles rather than fitted, so it extrapolates
+correctly to new rover profiles and slopes. It reproduces the observed behaviour that rovers
+slow markedly on grades, and it goes to zero as <span class="math-inline">\(\theta \to \theta_{\max}\)</span>, which is
+physically correct.</p>
+<p>Note that <span class="math-inline">\(g\)</span> appears explicitly: the same rover is <strong>six times faster uphill on the Moon</strong>
+than on Earth for equal power, because gravitational resistance scales with <span class="math-inline">\(g\)</span>. Using
+Earth gravity here would be a significant error.</p>
+<p><strong>Rolling resistance for lunar regolith.</strong> <span class="math-inline">\(\mu_r \approx 0.2 - 0.3\)</span> for a rigid wheel on
+loose regolith, dominated by compaction resistance — substantially higher than on a prepared
+surface. Apollo LRV experience is the primary source.</p>
+<p><strong>Source.</strong> Bekker (1969) <em>op. cit.</em>; Asnani, V., Delap, D. &amp; Creager, C. (2009), <em>The
+development of wheels for the Lunar Roving Vehicle</em>, Journal of Terramechanics <strong>46</strong>(3),
+89–103. DOI: <a href="https://doi.org/10.1016/j.jterra.2009.02.005">10.1016/j.jterra.2009.02.005</a></p>
+<hr />
+<h3 id="72-traverse-time-and-energy">7.2 Traverse time and energy</h3>
+<p><strong>Statement.</strong></p>
+<div class="math-block">\[T = \sum_i \frac{s_{3D,i}}{v(\theta_i)}, \qquad
+E = \sum_i m g\,(\sin\theta_i + \mu_r\cos\theta_i)\,s_{3D,i}\]</div>
+<p><strong>Derivation / Proof.</strong> Time is the sum of per-segment durations. Energy is the line integral
+of tractive force along the path, <span class="math-inline">\(E = \int F\,ds\)</span>. Descending segments with
+<span class="math-inline">\(\sin\theta &lt; -\mu_r\cos\theta\)</span> would give negative energy; since these rovers have no
+regenerative braking, such terms are <strong>clamped to zero</strong> rather than credited.</p>
+<p><strong>Why this one.</strong> Energy, not time, is usually the binding constraint for a solar-powered
+rover, and it determines whether a traverse can be completed within a lunar day. Reporting
+both lets the user see which constrains their mission.</p>
+<hr />
+<h2 id="8-rendering">8. Rendering</h2>
+<h3 id="81-unlit-material-satisfying-the-no-sunlight-requirement">8.1 Unlit material — satisfying the "no sunlight" requirement</h3>
+<p><strong>Statement.</strong> The globe's surface colour is</p>
+<div class="math-block">\[\mathbf{c}_{\text{rendered}} = \mathbf{c}_{\text{texture}}(u,v)\]</div>
+<p>with <strong>no dependence on the surface normal <span class="math-inline">\(\mathbf{n}\)</span> or any light direction <span class="math-inline">\(\mathbf{l}\)</span>.</strong></p>
+<p><strong>Derivation / Proof.</strong> A physically-based material computes
+<span class="math-inline">\(\mathbf{c} = \mathbf{c}_{\text{tex}}\,(\mathbf{n}\cdot\mathbf{l})\,\ldots\)</span>, which vanishes
+wherever <span class="math-inline">\(\mathbf{n}\cdot\mathbf{l} \le 0\)</span> — i.e. <strong>half the globe is always black</strong>, and
+terrain near the terminator is arbitrarily dark. Removing the <span class="math-inline">\((\mathbf{n}\cdot\mathbf{l})\)</span>
+factor makes rendered brightness depend only on texture, so <strong>every point is equally legible
+regardless of viewing direction</strong>, including both poles.</p>
+<p><strong>Why this one.</strong> This is the direct technical implementation of Part 1's requirement that the
+globe be <em>"viewable from all sides, a full 360°, clearly, without sunlight/illumination
+effects"</em>. It is achieved with an <strong>unlit</strong> material and no light sources in the scene.</p>
+<p>This is legitimate because the WAC basemap is <strong>already photometrically normalised</strong> — the
+source data has had illumination effects removed by its producers, so it represents albedo,
+not brightness. Applying a second, artificial illumination on top would corrupt a
+radiometrically-corrected product.</p>
+<p><strong>Source.</strong> Requirement traceability: <code>PRD.md</code> FR-1.6. Photometric normalisation of the WAC
+mosaic: Robinson et al. (2010) <em>op. cit.</em></p>
+<hr />
+<h2 id="9-path-planning-mathematics">9. Path planning mathematics</h2>
+<h3 id="91-admissibility-and-consistency-of-the-a-heuristic">9.1 Admissibility and consistency of the A* heuristic</h3>
+<p><strong>Statement.</strong> LunarSerpent uses</p>
+<div class="math-block">\[h(n) = \frac{s_{\text{gc}}(n, \text{goal})}{v_{\max}}\]</div>
+<p>— the great-circle distance to the goal divided by the rover's maximum speed.</p>
+<p><strong>Proof of admissibility.</strong> Let <span class="math-inline">\(h^*(n)\)</span> be the true optimal remaining cost. Any real path
+from <span class="math-inline">\(n\)</span> to the goal has length <span class="math-inline">\(\ell \ge s_{\text{gc}}\)</span>, because the great-circle distance is
+the <em>minimum possible</em> distance between two points on the sphere (§2.1). Each segment is
+traversed at speed <span class="math-inline">\(v \le v_{\max}\)</span>, and the risk multiplier <span class="math-inline">\((1+\gamma H) \ge 1\)</span>. Therefore</p>
+<div class="math-block">\[h^*(n) \;\ge\; \frac{\ell}{v_{\max}} \;\ge\; \frac{s_{\text{gc}}}{v_{\max}} \;=\; h(n)\]</div>
+<p>so <span class="math-inline">\(h\)</span> never overestimates. ∎</p>
+<p><strong>Proof of consistency.</strong> For neighbouring cells <span class="math-inline">\(n, n&#x27;\)</span> with edge cost <span class="math-inline">\(c(n,n&#x27;)\)</span>, the
+triangle inequality on the sphere gives
+<span class="math-inline">\(s_{\text{gc}}(n,\text{goal}) \le s_{\text{gc}}(n,n&#x27;) + s_{\text{gc}}(n&#x27;,\text{goal})\)</span>.
+Dividing by <span class="math-inline">\(v_{\max}\)</span> and noting <span class="math-inline">\(c(n,n&#x27;) \ge s_{\text{gc}}(n,n&#x27;)/v_{\max}\)</span>:</p>
+<div class="math-block">\[h(n) \le \frac{s_{\text{gc}}(n,n&#x27;)}{v_{\max}} + h(n&#x27;) \le c(n,n&#x27;) + h(n&#x27;)\]</div>
+<p>∎</p>
+<p><strong>Why this matters.</strong> Admissibility guarantees A* returns the <strong>optimal</strong> path; consistency
+guarantees it does so <strong>without re-expanding</strong> any node. Both properties are <em>required</em> for
+the algorithm comparison in Part 6 to be a fair test — otherwise a faster runtime might simply
+reflect an inadmissible heuristic cutting corners, and comparing path costs would be
+meaningless.</p>
+<p><strong>Source.</strong> Hart, P. E., Nilsson, N. J. &amp; Raphael, B. (1968), <em>A Formal Basis for the
+Heuristic Determination of Minimum Cost Paths</em>, IEEE Trans. Systems Science and Cybernetics
+<strong>4</strong>(2), 100–107. DOI: <a href="https://doi.org/10.1109/TSSC.1968.300136">10.1109/TSSC.1968.300136</a></p>
+<hr />
+<h3 id="92-grid-discretisation-error-and-why-theta-is-included">9.2 Grid-discretisation error and why Theta* is included</h3>
+<p><strong>Statement.</strong> On an 8-connected grid, the shortest representable path can exceed the true
+Euclidean shortest path by up to</p>
+<div class="math-block">\[\frac{\sqrt{2}}{\,2\cos(\pi/8)\,}\ \approx\ 1.0824 \quad (+8.24\%)\]</div>
+<p><strong>Derivation / Proof.</strong> An 8-connected grid restricts headings to multiples of 45°. A desired
+heading falling midway between two allowed directions (worst case, 22.5° off) must be
+approximated by alternating steps. Summing the projections gives the stated bound.</p>
+<p><strong>Why this matters.</strong> An 8 % length penalty is significant for a mission where energy is
+budgeted tightly. <strong>Any-angle</strong> algorithms (Theta*, Field D*) remove this restriction by
+allowing line-of-sight shortcuts between non-adjacent cells, converging on the true optimum.
+This is precisely why the algorithm comparison in <code>ALGORITHMS.md</code> includes any-angle methods
+rather than only grid-constrained ones — the comparison would otherwise be blind to a
+systematic 8 % error affecting <strong>all</strong> grid-based candidates equally.</p>
+<p><strong>Source.</strong> Nash, A., Daniel, K., Koenig, S. &amp; Felner, A. (2007), <em>Theta*: Any-Angle Path
+Planning on Grids</em>, Proc. AAAI, 1177–1183.</p>
+<hr />
+<h2 id="10-summary-formula-to-requirement-traceability">10. Summary — formula-to-requirement traceability</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>§</th>
+<th>Formula</th>
+<th>Brief part</th>
+<th>Primary source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.2</td>
+<td>Grid ↔ lat/lon mapping</td>
+<td>1, 4</td>
+<td>PDS3 labels (verified)</td>
+</tr>
+<tr>
+<td>1.3</td>
+<td>Sphere UV parameterisation</td>
+<td>1</td>
+<td>Derived</td>
+</tr>
+<tr>
+<td>2.1</td>
+<td>Haversine geodesic</td>
+<td>6</td>
+<td>Sinnott (1984)</td>
+</tr>
+<tr>
+<td>2.4</td>
+<td>Latitude-dependent cell size</td>
+<td>3, 4, 6</td>
+<td>Derived (spherical geometry)</td>
+</tr>
+<tr>
+<td>3.2</td>
+<td>Horn slope</td>
+<td>4, 6</td>
+<td>Horn (1981)</td>
+</tr>
+<tr>
+<td>3.4</td>
+<td>Zevenbergen–Thorne curvature</td>
+<td>2, 4</td>
+<td>Zevenbergen &amp; Thorne (1987)</td>
+</tr>
+<tr>
+<td>3.5</td>
+<td>TRI / RMS slope, scale-dependence</td>
+<td>4, 6</td>
+<td>Riley (1999), Shepard (2001)</td>
+</tr>
+<tr>
+<td>4.1</td>
+<td>Depth–diameter scaling</td>
+<td>2, 3</td>
+<td>Pike (1974, 1977)</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>Size classification</td>
+<td>3</td>
+<td>Pike, Melosh, Head</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td>Degradation / epoch / model age</td>
+<td>2</td>
+<td>Neukum (2001), Fortezzo (2020)</td>
+</tr>
+<tr>
+<td>5.1</td>
+<td>Curvature + Hough crater detection</td>
+<td>2</td>
+<td>Salamunićcar &amp; Lončarić (2010)</td>
+</tr>
+<tr>
+<td>5.2</td>
+<td>Shadow-length boulder height</td>
+<td>2</td>
+<td>Watkins (2019)</td>
+</tr>
+<tr>
+<td>5.3</td>
+<td>Boulder size–frequency law</td>
+<td>2, 6</td>
+<td>Golombek &amp; Rapp (1997)</td>
+</tr>
+<tr>
+<td>6.1</td>
+<td>Slope hazard, <span class="math-inline">\(\theta_{\max}=\arctan\mu\)</span></td>
+<td>6</td>
+<td>Bekker (1969)</td>
+</tr>
+<tr>
+<td>6.4</td>
+<td>Composite cost surface</td>
+<td>6</td>
+<td>Derived</td>
+</tr>
+<tr>
+<td>7.1</td>
+<td>Power-limited speed</td>
+<td>6</td>
+<td>Bekker (1969), Asnani (2009)</td>
+</tr>
+<tr>
+<td>8.1</td>
+<td>Unlit rendering</td>
+<td>1</td>
+<td>Derived from requirement</td>
+</tr>
+<tr>
+<td>9.1</td>
+<td>A* admissibility proof</td>
+<td>6</td>
+<td>Hart, Nilsson &amp; Raphael (1968)</td>
+</tr>
+<tr>
+<td>9.2</td>
+<td>Grid discretisation bound</td>
+<td>6</td>
+<td>Nash et al. (2007)</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="11-revision-history">11. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. All formulas stated with derivation, alternatives considered, and DOI-resolvable sources. Georeferencing verified against live PDS labels at two resolutions.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/FORMULAS.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

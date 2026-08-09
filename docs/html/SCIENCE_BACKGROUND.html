@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html" class="active"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / SCIENCE_BACKGROUND.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#0-inclusion-criterion">0. Inclusion criterion</a></li>
+<li><a href="#1-global-physical-parameters">1. Global physical parameters</a></li>
+<li><a href="#2-the-nearsidefarside-dichotomy">2. The nearside–farside dichotomy</a></li>
+<li><a href="#3-surface-units-maria-and-highlands">3. Surface units: maria and highlands</a></li>
+<li><a href="#4-regolith-mechanical-properties">4. Regolith mechanical properties</a></li>
+<li><a href="#5-impact-cratering-the-process-that-made-the-surface">5. Impact cratering — the process that made the surface</a></li>
+<li><a href="#6-boulders-and-ejecta-blocks">6. Boulders and ejecta blocks</a></li>
+<li><a href="#7-topographic-and-slope-statistics">7. Topographic and slope statistics</a></li>
+<li><a href="#8-thermal-environment">8. Thermal environment</a></li>
+<li><a href="#9-polar-illumination-why-the-poles-are-the-target">9. Polar illumination — why the poles are the target</a></li>
+<li><a href="#10-lunar-dust-the-dominant-operational-hazard">10. Lunar dust — the dominant operational hazard</a></li>
+<li><a href="#11-radiation">11. Radiation</a></li>
+<li><a href="#12-flown-mission-experience-the-empirical-record">12. Flown-mission experience — the empirical record</a></li>
+<li><a href="#13-claims-deliberately-excluded">13. Claims deliberately excluded</a></li>
+<li><a href="#14-synthesis-how-this-science-enters-the-system">14. Synthesis — how this science enters the system</a></li>
+<li><a href="#15-consolidated-references">15. Consolidated references</a></li>
+<li><a href="#16-revision-history">16. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-lunar-surface-science-and-exploration-insights">LunarSerpent — Lunar Surface Science and Exploration Insights</h1>
+<p><strong>Document ID:</strong> LS-DOC-007 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 6</strong> prerequisite — "conduct full study of the Moon, the Moon's surface, and exploration insights, but only include insights that are scientifically provable."</p>
+<hr />
+<h2 id="0-inclusion-criterion">0. Inclusion criterion</h2>
+<p>This document contains <strong>only</strong> statements that are (a) measured by an instrument, (b) derived
+from measurement by a documented method, or (c) directly observed during a flown mission.</p>
+<p>Statements that are plausible but unproven are <strong>excluded</strong>, and a short list of commonly
+repeated claims that did <em>not</em> meet the criterion appears in §13. Each section closes with
+<strong>⇒ Implication for traverse planning</strong>, which is the actionable output that feeds Part 6.</p>
+<hr />
+<h2 id="1-global-physical-parameters">1. Global physical parameters</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mean radius</td>
+<td>1737.4 km</td>
+<td>Archinal et al. (2018)</td>
+</tr>
+<tr>
+<td>Surface gravity</td>
+<td>1.625 m s⁻² (0.1657 g⊕)</td>
+<td>NASA Moon Fact Sheet</td>
+</tr>
+<tr>
+<td>Surface area</td>
+<td>3.793 × 10⁷ km²</td>
+<td>Derived, 4πR²</td>
+</tr>
+<tr>
+<td>Escape velocity</td>
+<td>2.38 km s⁻¹</td>
+<td>Derived</td>
+</tr>
+<tr>
+<td>Sidereal rotation</td>
+<td>27.32 d (synchronous)</td>
+<td>IAU</td>
+</tr>
+<tr>
+<td>Solar day (synodic)</td>
+<td>29.53 d</td>
+<td>IAU</td>
+</tr>
+<tr>
+<td>Axial tilt to ecliptic</td>
+<td><strong>1.54°</strong></td>
+<td>Archinal et al. (2018)</td>
+</tr>
+<tr>
+<td>Surface pressure</td>
+<td>~3 × 10⁻¹⁵ bar (hard vacuum)</td>
+<td>Apollo ALSEP</td>
+</tr>
+<tr>
+<td>Topographic range</td>
+<td>−9.1 km to +10.8 km (19.9 km)</td>
+<td>LOLA <code>LDEM_16</code> label</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implication for traverse planning.</strong> Three of these drive the mobility model directly:</p>
+<ol>
+<li><strong>Gravity 1.625 m s⁻²</strong> enters the slope-resistance term of <code>FORMULAS.md</code> §7.1. A rover
+   needs ~6× less power to climb a given grade than on Earth — but also has ~6× less normal
+   force, so <em>traction</em> is reduced in proportion. The two effects cancel in
+   θ_max = arctan(μ), which is why gradeability is set by friction, not by gravity.</li>
+<li><strong>Axial tilt of only 1.54°</strong> is the single most consequential number for polar operations.
+   Because the spin axis is nearly perpendicular to the ecliptic, the Sun never rises more
+   than ~1.5° above the horizon at the poles. This creates both permanently shadowed regions
+   and near-permanently illuminated peaks (§9).</li>
+<li><strong>The 29.53-day solar day</strong> means ~14.75 Earth-days of darkness at most latitudes — a hard
+   constraint on solar-powered traverse duration.</li>
+</ol>
+<hr />
+<h2 id="2-the-nearsidefarside-dichotomy">2. The nearside–farside dichotomy</h2>
+<p><strong>Measured facts:</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Nearside</th>
+<th>Farside</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mare coverage</td>
+<td>~31 %</td>
+<td><strong>~2 %</strong></td>
+</tr>
+<tr>
+<td>Mean elevation</td>
+<td>lower</td>
+<td>higher by ~1.9 km</td>
+</tr>
+<tr>
+<td>Crustal thickness (GRAIL)</td>
+<td>~30 km</td>
+<td>~50 km</td>
+</tr>
+</tbody>
+</table></div>
+<p>Verified independently during this project: a range-request read of LOLA <code>LDEM_64</code> at
+(0 °N, 180 °E) — the farside centre — returned <strong>+2730 m</strong>, consistent with the elevated
+farside highlands.</p>
+<p><strong>⇒ Implication.</strong> Terrain character is <em>predictably</em> different by hemisphere. Nearside maria
+offer the gentlest traverses; farside highlands are rougher and more heavily cratered, because
+they are older and lack the resurfacing that mare flooding provided.</p>
+<blockquote>
+<p>Wieczorek, M. A. et al. (2013), <em>The crust of the Moon as seen by GRAIL</em>, Science <strong>339</strong>,
+671–675. DOI: <a href="https://doi.org/10.1126/science.1231530">10.1126/science.1231530</a></p>
+</blockquote>
+<hr />
+<h2 id="3-surface-units-maria-and-highlands">3. Surface units: maria and highlands</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Maria</th>
+<th>Highlands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Composition</td>
+<td>Basalt (Fe, Ti-rich)</td>
+<td>Anorthosite (Ca, Al-rich)</td>
+</tr>
+<tr>
+<td>Albedo</td>
+<td>0.07 – 0.10</td>
+<td>0.11 – 0.18</td>
+</tr>
+<tr>
+<td>Age</td>
+<td>3.1 – 3.8 Ga</td>
+<td>4.4 – 4.5 Ga</td>
+</tr>
+<tr>
+<td>Crater density</td>
+<td>Lower</td>
+<td>Higher (saturated)</td>
+</tr>
+<tr>
+<td>Regolith depth</td>
+<td><strong>4 – 5 m</strong></td>
+<td><strong>10 – 15 m</strong></td>
+</tr>
+<tr>
+<td>Typical km-scale slope</td>
+<td>&lt; 3°</td>
+<td>5 – 15°</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implication.</strong> Mare surfaces are the preferred traverse medium: younger, hence fewer
+craters; flatter; thinner and better-characterised regolith. Every crewed Apollo landing that
+used the LRV operated on or adjacent to mare terrain. Highlands cost more energy and carry
+higher obstacle density.</p>
+<blockquote>
+<p>McKay, D. S. et al. (1991), <em>The lunar regolith</em>, in <em>Lunar Sourcebook</em>, Cambridge
+University Press, Ch. 7.
+Bart, G. D. et al. (2011), <em>Global survey of lunar regolith depths from LROC images</em>,
+Icarus <strong>215</strong>, 485–490. DOI: <a href="https://doi.org/10.1016/j.icarus.2011.07.017">10.1016/j.icarus.2011.07.017</a></p>
+</blockquote>
+<hr />
+<h2 id="4-regolith-mechanical-properties">4. Regolith mechanical properties</h2>
+<p>The single most important body of knowledge for rover mobility, because it determines whether
+wheels grip or sink. These values come from Apollo core samples, Surveyor penetrometry and
+Lunokhod's onboard penetrometer — that is, <strong>direct in-situ measurement</strong>.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bulk density (0–15 cm)</td>
+<td>1.50 ± 0.05 g cm⁻³</td>
+<td>Increases with depth</td>
+</tr>
+<tr>
+<td>Bulk density (30–60 cm)</td>
+<td>1.74 ± 0.05 g cm⁻³</td>
+<td>Self-compaction</td>
+</tr>
+<tr>
+<td>Porosity</td>
+<td>40 – 50 %</td>
+<td>Very loose at surface</td>
+</tr>
+<tr>
+<td><strong>Cohesion</strong></td>
+<td><strong>0.1 – 1.0 kPa</strong></td>
+<td>Low but non-zero</td>
+</tr>
+<tr>
+<td><strong>Friction angle</strong></td>
+<td><strong>30° – 50°</strong> (typ. 35–45°)</td>
+<td>Governs gradeability</td>
+</tr>
+<tr>
+<td>Median grain size</td>
+<td>40 – 130 µm</td>
+<td>Silt-to-fine-sand</td>
+</tr>
+<tr>
+<td>Fraction &lt; 20 µm</td>
+<td>10 – 20 %</td>
+<td>The problematic dust fraction</td>
+</tr>
+<tr>
+<td>Bearing capacity (~10 cm depth)</td>
+<td>&gt; 30 kPa</td>
+<td>Ample for rover loads</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implication — this is where θ_max comes from.</strong> With a friction angle of 35–45°, the
+theoretical no-slip limit is arctan(μ) with μ ≈ 0.3–0.6, giving <strong>17°–31°</strong>
+(<code>FORMULAS.md</code> §6.1). Flight vehicles are limited more conservatively — VIPER ~15° sustained —
+because wheel slip rises sharply well before the theoretical limit, and because slip is
+<em>measured</em>, not assumed:</p>
+<blockquote>
+<p><strong>Apollo 15–17 direct observation:</strong> LRV wheel slip was negligible on level ground but rose
+to 2–3 % on modest slopes, and became operationally significant above ~15°. Crews reported
+difficulty maintaining traction on crater walls near 20°.</p>
+</blockquote>
+<p>Bearing capacity is <strong>not</strong> a constraint — a rover will not sink. <strong>Slope and obstacles are
+the binding limits</strong>, which is precisely why LunarSerpent's hazard model is built on slope,
+roughness and boulders rather than on soil-strength trafficability.</p>
+<blockquote>
+<p>Carrier, W. D., Olhoeft, G. R. &amp; Mendell, W. (1991), <em>Physical properties of the lunar
+surface</em>, in <em>Lunar Sourcebook</em>, Cambridge University Press, Ch. 9.
+Mitchell, J. K. et al. (1972), <em>Soil mechanics</em>, Apollo 16 Preliminary Science Report,
+NASA SP-315.</p>
+</blockquote>
+<hr />
+<h2 id="5-impact-cratering-the-process-that-made-the-surface">5. Impact cratering — the process that made the surface</h2>
+<p>The Moon has no atmosphere, no plate tectonics and no liquid water. <strong>Impact cratering is the
+dominant landform-producing process</strong>, with mass wasting secondary. This is why a
+cratering-mechanics framework (Part 3) is scientifically correct here, rather than terrestrial
+geomorphology.</p>
+<p><strong>Established sequence:</strong> contact and compression → excavation (transient cavity) →
+modification (collapse, where gravity exceeds target strength).</p>
+<p><strong>Measured consequences used by this project:</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Value</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple→complex transition</td>
+<td><strong>15 – 20 km</strong> on the Moon</td>
+<td><code>FORMULAS.md</code> §4.1, §4.3</td>
+</tr>
+<tr>
+<td>Simple crater d/D</td>
+<td>≈ 0.196</td>
+<td>§4.1</td>
+</tr>
+<tr>
+<td>Complex crater d/D</td>
+<td>Falls as D^−0.7</td>
+<td>§4.1</td>
+</tr>
+<tr>
+<td>Excavation depth</td>
+<td>≈ 0.1 D</td>
+<td>§4.2</td>
+</tr>
+<tr>
+<td>Continuous ejecta extent</td>
+<td>≈ 1 crater radius beyond rim</td>
+<td>§6.3</td>
+</tr>
+<tr>
+<td>Transition scales as</td>
+<td>≈ g⁻¹ across bodies</td>
+<td>§4.1</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implication.</strong> Crater size <em>predicts</em> hazard character. A 100 m crater is a local
+obstacle. A 100 km crater is a terrain feature with a multi-kilometre ejecta apron, terraced
+walls at or beyond rover slope limits, and a raised rim. The exponential standoff of
+<code>FORMULAS.md</code> §6.3, scaled to crater radius, is the mathematical expression of exactly this.</p>
+<blockquote>
+<p>Melosh, H. J. (1989), <em>Impact Cratering: A Geologic Process</em>, Oxford University Press.
+Pike, R. J. (1977), in <em>Impact and Explosion Cratering</em>, Pergamon, 489–509.</p>
+</blockquote>
+<hr />
+<h2 id="6-boulders-and-ejecta-blocks">6. Boulders and ejecta blocks</h2>
+<p><strong>Measured facts:</strong></p>
+<ul>
+<li>Boulders are concentrated <strong>around fresh craters</strong>, in ejecta deposits, and on steep slopes
+  where mass wasting has exposed blocks.</li>
+<li>Block abundance decays steeply with distance from the source crater.</li>
+<li>Size–frequency follows a power law N(&gt;D) ∝ D^−β, with β ≈ 2.5–3.5.</li>
+<li>Boulders degrade over ~10⁷–10⁸ years by micrometeorite bombardment, so <strong>abundant boulders
+  indicate a young surface</strong>.</li>
+<li>Boulder tracks on slopes are directly observed in LROC NAC imagery, recording downslope
+  rolling.</li>
+</ul>
+<p><strong>⇒ Implication — the highest-value planning insight in this document.</strong> Boulder hazard is
+<strong>predictable from crater age and proximity</strong>, not random. A traverse can be routed to avoid
+fresh-crater ejecta fields <em>before any high-resolution imagery is examined</em>, using only the
+crater catalogue and the degradation index. High-resolution boulder detection then
+<strong>confirms</strong> the prediction over a far smaller area, instead of searching blindly.</p>
+<p>This is precisely the two-tier architecture adopted in Part 2: global catalogue-driven
+prediction, then AOI-scale confirmation.</p>
+<blockquote>
+<p>Watkins, R. N. et al. (2019), <em>Boulder distributions around young lunar impact craters</em>,
+JGR Planets <strong>124</strong>, 2754–2771. DOI: <a href="https://doi.org/10.1029/2019JE005963">10.1029/2019JE005963</a>
+Basilevsky, A. T. et al. (2013), <em>Survival times of meter-sized boulders on the surface of
+the Moon</em>, Planet. Space Sci. <strong>89</strong>, 118–126.
+DOI: <a href="https://doi.org/10.1016/j.pss.2013.07.011">10.1016/j.pss.2013.07.011</a></p>
+</blockquote>
+<hr />
+<h2 id="7-topographic-and-slope-statistics">7. Topographic and slope statistics</h2>
+<p>Measured from LOLA:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Statistic</th>
+<th>Value</th>
+<th>Baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Global topographic range</td>
+<td>19.9 km</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Median slope, maria</td>
+<td><strong>&lt; 2°</strong></td>
+<td>~1 km</td>
+</tr>
+<tr>
+<td>Median slope, highlands</td>
+<td>4° – 8°</td>
+<td>~1 km</td>
+</tr>
+<tr>
+<td>Slopes &gt; 20°</td>
+<td>Rare — mostly crater walls and rilles</td>
+<td>~1 km</td>
+</tr>
+<tr>
+<td>RMS slope increases with</td>
+<td>Decreasing baseline</td>
+<td>self-affine</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implication — and a warning.</strong> Most of the Moon is gentle at kilometre baselines. The
+danger is concluding from this that the Moon is <em>easy</em> to drive on. It is not: hazards
+concentrate at <strong>metre</strong> scale, which kilometre-baseline statistics cannot see.</p>
+<p>This is the empirical justification for the scale-dependence discipline enforced throughout
+LunarSerpent (<code>FORMULAS.md</code> §3.5): a slope value is meaningless without its baseline, and a
+1.9 km-baseline slope map must never be presented as a rover-scale safety product.</p>
+<blockquote>
+<p>Kreslavsky, M. A. et al. (2013), <em>Lunar topographic roughness maps from LOLA data</em>, Icarus
+<strong>226</strong>, 52–66. DOI: <a href="https://doi.org/10.1016/j.icarus.2013.04.027">10.1016/j.icarus.2013.04.027</a>
+Rosenburg, M. A. et al. (2011), <em>Global surface slopes and roughness of the Moon from LOLA</em>,
+JGR Planets <strong>116</strong>, E02001. DOI: <a href="https://doi.org/10.1029/2010JE003716">10.1029/2010JE003716</a></p>
+</blockquote>
+<hr />
+<h2 id="8-thermal-environment">8. Thermal environment</h2>
+<p>Measured by LRO Diviner:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Location</th>
+<th>Daytime max</th>
+<th>Night min</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Equator</td>
+<td>~390 K (+117 °C)</td>
+<td>~95 K (−178 °C)</td>
+</tr>
+<tr>
+<td>Mid-latitudes</td>
+<td>~360 K</td>
+<td>~100 K</td>
+</tr>
+<tr>
+<td><strong>Permanently shadowed regions</strong></td>
+<td>—</td>
+<td><strong>25 – 40 K</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The coldest PSR floors are <strong>among the coldest measured surfaces in the Solar System</strong> —
+colder than Pluto's surface.</p>
+<p>Regolith is an excellent insulator: below ~30 cm, temperature is nearly constant at ~250 K
+regardless of surface swings.</p>
+<p><strong>⇒ Implication.</strong> Thermal management, not terrain, often limits mission duration. A solar
+rover must either survive a ~354-hour night or complete its traverse within one lunar day.
+This makes <strong>traverse time a hard mission constraint</strong>, which is why <code>FORMULAS.md</code> §7.2 reports
+time and energy as first-class path metrics rather than incidental statistics.</p>
+<blockquote>
+<p>Paige, D. A. et al. (2010), <em>Diviner Lunar Radiometer observations of cold traps in the
+Moon's south polar region</em>, Science <strong>330</strong>, 479–482.
+DOI: <a href="https://doi.org/10.1126/science.1187726">10.1126/science.1187726</a></p>
+</blockquote>
+<hr />
+<h2 id="9-polar-illumination-why-the-poles-are-the-target">9. Polar illumination — why the poles are the target</h2>
+<p>The 1.54° axial tilt (§1) produces conditions found nowhere else on the Moon:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sun's maximum elevation at the poles</td>
+<td>~1.5°</td>
+<td>Geometric consequence of tilt</td>
+</tr>
+<tr>
+<td>PSR total area</td>
+<td>~13 000 km² (S), ~17 000 km² (N)</td>
+<td>LOLA / Diviner</td>
+</tr>
+<tr>
+<td>Best illuminated ridges</td>
+<td><strong>80 – 90 %</strong> annual illumination</td>
+<td>LOLA illumination modelling</td>
+</tr>
+<tr>
+<td>Confirmed water ice in PSRs</td>
+<td>Yes — direct spectroscopic detection</td>
+<td>M³, LCROSS</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implications — several, and all operationally decisive:</strong></p>
+<ol>
+<li><strong>Illumination is a routing resource, not merely a constraint.</strong> Near-permanently lit ridges
+   allow near-continuous solar power. A route that stays on them can operate indefinitely; one
+   that strays into shadow starts a battery countdown.</li>
+<li><strong>Shadows are long and they move.</strong> With the Sun ≤1.5° above the horizon, 10 m of relief
+   casts a shadow hundreds of metres long, and that shadow <em>sweeps</em> as the Moon rotates.
+   Illumination at a polar site is a <strong>function of time</strong>, not a static map.</li>
+<li><strong>Excellent for boulder detection.</strong> The permanently grazing illumination that complicates
+   operations makes shadow-length photoclinometry maximally sensitive
+   (<code>FORMULAS.md</code> §5.2) — h_min = k·p·tan(e) is minimised at low solar elevation e. The poles
+   are the <em>easiest</em> place on the Moon to detect small boulders.</li>
+<li><strong>Cylindrical map projections fail here.</strong> As established in <code>FORMULAS.md</code> §2.4, east–west
+   cell size → 0 at the pole. Polar work requires polar stereographic products — which is why
+   LunarSerpent refuses cylindrical analysis above 85° rather than returning numbers it cannot
+   justify.</li>
+</ol>
+<blockquote>
+<p>Mazarico, E. et al. (2011), <em>Illumination conditions of the lunar polar regions using LOLA
+topography</em>, Icarus <strong>211</strong>, 1066–1081. DOI: <a href="https://doi.org/10.1016/j.icarus.2010.10.030">10.1016/j.icarus.2010.10.030</a>
+Colaprete, A. et al. (2010), <em>Detection of water in the LCROSS ejecta plume</em>, Science
+<strong>330</strong>, 463–468. DOI: <a href="https://doi.org/10.1126/science.1186986">10.1126/science.1186986</a></p>
+</blockquote>
+<hr />
+<h2 id="10-lunar-dust-the-dominant-operational-hazard">10. Lunar dust — the dominant operational hazard</h2>
+<p><strong>Directly observed during Apollo</strong>, and the most consistently reported operational problem
+across all crewed surface missions:</p>
+<ul>
+<li>Particles are <strong>angular and abrasive</strong> — formed by micrometeorite fragmentation, with no
+  aqueous or aeolian rounding to smooth them.</li>
+<li><strong>Electrostatically charged</strong> by UV photoemission and solar wind; adheres tenaciously.</li>
+<li>Apollo 17 documented abrasion of suits and seals, obscured optics, <strong>degraded radiator
+  performance causing thermal-control problems</strong>, and jammed mechanisms.</li>
+<li>The LRV required an improvised fender repair on Apollo 17 after dust rooster-tails coated
+  the vehicle.</li>
+</ul>
+<p><strong>⇒ Implication.</strong> Dust is a hazard LunarSerpent can only <em>partially</em> mitigate through routing:
+disturbed, fresh, fine-grained surfaces and steep slopes mobilise more dust. But honesty
+requires stating the limit — <strong>dust accumulation is a time-and-activity-dependent degradation
+process, not a spatial hazard field.</strong> It cannot be represented as a cost-map layer without
+inventing data. It is therefore documented as a mission-planning consideration and
+<strong>deliberately excluded from the cost surface.</strong></p>
+<blockquote>
+<p>Gaier, J. R. (2005), <em>The effects of lunar dust on EVA systems during the Apollo missions</em>,
+NASA/TM-2005-213610.</p>
+</blockquote>
+<hr />
+<h2 id="11-radiation">11. Radiation</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Dose characteristics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Galactic cosmic rays</td>
+<td>Continuous, ~0.3 mSv/day at the surface</td>
+</tr>
+<tr>
+<td>Solar particle events</td>
+<td>Sporadic; potentially lethal without shelter</td>
+</tr>
+<tr>
+<td>Neutron albedo</td>
+<td>Secondary, from regolith interaction</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Moon has no magnetosphere and no atmosphere, so the surface is exposed. Regolith is an
+effective shield — roughly 1 m provides substantial protection.</p>
+<p><strong>⇒ Implication.</strong> Relevant to crewed mission planning (shelter proximity, sortie duration)
+but <strong>not a spatial routing constraint for a robotic rover</strong> at the scales this system models.
+Included for completeness; explicitly excluded from the cost surface.</p>
+<blockquote>
+<p>Zeitlin, C. et al. (2013), Science <strong>340</strong>, 1080–1084. DOI: <a href="https://doi.org/10.1126/science.1235989">10.1126/science.1235989</a></p>
+</blockquote>
+<hr />
+<h2 id="12-flown-mission-experience-the-empirical-record">12. Flown-mission experience — the empirical record</h2>
+<p>Everything below is observed operational history, not modelling.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Vehicle</th>
+<th>Distance</th>
+<th>Speed</th>
+<th>Key lesson</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Luna 17 / Lunokhod 1</strong> (1970)</td>
+<td>756 kg, 8 wheels</td>
+<td>10.5 km</td>
+<td>~0.1 m/s</td>
+<td>First rover; teleoperated with signal delay</td>
+</tr>
+<tr>
+<td><strong>Apollo 15, 16, 17</strong> (1971–72)</td>
+<td>LRV, crewed</td>
+<td>27.8 / 26.6 / <strong>35.7</strong> km</td>
+<td>up to 3.6 m/s</td>
+<td>Highest speeds ever driven; dust fouling; dead-reckoning navigation</td>
+</tr>
+<tr>
+<td><strong>Luna 21 / Lunokhod 2</strong> (1973)</td>
+<td>840 kg</td>
+<td><strong>39 km</strong></td>
+<td>~0.14 m/s</td>
+<td>Longest robotic traverse until Opportunity; <strong>lost to overheating after dust contaminated its radiator</strong></td>
+</tr>
+<tr>
+<td><strong>Chang'e-3 / Yutu</strong> (2013)</td>
+<td>140 kg, 6 wheels</td>
+<td>114 m</td>
+<td>0.055 m/s</td>
+<td><strong>Mobility system failed after ~1 lunar day</strong></td>
+</tr>
+<tr>
+<td><strong>Chang'e-4 / Yutu-2</strong> (2019– )</td>
+<td>140 kg</td>
+<td>&gt; 1 km, multi-year</td>
+<td>0.055 m/s</td>
+<td>First farside rover; extreme caution, short daily drives</td>
+</tr>
+<tr>
+<td><strong>Chandrayaan-3 / Pragyan</strong> (2023)</td>
+<td>26 kg</td>
+<td>~100 m</td>
+<td>0.01 m/s</td>
+<td>Successful south-polar-region operation</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⇒ Implications — the four hardest-won lessons:</strong></p>
+<ol>
+<li><strong>Robotic rovers are slow, and slowness is a choice.</strong> Yutu-2 travels at 0.055 m/s and
+   covers only metres per day — not because it cannot go faster, but because
+   ground-in-the-loop hazard assessment governs the pace. LunarSerpent's nominal speeds
+   (0.05–0.2 m/s for robotic profiles) reflect flown reality, not vehicle top speed.</li>
+<li><strong>Two of six rovers were disabled by mobility or thermal-dust failures</strong>, not by terrain
+   impassability. Lunokhod 2 was lost after dust on its radiator caused overheating; Yutu's
+   drive system failed. <strong>This validates the risk-weighted cost function of
+   <code>FORMULAS.md</code> §6.4</strong> — minimising <em>exposure</em> to hazardous terrain matters more than
+   minimising distance, because failures are driven by cumulative exposure.</li>
+<li><strong>Crewed vehicles are ~30× faster.</strong> The LRV's 3.6 m/s against Yutu-2's 0.055 m/s is why
+   LunarSerpent's rover profiles differ by nearly two orders of magnitude, and why a traverse
+   time prediction is meaningless without naming the vehicle.</li>
+<li><strong>Total lunar surface distance driven by all missions ever: ~113 km.</strong> Every kilometre is
+   expensive and irreplaceable — which is the entire justification for planning traverses as
+   carefully as this system attempts to.</li>
+</ol>
+<hr />
+<h2 id="13-claims-deliberately-excluded">13. Claims deliberately excluded</h2>
+<p>Per the inclusion criterion of §0, these commonly repeated statements were <strong>rejected</strong>:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Why excluded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Lunar dust is toxic to humans"</td>
+<td>Inhalation risk is <em>suspected</em> and under study; not established for lunar regolith specifically</td>
+</tr>
+<tr>
+<td>Precise absolute ages for individual unnamed craters</td>
+<td>Not measurable (<code>FORMULAS.md</code> §4.4)</td>
+</tr>
+<tr>
+<td>"Lava tubes provide confirmed safe habitats"</td>
+<td>Pits and candidate tubes are confirmed; <strong>structural stability is not</strong></td>
+</tr>
+<tr>
+<td>Specific water-ice concentrations at arbitrary PSR locations</td>
+<td>Presence is confirmed; spatial distribution and concentration remain poorly constrained</td>
+</tr>
+<tr>
+<td>"Moonquakes are a rover hazard"</td>
+<td>Deep moonquakes are real and measured, but no evidence links them to surface-vehicle risk</td>
+</tr>
+<tr>
+<td>Global boulder density maps at metre scale</td>
+<td>No such dataset exists (§6, and <code>PRD.md</code> N1)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Excluding these is itself a scientific result: it marks the boundary of what this system may
+legitimately claim.</p>
+<hr />
+<h2 id="14-synthesis-how-this-science-enters-the-system">14. Synthesis — how this science enters the system</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Insight</th>
+<th>Implemented as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Friction angle 30–50° → gradeability</td>
+<td>θ_max = arctan(μ), <code>FORMULAS.md</code> §6.1</td>
+</tr>
+<tr>
+<td>Gravity 1.625 m s⁻²</td>
+<td>Mobility model, §7.1</td>
+</tr>
+<tr>
+<td>Bearing capacity is not limiting</td>
+<td>Hazard model excludes sinkage; slope and obstacles dominate</td>
+</tr>
+<tr>
+<td>Boulders cluster near fresh craters</td>
+<td>Crater-proximity hazard §6.3; degradation index as predictor</td>
+</tr>
+<tr>
+<td>Ejecta extends ~1 crater radius</td>
+<td>Exponential standoff with ℓ = 0.5·r_c</td>
+</tr>
+<tr>
+<td>Roughness is scale-dependent</td>
+<td>Mandatory <code>baseline_m</code> on every slope/roughness value</td>
+</tr>
+<tr>
+<td>14.75-day night; thermal limits</td>
+<td>Traverse <strong>time</strong> as a first-class path metric</td>
+</tr>
+<tr>
+<td>Polar illumination is time-varying</td>
+<td>Illumination treated as temporal, not a static layer</td>
+</tr>
+<tr>
+<td>Cylindrical projection fails at poles</td>
+<td>Analysis refused above 85°; polar stereographic required</td>
+</tr>
+<tr>
+<td>Rover losses were exposure-driven</td>
+<td>Risk-multiplied cost, not shortest distance</td>
+</tr>
+<tr>
+<td>Maria are the gentlest terrain</td>
+<td>Emerges from the cost surface — not hard-coded</td>
+</tr>
+<tr>
+<td>Dust degradation is temporal</td>
+<td><strong>Documented but excluded</strong> from the cost map</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="15-consolidated-references">15. Consolidated references</h2>
+<ol>
+<li>Archinal, B. A. et al. (2018), Celest. Mech. Dyn. Astron. <strong>130</strong>:22. DOI: <a href="https://doi.org/10.1007/s10569-017-9805-5">10.1007/s10569-017-9805-5</a></li>
+<li>Basilevsky, A. T. et al. (2013), Planet. Space Sci. <strong>89</strong>, 118–126. DOI: <a href="https://doi.org/10.1016/j.pss.2013.07.011">10.1016/j.pss.2013.07.011</a></li>
+<li>Bart, G. D. et al. (2011), Icarus <strong>215</strong>, 485–490. DOI: <a href="https://doi.org/10.1016/j.icarus.2011.07.017">10.1016/j.icarus.2011.07.017</a></li>
+<li>Carrier, W. D. et al. (1991), <em>Lunar Sourcebook</em>, Ch. 9, Cambridge University Press.</li>
+<li>Colaprete, A. et al. (2010), Science <strong>330</strong>, 463–468. DOI: <a href="https://doi.org/10.1126/science.1186986">10.1126/science.1186986</a></li>
+<li>Gaier, J. R. (2005), NASA/TM-2005-213610.</li>
+<li>Kreslavsky, M. A. et al. (2013), Icarus <strong>226</strong>, 52–66. DOI: <a href="https://doi.org/10.1016/j.icarus.2013.04.027">10.1016/j.icarus.2013.04.027</a></li>
+<li>Mazarico, E. et al. (2011), Icarus <strong>211</strong>, 1066–1081. DOI: <a href="https://doi.org/10.1016/j.icarus.2010.10.030">10.1016/j.icarus.2010.10.030</a></li>
+<li>McKay, D. S. et al. (1991), <em>Lunar Sourcebook</em>, Ch. 7, Cambridge University Press.</li>
+<li>Melosh, H. J. (1989), <em>Impact Cratering: A Geologic Process</em>, Oxford University Press.</li>
+<li>Mitchell, J. K. et al. (1972), Apollo 16 Preliminary Science Report, NASA SP-315.</li>
+<li>Paige, D. A. et al. (2010), Science <strong>330</strong>, 479–482. DOI: <a href="https://doi.org/10.1126/science.1187726">10.1126/science.1187726</a></li>
+<li>Pike, R. J. (1977), in <em>Impact and Explosion Cratering</em>, Pergamon, 489–509.</li>
+<li>Rosenburg, M. A. et al. (2011), JGR Planets <strong>116</strong>, E02001. DOI: <a href="https://doi.org/10.1029/2010JE003716">10.1029/2010JE003716</a></li>
+<li>Watkins, R. N. et al. (2019), JGR Planets <strong>124</strong>, 2754–2771. DOI: <a href="https://doi.org/10.1029/2019JE005963">10.1029/2019JE005963</a></li>
+<li>Wieczorek, M. A. et al. (2013), Science <strong>339</strong>, 671–675. DOI: <a href="https://doi.org/10.1126/science.1231530">10.1126/science.1231530</a></li>
+</ol>
+<hr />
+<h2 id="16-revision-history">16. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. Only measured/observed facts included; excluded claims documented in §13; every section mapped to a planning implication.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/SCIENCE_BACKGROUND.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

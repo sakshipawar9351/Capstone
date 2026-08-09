@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html" class="active"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / PRD.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-document-control">1. Document control</a></li>
+<li><a href="#2-executive-summary">2. Executive summary</a></li>
+<li><a href="#3-problem-statement">3. Problem statement</a></li>
+<li><a href="#4-goals-and-non-goals">4. Goals and non-goals</a><ul>
+<li><a href="#41-goals">4.1 Goals</a></li>
+<li><a href="#42-non-goals-stated-explicitly">4.2 Non-goals — stated explicitly</a></li>
+</ul>
+</li>
+<li><a href="#5-users">5. Users</a></li>
+<li><a href="#6-functional-requirements">6. Functional requirements</a><ul>
+<li><a href="#fr-1-3d-moon-globe-brief-part-1">FR-1 — 3D Moon globe (brief Part 1)</a></li>
+<li><a href="#fr-2-crater-and-boulder-detection-brief-part-2">FR-2 — Crater and boulder detection (brief Part 2)</a></li>
+<li><a href="#fr-3-classification-brief-part-3">FR-3 — Classification (brief Part 3)</a></li>
+<li><a href="#fr-4-per-feature-calculation-brief-part-4">FR-4 — Per-feature calculation (brief Part 4)</a></li>
+<li><a href="#fr-5-formula-documentation-brief-part-5">FR-5 — Formula documentation (brief Part 5)</a></li>
+<li><a href="#fr-6-path-planning-brief-part-6">FR-6 — Path planning (brief Part 6)</a></li>
+<li><a href="#fr-7-interface-brief-part-7">FR-7 — Interface (brief Part 7)</a></li>
+</ul>
+</li>
+<li><a href="#7-non-functional-requirements">7. Non-functional requirements</a></li>
+<li><a href="#8-explicit-scientific-limitations">8. Explicit scientific limitations</a></li>
+<li><a href="#9-success-metrics">9. Success metrics</a></li>
+<li><a href="#10-release-phases">10. Release phases</a></li>
+<li><a href="#11-traceability-brief-requirements">11. Traceability — brief → requirements</a></li>
+<li><a href="#12-revision-history">12. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-product-requirements-document-prd">LunarSerpent — Product Requirements Document (PRD)</h1>
+<p><strong>Document ID:</strong> LS-DOC-001 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 9</strong> (project documentation), and defines the requirements for Parts 1–7.</p>
+<hr />
+<h2 id="1-document-control">1. Document control</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product</td>
+<td>LunarSerpent — Lunar Scientific Analysis &amp; Rover Traverse Planning System</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Scientific capstone project</td>
+</tr>
+<tr>
+<td>Related documents</td>
+<td><code>SRD.md</code> (system requirements), <code>FORMULAS.md</code> (mathematics), <code>DATASETS.md</code> (data), <code>TECHNOLOGY.md</code> (stack), <code>ALGORITHMS.md</code> (planner selection), <code>SCIENCE_BACKGROUND.md</code> (domain)</td>
+</tr>
+<tr>
+<td>Audience</td>
+<td>Project owner, academic evaluators, future maintainers</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="2-executive-summary">2. Executive summary</h2>
+<p>LunarSerpent is a <strong>scientific decision-support system for lunar surface exploration</strong>. It
+presents a 3-D interactive Moon globe as its interface, but the globe is a <em>front end to an
+analysis engine</em>, not a visualisation in itself.</p>
+<p>The system ingests authoritative lunar datasets — LOLA topography, the Robbins crater
+catalogue, LROC imagery, Chandrayaan-2 OHRC — and derives terrain products (slope, roughness,
+curvature, hazard, risk, cost), detects and classifies surface features (craters, boulders),
+and plans safe rover traverses between user-specified selenographic coordinates.</p>
+<p><strong>The distinguishing requirement is scientific provability.</strong> Every displayed number must
+trace to a documented formula with a peer-reviewed source. Where a quantity cannot be
+determined with justified confidence, the system states its uncertainty or declines to report
+it — rather than producing a plausible-looking value.</p>
+<hr />
+<h2 id="3-problem-statement">3. Problem statement</h2>
+<p>Planning a lunar surface traverse requires simultaneously reasoning about topography,
+morphology, obstacle distribution, vehicle capability and mission energy budget. These data
+exist, but are scattered across archives in different projections, formats, resolutions and
+reference frames. Existing tools address parts of this:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Strength</th>
+<th>Gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NASA Moon Trek</td>
+<td>Excellent imagery browsing</td>
+<td>No traverse planning; no rover model</td>
+</tr>
+<tr>
+<td>QGIS + planetary plugins</td>
+<td>Full GIS analysis</td>
+<td>Steep learning curve; not a mission tool; no 3-D globe</td>
+</tr>
+<tr>
+<td>Published crater catalogues</td>
+<td>Authoritative</td>
+<td>Static tables; no terrain integration</td>
+</tr>
+<tr>
+<td>Academic path planners</td>
+<td>Rigorous algorithms</td>
+<td>Not connected to real lunar data</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>No accessible tool takes a start and end coordinate on the Moon and returns a
+scientifically-justified safe traverse with full provenance.</strong> That is the gap LunarSerpent
+fills.</p>
+<hr />
+<h2 id="4-goals-and-non-goals">4. Goals and non-goals</h2>
+<h3 id="41-goals">4.1 Goals</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td>Render the Moon in 3-D with Google-Maps-grade clarity, on real selenographic coordinates, uniformly visible from all directions including both poles</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>Detect and classify craters and boulders at the finest resolution the available data honestly supports</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>Compute per-feature and per-point terrain science: slope, elevation, depth, height, curvature, roughness — each with its measurement baseline and uncertainty</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>Plan safe rover traverses between user-chosen coordinates, comparing multiple algorithms and justifying the selection empirically</td>
+</tr>
+<tr>
+<td>G5</td>
+<td>Make every result traceable to a formula and a citation</td>
+</tr>
+<tr>
+<td>G6</td>
+<td>Deliver an interface that is attractive, interactive and genuinely usable for analysis</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="42-non-goals-stated-explicitly">4.2 Non-goals — stated explicitly</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Non-goal</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N1</td>
+<td><strong>Global metre-scale boulder mapping</strong></td>
+<td>Physically impossible: ~10¹⁴ pixels, hundreds of TB. No mission has done it. Handled by global catalogue + on-demand AOI detail</td>
+</tr>
+<tr>
+<td>N2</td>
+<td>Real-time rover telemetry / commanding</td>
+<td>This is a planning tool, not flight software</td>
+</tr>
+<tr>
+<td>N3</td>
+<td>Per-crater absolute age as a single number</td>
+<td>Scientifically indefensible (<code>FORMULAS.md</code> §4.4)</td>
+</tr>
+<tr>
+<td>N4</td>
+<td>Replacing published catalogues</td>
+<td>Robbins is used as ground truth, not competed with</td>
+</tr>
+<tr>
+<td>N5</td>
+<td>Sub-surface / geophysical modelling</td>
+<td>Out of scope; surface only</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="5-users">5. Users</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Needs</th>
+<th>Primary parts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Planetary science student</strong> (primary)</td>
+<td>Explore lunar terrain, inspect craters, understand methods</td>
+<td>1, 2, 3, 4</td>
+</tr>
+<tr>
+<td><strong>Mission planning analyst</strong></td>
+<td>Evaluate candidate landing sites and traverses; compare routes</td>
+<td>4, 6</td>
+</tr>
+<tr>
+<td><strong>Academic evaluator</strong></td>
+<td>Verify scientific correctness and traceability</td>
+<td>5, 8, 9</td>
+</tr>
+<tr>
+<td><strong>Robotics researcher</strong></td>
+<td>Benchmark path planning on realistic terrain</td>
+<td>6</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="6-functional-requirements">6. Functional requirements</h2>
+<p>Requirements are numbered <code>FR-&lt;part&gt;.&lt;n&gt;</code> and map to the project brief. Priority: <strong>M</strong> =
+must-have, <strong>S</strong> = should-have, <strong>C</strong> = could-have.</p>
+<h3 id="fr-1-3d-moon-globe-brief-part-1">FR-1 — 3D Moon globe (brief Part 1)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-1.1</td>
+<td>Render an interactive 3-D Moon globe</td>
+<td>M</td>
+<td>Globe renders at ≥30 fps at 1080p</td>
+</tr>
+<tr>
+<td>FR-1.2</td>
+<td>Display surface features (craters, maria, rilles) with clarity comparable to Google Earth</td>
+<td>M</td>
+<td>LROC WAC 100 m/px basemap resolves named craters ≥5 km at default zoom</td>
+</tr>
+<tr>
+<td>FR-1.3</td>
+<td>Position everything by <strong>real selenographic latitude/longitude</strong>; no pixel-based positioning</td>
+<td>M</td>
+<td>Every feature's coordinates round-trip through <code>FORMULAS.md</code> §1.2 within 1 pixel</td>
+</tr>
+<tr>
+<td>FR-1.4</td>
+<td>Both poles clearly and correctly visible</td>
+<td>M</td>
+<td>Camera can reach ±90°; polar features render without projection artefacts</td>
+</tr>
+<tr>
+<td>FR-1.5</td>
+<td>Full 360° viewing from all sides</td>
+<td>M</td>
+<td>No orientation shows a blank, black or degraded hemisphere</td>
+</tr>
+<tr>
+<td>FR-1.6</td>
+<td><strong>No sunlight / illumination effects</strong></td>
+<td>M</td>
+<td>Rendered brightness is independent of camera and light direction — unlit material, no scene lights (<code>FORMULAS.md</code> §8.1)</td>
+</tr>
+<tr>
+<td>FR-1.7</td>
+<td>Zoom in/out retaining high resolution and clarity</td>
+<td>M</td>
+<td>Progressive WMTS LOD; no visible pixelation within the layer's native resolution</td>
+</tr>
+<tr>
+<td>FR-1.8</td>
+<td>Auto-rotate <strong>and</strong> manual rotate</td>
+<td>M</td>
+<td>Both available; auto-rotate pauses on user interaction</td>
+</tr>
+<tr>
+<td>FR-1.9</td>
+<td>Coordinate input — type or pick lat/lon</td>
+<td>M</td>
+<td>Typed coordinates fly the camera to target; click returns coordinates to ≤0.01°</td>
+</tr>
+<tr>
+<td>FR-1.10</td>
+<td>Named features labelled at their exact coordinates</td>
+<td>M</td>
+<td>IAU Gazetteer names anchored to catalogue centres</td>
+</tr>
+<tr>
+<td>FR-1.11</td>
+<td>Features remain legible when zoomed out</td>
+<td>M</td>
+<td>Label decluttering by feature importance; markers scale with zoom</td>
+</tr>
+<tr>
+<td>FR-1.12</td>
+<td>Layers panel (Google-Maps style)</td>
+<td>M</td>
+<td>Toggle + opacity per layer</td>
+</tr>
+<tr>
+<td>FR-1.13</td>
+<td>Layers: hazard, risk, crater detection, boulder detection, slope, cost map</td>
+<td>M</td>
+<td>All six present and independently toggleable</td>
+</tr>
+<tr>
+<td>FR-1.14</td>
+<td>Additional layers: elevation, roughness, curvature, aspect, classification, illumination, geology</td>
+<td>S</td>
+<td>Each with legend and units</td>
+</tr>
+<tr>
+<td>FR-1.15</td>
+<td>Graticule (lat/lon grid) overlay</td>
+<td>S</td>
+<td>Toggleable; labelled</td>
+</tr>
+<tr>
+<td>FR-1.16</td>
+<td>Offline fallback basemap</td>
+<td>S</td>
+<td>Globe renders with no network</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-2-crater-and-boulder-detection-brief-part-2">FR-2 — Crater and boulder detection (brief Part 2)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-2.1</td>
+<td>Provide a global crater layer complete to D ≥ 1 km</td>
+<td>M</td>
+<td>Robbins catalogue loaded; 1 296 879 craters queryable</td>
+</tr>
+<tr>
+<td>FR-2.2</td>
+<td>Detect craters below catalogue completeness from the DEM</td>
+<td>M</td>
+<td>Detector runs; precision/recall reported against Robbins on the ≥1 km overlap</td>
+</tr>
+<tr>
+<td>FR-2.3</td>
+<td>Detect boulders at metre scale within a user-selected AOI</td>
+<td>M</td>
+<td>Shadow-based detection on OHRC/NAC; minimum detectable height reported per scene</td>
+</tr>
+<tr>
+<td>FR-2.4</td>
+<td>Report full scientific information per feature</td>
+<td>M</td>
+<td>Name, coordinates, diameter, area, depth, height, slope, elevation, classification, degradation index, epoch — with units and uncertainties</td>
+</tr>
+<tr>
+<td>FR-2.5</td>
+<td>State the detection limit alongside every survey</td>
+<td>M</td>
+<td>"No boulders detected" is never reported without the accompanying <span class="math-inline">\(h_{\min}\)</span></td>
+</tr>
+<tr>
+<td>FR-2.6</td>
+<td>Extrapolate sub-resolution boulder population</td>
+<td>S</td>
+<td>Size–frequency power law fitted and reported (<code>FORMULAS.md</code> §5.3)</td>
+</tr>
+<tr>
+<td>FR-2.7</td>
+<td>Validate detector against independent ground truth</td>
+<td>M</td>
+<td>Scored on <code>artificial_lunar</code> masks <strong>and</strong> real images, both reported</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-3-classification-brief-part-3">FR-3 — Classification (brief Part 3)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-3.1</td>
+<td>Classify craters by size into named classes</td>
+<td>M</td>
+<td>7 classes per <code>FORMULAS.md</code> §4.3</td>
+</tr>
+<tr>
+<td>FR-3.2</td>
+<td>Base class boundaries on published reference data</td>
+<td>M</td>
+<td>Every boundary cites a physical/observational transition</td>
+</tr>
+<tr>
+<td>FR-3.3</td>
+<td>Provide proof/formula for each classification rule</td>
+<td>M</td>
+<td>Documented in <code>FORMULAS.md</code> §4</td>
+</tr>
+<tr>
+<td>FR-3.4</td>
+<td>Visually separate classes by distinct colour</td>
+<td>M</td>
+<td>Colour-blind-safe categorical palette; legend always visible</td>
+</tr>
+<tr>
+<td>FR-3.5</td>
+<td>Classify boulders by size and hazard category</td>
+<td>M</td>
+<td>Bins tied to rover clearance and wheel diameter</td>
+</tr>
+<tr>
+<td>FR-3.6</td>
+<td>Report morphological type (simple / complex / peak-ring / basin)</td>
+<td>S</td>
+<td>Derived from diameter and measured <span class="math-inline">\(d/D\)</span></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-4-per-feature-calculation-brief-part-4">FR-4 — Per-feature calculation (brief Part 4)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-4.1</td>
+<td>Clicking a crater returns its full scientific profile</td>
+<td>M</td>
+<td>Response &lt; 500 ms</td>
+</tr>
+<tr>
+<td>FR-4.2</td>
+<td>Clicking any point returns local terrain science</td>
+<td>M</td>
+<td>Slope, aspect, elevation, curvature, roughness, hazard</td>
+</tr>
+<tr>
+<td>FR-4.3</td>
+<td>Any point along a planned path is inspectable</td>
+<td>M</td>
+<td>Same data as FR-4.2, plus along-path cumulative metrics</td>
+</tr>
+<tr>
+<td>FR-4.4</td>
+<td>Every value carries units and measurement baseline</td>
+<td>M</td>
+<td>Schema-enforced; baseline is a required field</td>
+</tr>
+<tr>
+<td>FR-4.5</td>
+<td>Elevation profile along a path or transect</td>
+<td>M</td>
+<td>SVG chart with distance and elevation axes</td>
+</tr>
+<tr>
+<td>FR-4.6</td>
+<td>Slope profile along a path</td>
+<td>M</td>
+<td>With the rover's slope limit marked</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-5-formula-documentation-brief-part-5">FR-5 — Formula documentation (brief Part 5)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-5.1</td>
+<td>Separate document listing every formula used</td>
+<td>M</td>
+<td><code>FORMULAS.md</code> exists and is complete</td>
+</tr>
+<tr>
+<td>FR-5.2</td>
+<td>Proof or justification for each formula</td>
+<td>M</td>
+<td>Every entry has a Derivation/Proof section</td>
+</tr>
+<tr>
+<td>FR-5.3</td>
+<td>Source/reference for each formula</td>
+<td>M</td>
+<td>DOI-resolvable citation per entry</td>
+</tr>
+<tr>
+<td>FR-5.4</td>
+<td>Explanation of <em>why</em> each formula is used</td>
+<td>M</td>
+<td>Every entry has a "Why this one" section naming rejected alternatives</td>
+</tr>
+<tr>
+<td>FR-5.5</td>
+<td>Formulas verified by executable tests</td>
+<td>S</td>
+<td>Unit test per formula against hand-computed or published values</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-6-path-planning-brief-part-6">FR-6 — Path planning (brief Part 6)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-6.1</td>
+<td>User selects start and end by latitude/longitude</td>
+<td>M</td>
+<td>Typed entry or map click</td>
+</tr>
+<tr>
+<td>FR-6.2</td>
+<td>Compute the safest path avoiding craters, boulders and hazardous slopes</td>
+<td>M</td>
+<td>Returned path has no cell exceeding rover limits</td>
+</tr>
+<tr>
+<td>FR-6.3</td>
+<td>Compare multiple planning algorithms</td>
+<td>M</td>
+<td>≥6 algorithms executed on identical inputs</td>
+</tr>
+<tr>
+<td>FR-6.4</td>
+<td>State which algorithm was selected and why</td>
+<td>M</td>
+<td><code>ALGORITHMS.md</code> §4, with empirical support</td>
+</tr>
+<tr>
+<td>FR-6.5</td>
+<td>Show outputs and paths from the other algorithms</td>
+<td>M</td>
+<td>All rendered simultaneously, visually distinguished</td>
+</tr>
+<tr>
+<td>FR-6.6</td>
+<td>Highlight the recommended path</td>
+<td>M</td>
+<td>Visually dominant; others subdued</td>
+</tr>
+<tr>
+<td>FR-6.7</td>
+<td>Explain why the highlighted path is recommended</td>
+<td>M</td>
+<td>Human-readable rationale citing its metrics</td>
+</tr>
+<tr>
+<td>FR-6.8</td>
+<td>Report per-path: distance, time, speed, cost, elevation (avg/max), slope (avg/max), terrain risk, safety score, craters detected and avoided, recommended speed</td>
+<td>M</td>
+<td>All fields present for every path</td>
+</tr>
+<tr>
+<td>FR-6.9</td>
+<td>Start and end pin markers</td>
+<td>M</td>
+<td>Distinct symbols</td>
+</tr>
+<tr>
+<td>FR-6.10</td>
+<td>Rover profile selectable</td>
+<td>S</td>
+<td>≥3 profiles; changing profile re-plans</td>
+</tr>
+<tr>
+<td>FR-6.11</td>
+<td>Risk-aversion parameter exposed</td>
+<td>S</td>
+<td>Slider from fastest to safest; path family shown</td>
+</tr>
+<tr>
+<td>FR-6.12</td>
+<td>Replanning when a new hazard is introduced</td>
+<td>C</td>
+<td>D* Lite repair demonstrated</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fr-7-interface-brief-part-7">FR-7 — Interface (brief Part 7)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>Pri</th>
+<th>Acceptance criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-7.1</td>
+<td>Attractive, professional scientific visual design</td>
+<td>M</td>
+<td>Consistent design system; dark theme suited to imagery</td>
+</tr>
+<tr>
+<td>FR-7.2</td>
+<td>Interactive and responsive</td>
+<td>M</td>
+<td>All controls &lt; 100 ms feedback</td>
+</tr>
+<tr>
+<td>FR-7.3</td>
+<td>Layer legends with units</td>
+<td>M</td>
+<td>Every active layer shows a legend</td>
+</tr>
+<tr>
+<td>FR-7.4</td>
+<td>Feature search by name</td>
+<td>S</td>
+<td>Type-ahead over IAU names</td>
+</tr>
+<tr>
+<td>FR-7.5</td>
+<td>Export results (JSON / CSV / GeoJSON)</td>
+<td>S</td>
+<td>Paths and feature tables exportable</td>
+</tr>
+<tr>
+<td>FR-7.6</td>
+<td>Provenance visible in-app</td>
+<td>M</td>
+<td>Active layers show data producer and citation</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="7-non-functional-requirements">7. Non-functional requirements</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Category</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-1</td>
+<td><strong>Scientific integrity</strong></td>
+<td>No displayed value may lack a documented derivation. Uncertainty is reported wherever it is material</td>
+</tr>
+<tr>
+<td>NFR-2</td>
+<td><strong>Reproducibility</strong></td>
+<td>Identical inputs produce identical outputs. Stochastic methods are never used for primary results</td>
+</tr>
+<tr>
+<td>NFR-3</td>
+<td><strong>Provenance</strong></td>
+<td>Every layer names its source dataset and producer</td>
+</tr>
+<tr>
+<td>NFR-4</td>
+<td>Performance</td>
+<td>Globe ≥30 fps; point query &lt;500 ms; path planning &lt;10 s on a 1000×1000 AOI</td>
+</tr>
+<tr>
+<td>NFR-5</td>
+<td>Storage</td>
+<td>No bulk duplication of source data; local footprint &lt;100 MB excluding caches</td>
+</tr>
+<tr>
+<td>NFR-6</td>
+<td>Portability</td>
+<td>Runs on the target machine with no build step and no admin rights</td>
+</tr>
+<tr>
+<td>NFR-7</td>
+<td>Resilience</td>
+<td>Network loss degrades gracefully to cached/offline data with a clear indicator</td>
+</tr>
+<tr>
+<td>NFR-8</td>
+<td>Accessibility</td>
+<td>Colour palettes distinguishable under common colour-vision deficiencies; no information conveyed by colour alone</td>
+</tr>
+<tr>
+<td>NFR-9</td>
+<td>Maintainability</td>
+<td>Analysis code separated from presentation; formulas isolated in testable functions</td>
+</tr>
+<tr>
+<td>NFR-10</td>
+<td>Documentation</td>
+<td>PRD, SRD, FORMULAS, DATASETS, TECHNOLOGY, ALGORITHMS all maintained and cross-referenced</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="8-explicit-scientific-limitations">8. Explicit scientific limitations</h2>
+<p>These are <strong>product decisions</strong>, disclosed rather than hidden. Each appears in the UI where
+relevant.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Limitation</th>
+<th>Consequence</th>
+<th>How disclosed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1</td>
+<td>Global DEM baseline is 1895 m</td>
+<td>Global slope is <em>corridor-scale</em>, not rover-scale</td>
+<td>Baseline shown with every slope value</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>Boulder detection requires AOI-scale imagery</td>
+<td>Not globally available</td>
+<td>AOI selection is explicit; coverage shown</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>Crater age is inferred, never measured</td>
+<td>Only degradation index, epoch, and model age with uncertainty</td>
+<td>Three separate labelled fields</td>
+</tr>
+<tr>
+<td>L4</td>
+<td>Synthetic training data has a domain gap</td>
+<td>Detector scores differ on synthetic vs real</td>
+<td><strong>Both</strong> scores published</td>
+</tr>
+<tr>
+<td>L5</td>
+<td>Simple-cylindrical grids degenerate at poles</td>
+<td>Cylindrical analysis invalid above ~85°</td>
+<td>System switches to polar stereographic and says so</td>
+</tr>
+<tr>
+<td>L6</td>
+<td>LOLA interpolation creates artificial roughness</td>
+<td>Apparent texture in sparse-track regions is not real</td>
+<td>Interpolated regions flagged</td>
+</tr>
+<tr>
+<td>L7</td>
+<td>Vertical quantisation is 0.5 m</td>
+<td>Slopes below ~0.05° unresolvable</td>
+<td>Reported as "below noise floor"</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="9-success-metrics">9. Success metrics</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Metric</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SM-1</td>
+<td>Formulas with proof <strong>and</strong> citation</td>
+<td>100 %</td>
+</tr>
+<tr>
+<td>SM-2</td>
+<td>Displayed values traceable to a formula</td>
+<td>100 %</td>
+</tr>
+<tr>
+<td>SM-3</td>
+<td>Crater detector precision vs Robbins (D ≥ 1 km)</td>
+<td>≥ 0.80</td>
+</tr>
+<tr>
+<td>SM-4</td>
+<td>Crater detector recall vs Robbins (D ≥ 1 km)</td>
+<td>≥ 0.70</td>
+</tr>
+<tr>
+<td>SM-5</td>
+<td>A* path cost vs Dijkstra optimum</td>
+<td>= 1.00 (identical)</td>
+</tr>
+<tr>
+<td>SM-6</td>
+<td>A* nodes expanded vs Dijkstra</td>
+<td>≤ 0.50</td>
+</tr>
+<tr>
+<td>SM-7</td>
+<td>Algorithms compared</td>
+<td>≥ 6</td>
+</tr>
+<tr>
+<td>SM-8</td>
+<td>Coordinate round-trip error</td>
+<td>≤ 1 pixel</td>
+</tr>
+<tr>
+<td>SM-9</td>
+<td>Globe frame rate at 1080p</td>
+<td>≥ 30 fps</td>
+</tr>
+<tr>
+<td>SM-10</td>
+<td>Local storage excluding caches</td>
+<td>≤ 100 MB</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>SM-3 and SM-4 are <strong>targets, not guarantees.</strong> If the classical detector does not reach
+them, the measured values are reported as they are. Reporting a real 0.62 recall is
+scientifically correct; claiming 0.85 without evidence is not.</p>
+</blockquote>
+<hr />
+<h2 id="10-release-phases">10. Release phases</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Deliverable</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>Documentation baseline — PRD, SRD, FORMULAS, DATASETS, TECHNOLOGY, ALGORITHMS</td>
+<td><strong>In progress</strong></td>
+</tr>
+<tr>
+<td>P1</td>
+<td>Data layer — selenographic core, PDS reader, catalogue index</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Terrain analysis — slope, aspect, curvature, roughness, hazard, risk, cost</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>Detection &amp; classification — craters, boulders, taxonomy</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>Path planning — all algorithms + benchmark harness</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>API — FastAPI service exposing all analyses</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>Globe UI — Three.js, layers panel, interaction</td>
+<td>Pending</td>
+</tr>
+<tr>
+<td>P7</td>
+<td>Validation &amp; reporting — measured metrics appended to docs</td>
+<td>Pending</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="11-traceability-brief-requirements">11. Traceability — brief → requirements</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Brief part</th>
+<th>Requirements</th>
+<th>Supporting documents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 3D globe</td>
+<td>FR-1.1 … FR-1.16</td>
+<td><code>FORMULAS.md</code> §1, §8; <code>TECHNOLOGY.md</code> §3</td>
+</tr>
+<tr>
+<td>2. Detection</td>
+<td>FR-2.1 … FR-2.7</td>
+<td><code>FORMULAS.md</code> §5; <code>DATASETS.md</code> §4</td>
+</tr>
+<tr>
+<td>3. Classification</td>
+<td>FR-3.1 … FR-3.6</td>
+<td><code>FORMULAS.md</code> §4</td>
+</tr>
+<tr>
+<td>4. Per-feature calculation</td>
+<td>FR-4.1 … FR-4.6</td>
+<td><code>FORMULAS.md</code> §3</td>
+</tr>
+<tr>
+<td>5. Formula documentation</td>
+<td>FR-5.1 … FR-5.5</td>
+<td><code>FORMULAS.md</code> (whole)</td>
+</tr>
+<tr>
+<td>6. Path planning</td>
+<td>FR-6.1 … FR-6.12</td>
+<td><code>ALGORITHMS.md</code>; <code>FORMULAS.md</code> §6, §7, §9</td>
+</tr>
+<tr>
+<td>7. Interface</td>
+<td>FR-7.1 … FR-7.6</td>
+<td><code>TECHNOLOGY.md</code> §3</td>
+</tr>
+<tr>
+<td>8. Datasets &amp; technology</td>
+<td>—</td>
+<td><code>DATASETS.md</code>; <code>TECHNOLOGY.md</code></td>
+</tr>
+<tr>
+<td>9. Documentation</td>
+<td>—</td>
+<td>This document; <code>SRD.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="12-revision-history">12. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. Requirements derived from project brief; scientific limitations stated explicitly; success metrics defined as measurable targets.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/PRD.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

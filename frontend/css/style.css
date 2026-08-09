@@ -1,0 +1,908 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   LunarSerpent — interface styling
+
+   Dark by default: the subject is a body seen against space, and a dark
+   surround keeps the eye adapted to the imagery rather than to the chrome.
+   Colour is reserved for data. Chrome is greyscale so that the crater class
+   palette is the only saturated thing on screen.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg:        #0a0c10;
+  --bg-panel:  #11141a;
+  --bg-raised: #171b23;
+  --bg-input:  #0d1015;
+  --border:    #242a35;
+  --border-lt: #2f3644;
+
+  --fg:        #e6e9ef;
+  --fg-dim:    #9aa3b2;
+  --fg-faint:  #626b7a;
+
+  --accent:    #4da3ff;
+  --accent-dk: #1f6fd0;
+  --ok:        #35c48a;
+  --warn:      #e0a336;
+  --err:       #e5484d;
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --topbar-h: 56px;
+  --status-h: 26px;
+  --side-w:   264px;
+  --insp-w:   320px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.5 var(--sans);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: var(--side-w) 1fr var(--insp-w);
+  grid-template-rows: var(--topbar-h) 1fr var(--status-h);
+  grid-template-areas:
+    "top    top   top"
+    "layers view  inspect"
+    "status status status";
+  height: 100vh;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+
+#topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  /* The bar must never push its own controls off-screen. Children are allowed
+     to shrink, and the controls that matter are pinned against shrinking, so a
+     narrow window costs search width rather than the renderer switch. */
+  min-width: 0;
+  overflow: hidden;
+}
+#topbar > * { min-width: 0; }
+
+.brand { display: flex; align-items: center; gap: 11px; }
+
+.brand .mark {
+  width: 26px; height: 26px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 62% 66%, #2b3240 12%, transparent 13%),
+    radial-gradient(circle at 34% 34%, #2b3240 16%, transparent 17%),
+    radial-gradient(circle at 70% 28%, #2b3240 8%,  transparent 9%),
+    linear-gradient(150deg, #6b7687, #39404e);
+  box-shadow: inset -3px -3px 7px rgba(0,0,0,.55);
+  flex: none;
+}
+
+.brand h1 { font-size: 14px; font-weight: 650; letter-spacing: .2px; }
+.brand p  { font-size: 10.5px; color: var(--fg-faint); }
+
+.goto { display: flex; align-items: center; gap: 6px; }
+.goto label { font-size: 11px; color: var(--fg-dim); }
+
+/* ── Feature search ──────────────────────────────────────────────────── */
+
+/* Flexible, not fixed: this is the element that yields width when the bar is
+   crowded, because a narrower search box costs far less than a control that
+   has been pushed off-screen. */
+.search { position: relative; flex: 1 1 160px; min-width: 110px; max-width: 300px; }
+
+.search input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-lt);
+  border-radius: 6px;
+  color: var(--fg);
+  font: 12px var(--sans);
+}
+.search input:focus { outline: none; border-color: var(--accent); }
+.search input::placeholder { color: var(--fg-faint); }
+
+.suggest {
+  position: absolute; top: calc(100% + 5px); left: 0; right: 0;
+  z-index: 40;
+  max-height: 340px; overflow-y: auto;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lt);
+  border-radius: 7px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.6);
+}
+.suggest .s {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 7px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.suggest .s:last-child { border-bottom: none; }
+.suggest .s:hover, .suggest .s.act { background: rgba(77,163,255,.14); }
+.suggest .s b { font-weight: 600; color: var(--fg); }
+.suggest .s .k { font-size: 10px; color: var(--fg-faint); }
+.suggest .s .d { margin-left: auto; font: 10.5px var(--mono); color: var(--fg-dim); }
+.suggest .none { padding: 10px 11px; font-size: 12px; color: var(--fg-faint); }
+
+/* ── Landmark chips ──────────────────────────────────────────────────── */
+
+.landmarks { display: flex; flex-wrap: wrap; gap: 5px; }
+.landmarks button {
+  padding: 4px 9px;
+  font-size: 11px;
+  border-radius: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lt);
+  color: var(--fg-dim);
+}
+.landmarks button:hover {
+  background: var(--accent-dk); border-color: var(--accent-dk); color: #fff;
+}
+
+input[type="number"] {
+  width: 84px; padding: 5px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-lt);
+  border-radius: 5px;
+  color: var(--fg);
+  font: 12px var(--mono);
+}
+input[type="number"]:focus { outline: none; border-color: var(--accent); }
+input[type=number]::-webkit-inner-spin-button { opacity: .25; }
+
+button {
+  padding: 5px 11px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lt);
+  border-radius: 5px;
+  color: var(--fg-dim);
+  font: 12px var(--sans);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+button:hover  { background: #1e232c; color: var(--fg); }
+button.primary { background: var(--accent-dk); border-color: var(--accent-dk); color: #fff; }
+button.primary:hover { background: var(--accent); }
+button.toggle.on { background: var(--accent-dk); border-color: var(--accent-dk); color: #fff; }
+
+/* Pinned: these are the primary controls and must survive any window width.
+   `nowrap` matters — without it the segmented switch wraps onto a second line
+   and reads as two unrelated buttons rather than one either/or control. */
+.tools {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  flex-shrink: 0;
+  align-items: center;
+  white-space: nowrap;
+}
+.tools button { flex-shrink: 0; white-space: nowrap; }
+.segmented { flex-shrink: 0; }
+
+.goto { flex-shrink: 0; }
+
+/* Below this width the brand wordmark is the least useful thing on screen. */
+@media (max-width: 1400px) {
+  .brand > div { display: none; }
+  #topbar { gap: 10px; }
+}
+@media (max-width: 1150px) {
+  .goto label { display: none; }
+  .goto input { width: 74px; }
+}
+
+/* ── Side panels ─────────────────────────────────────────────────────── */
+
+#layers, #inspect {
+  background: var(--bg-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#layers  { grid-area: layers;  border-right: 1px solid var(--border); }
+#inspect { grid-area: inspect; border-left:  1px solid var(--border); }
+
+#layers h2, #inspect h2 {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 650;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--fg-faint);
+}
+
+#btn-close-inspect {
+  padding: 0 6px; background: none; border: none;
+  font-size: 16px; line-height: 1; color: var(--fg-faint);
+}
+
+.grp { padding: 14px; border-bottom: 1px solid var(--border); }
+.grp h3 {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 11.5px; font-weight: 600; color: var(--fg-dim);
+}
+
+.pill {
+  padding: 1px 7px; border-radius: 9px;
+  background: var(--bg-raised); border: 1px solid var(--border-lt);
+  font: 10px var(--mono); color: var(--fg-faint);
+}
+
+/* radios + checkboxes */
+.radios { display: flex; flex-direction: column; gap: 3px; }
+
+.radios label, .chk {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 5px;
+  font-size: 12px; color: var(--fg-dim);
+  cursor: pointer;
+}
+.radios label:hover, .chk:hover { background: var(--bg-raised); color: var(--fg); }
+.radios input, .chk input { accent-color: var(--accent); }
+.chk.dis { opacity: .4; cursor: not-allowed; }
+.chk.dis:hover { background: none; }
+
+label.row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 11px 0 4px; font-size: 11.5px; color: var(--fg-dim);
+}
+label.row output { font: 11px var(--mono); color: var(--accent); }
+
+input[type="range"] {
+  width: 100%; height: 3px; -webkit-appearance: none;
+  background: var(--border-lt); border-radius: 2px; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg-panel);
+}
+
+.legend { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+.legend .item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--fg-dim);
+}
+.legend .sw { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+.legend .n  { margin-left: auto; font: 10px var(--mono); color: var(--fg-faint); }
+
+.credit { margin-top: 8px; font-size: 10px; color: var(--fg-faint); line-height: 1.45; }
+.note   { margin-top: 9px; font-size: 10.5px; color: var(--fg-faint); line-height: 1.5; }
+
+.prov { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.prov li { font-size: 11px; color: var(--fg-dim); line-height: 1.5; }
+.prov b { color: var(--fg); font-weight: 600; }
+.prov span { color: var(--fg-faint); font-size: 10px; }
+
+/* ── Viewport ────────────────────────────────────────────────────────── */
+
+#view { grid-area: view; position: relative; background: #000; overflow: hidden; }
+#gl   { display: block; width: 100%; height: 100%; }
+
+#loading {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; background: rgba(10,12,16,.92); z-index: 10;
+  transition: opacity .4s;
+}
+#loading.gone { opacity: 0; pointer-events: none; }
+#loading p { font-size: 12px; color: var(--fg-dim); }
+
+.spin {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid var(--border-lt); border-top-color: var(--accent);
+  animation: sp .8s linear infinite;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* ── Named-feature labels (CSS2DRenderer overlay) ────────────────────── */
+
+.label-layer {
+  position: absolute; inset: 0;
+  pointer-events: none;             /* the layer itself must not eat drags */
+  overflow: hidden;
+}
+
+/* Text only — no boxes, no borders, no backdrop blur.
+   A map label should read as a name written on the terrain, not as a chip
+   floating above it. Legibility comes from a tight dark halo, which works over
+   bright highlands and dark maria alike without occluding the imagery. */
+.feat-label {
+  pointer-events: auto;             /* individual labels stay clickable */
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font: 500 10.5px/1.2 var(--sans);
+  letter-spacing: .015em;
+  color: #f2f5fa;
+  text-shadow:
+     0 0 2px rgba(0,0,0,.98), 0 0 4px rgba(0,0,0,.9),
+     0 0 8px rgba(0,0,0,.6);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0;                       /* faded in once placement is resolved */
+  transition: opacity .18s ease, color .12s;
+}
+
+.feat-label.shown { opacity: 1; }
+
+.feat-label:hover {
+  color: #7dc0ff;
+  z-index: 5;
+}
+
+.feat-label.sel { color: #7dc0ff; font-weight: 650; }
+
+/* Maria are regions, not points: wide tracking and small caps read as an
+   area label the way they do on printed lunar charts. */
+.feat-label.kind-mare,
+.feat-label.kind-oceanus,
+.feat-label.kind-sinus,
+.feat-label.kind-lacus,
+.feat-label.kind-palus,
+.feat-label.kind-planitia,
+.feat-label.kind-terra {
+  text-transform: uppercase;
+  letter-spacing: .19em;
+  font-size: 9.5px;
+  font-weight: 400;
+  color: #cfe0f5;
+  opacity: 0;
+}
+.feat-label.kind-mare.shown,
+.feat-label.kind-oceanus.shown,
+.feat-label.kind-sinus.shown,
+.feat-label.kind-lacus.shown,
+.feat-label.kind-palus.shown,
+.feat-label.kind-planitia.shown,
+.feat-label.kind-terra.shown { opacity: .85; }
+
+/* Linear features sit lower in the hierarchy than craters. */
+.feat-label.kind-rima,
+.feat-label.kind-vallis,
+.feat-label.kind-catena,
+.feat-label.kind-dorsum,
+.feat-label.kind-rupes {
+  font-size: 9.5px;
+  font-weight: 400;
+  font-style: italic;
+  color: #c9bff0;
+}
+
+.feat-label.kind-mons,
+.feat-label.kind-mensa,
+.feat-label.kind-promontorium { color: #f0c9a0; }
+
+.feat-label.kind-landing_site {
+  color: #7fe0b4;
+  font-weight: 600;
+  font-size: 10px;
+}
+.feat-label.kind-landing_site::before {
+  content: '▲ ';
+  font-size: 7px;
+  vertical-align: 1px;
+}
+
+.feat-label.kind-satellite_crater {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: #b9c2d0;
+}
+
+/* ── Panel tabs (Layers / Discover) ──────────────────────────────────── */
+
+.ptabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 12px 0;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 3;
+  background: var(--bg-panel);
+}
+.ptab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+}
+.ptab:hover { color: var(--fg-dim); background: transparent; }
+.ptab.on { color: var(--fg); border-bottom-color: var(--accent); }
+
+.ptabpane { padding: 0; }
+
+/* ── Discover ────────────────────────────────────────────────────────── */
+
+#tab-discover { padding: 12px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.chips button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lt);
+  color: var(--fg-dim);
+}
+.chips button:hover { border-color: var(--accent-dk); color: var(--fg); }
+.chips button.on {
+  background: var(--accent-dk);
+  border-color: var(--accent-dk);
+  color: #fff;
+}
+
+.disclist { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+
+.dcard {
+  padding: 9px 11px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-lt);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.dcard:hover { background: #1c222c; border-left-color: var(--accent); }
+
+.dcard .hd { display: flex; align-items: baseline; gap: 7px; }
+.dcard .nm { font-size: 13.5px; font-weight: 650; color: var(--fg); }
+.dcard .ty { font-size: 10px; color: var(--fg-faint); text-transform: uppercase;
+             letter-spacing: .06em; }
+.dcard .dm { margin-left: auto; font: 10.5px var(--mono); color: var(--fg-dim); }
+.dcard .wh { font-size: 11.5px; color: var(--fg-dim); margin-top: 3px;
+             line-height: 1.45; }
+.dcard .mt { display: flex; gap: 9px; margin-top: 5px; font: 10px var(--mono);
+             color: var(--fg-faint); align-items: center; }
+
+/* Earth-visibility dot: solid = always visible, ring = libration-only,
+   hollow = never visible from Earth. */
+.vis { display: inline-flex; align-items: center; gap: 4px; }
+.vis::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  border: 1px solid currentColor;
+}
+.vis.nearside { color: #6fd39b; }
+.vis.nearside::before { background: currentColor; }
+.vis.limb     { color: #e9c46a; }
+.vis.limb::before { background: transparent; }
+.vis.farside  { color: #8a93a3; }
+.vis.farside::before { background: transparent; border-style: dotted; }
+
+/* ── Missions ────────────────────────────────────────────────────────── */
+
+#tab-missions { padding: 12px; }
+
+.misstats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  margin-bottom: 10px;
+}
+.misstats .s {
+  background: var(--bg-alt); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 8px; text-align: center;
+}
+.misstats .s b { display: block; font-size: 16px; color: var(--fg); }
+.misstats .s span {
+  font-size: 9.5px; color: var(--fg-faint);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+
+.mcard {
+  padding: 9px 11px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-lt);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.mcard:hover { background: #1c222c; }
+.mcard.ok      { border-left-color: #35c48a; }
+.mcard.partial { border-left-color: #e9c46a; }
+.mcard.fail    { border-left-color: #e05a5a; }
+
+.mcard .hd { display: flex; align-items: baseline; gap: 6px; }
+.mcard .fl { font-size: 14px; }
+.mcard .nm { font-size: 13px; font-weight: 650; color: var(--fg); }
+.mcard .yr { margin-left: auto; font: 10.5px var(--mono); color: var(--fg-dim); }
+.mcard .ag { font-size: 10.5px; color: var(--fg-faint); margin-top: 2px; }
+.mcard .sm { font-size: 11.5px; color: var(--fg-dim); margin-top: 4px;
+             line-height: 1.45; }
+.mcard .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.mcard .tg {
+  font-size: 9.5px; padding: 1px 6px; border-radius: 8px;
+  background: var(--bg-raised); border: 1px solid var(--border-lt);
+  color: var(--fg-faint); text-transform: uppercase; letter-spacing: .05em;
+}
+.mcard .tg.first { border-color: var(--accent-dk); color: #8ec5ff; }
+
+/* Coordinate-confidence marker. Several historic sites were mislocated by
+   kilometres until LRO imaged the hardware, so the tier is always shown. */
+.prec { font: 9.5px var(--mono); }
+.prec.measured    { color: #6fd39b; }
+.prec.reported    { color: #e9c46a; }
+.prec.approximate { color: #e07a5a; }
+
+.mdetail { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.mdetail ul { margin: 0; padding-left: 15px; }
+.mdetail li { font-size: 11.5px; color: var(--fg-dim); margin-bottom: 4px;
+              line-height: 1.5; }
+.mdetail .kv { margin-top: 7px; }
+.mdetail .ref {
+  margin-top: 8px; font-size: 10px; color: var(--fg-faint);
+  line-height: 1.5; font-style: italic;
+}
+
+/* ── Discoveries ─────────────────────────────────────────────────────── */
+
+#tab-science { padding: 12px; }
+
+.scilegend {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 7px 9px; margin-bottom: 9px;
+  background: var(--bg-alt); border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 10px; color: var(--fg-faint);
+}
+.scilegend span { display: inline-flex; align-items: center; gap: 4px; }
+.scilegend i {
+  width: 8px; height: 8px; border-radius: 2px; display: inline-block;
+}
+
+/* Confidence is encoded in colour and repeated in words — a reader should
+   never have to decode a swatch to learn that a claim is disputed. */
+.st-established { color: #6fd39b; }  i.st-established { background: #6fd39b; }
+.st-evolving    { color: #e9c46a; }  i.st-evolving    { background: #e9c46a; }
+.st-contested   { color: #e07a5a; }  i.st-contested   { background: #e07a5a; }
+
+.scard {
+  padding: 10px 11px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-lt);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.scard:hover { background: #1c222c; }
+.scard.established { border-left-color: #6fd39b; }
+.scard.evolving    { border-left-color: #e9c46a; }
+.scard.contested   { border-left-color: #e07a5a; }
+
+.scard .hd { display: flex; align-items: baseline; gap: 7px; }
+.scard .ti { font-size: 13px; font-weight: 650; color: var(--fg); line-height: 1.3; }
+.scard .yr { margin-left: auto; font: 10.5px var(--mono); color: var(--fg-dim); }
+.scard .ms { font-size: 10.5px; color: var(--fg-faint); margin-top: 3px; }
+.scard .hl { font-size: 12px; color: var(--fg-dim); margin-top: 6px; line-height: 1.5; }
+.scard .val {
+  margin-top: 6px; padding: 4px 8px;
+  background: var(--bg-input); border-radius: 4px;
+  font: 11px var(--mono); color: #8ec5ff;
+}
+.scard .foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 7px;
+  font-size: 10px;
+}
+.scard .dt { font-size: 11.5px; color: var(--fg-dim); margin-top: 8px;
+             padding-top: 8px; border-top: 1px solid var(--border);
+             line-height: 1.55; }
+.scard .rf { margin-top: 7px; font-size: 10px; color: var(--fg-faint);
+             font-style: italic; line-height: 1.5; }
+.scard .pin {
+  font-size: 10px; padding: 2px 7px; border-radius: 8px;
+  background: var(--bg-raised); border: 1px solid var(--border-lt);
+  color: var(--fg-dim); cursor: pointer;
+}
+.scard .pin:hover { background: var(--accent-dk); color: #fff; }
+
+/* States which asset build is actually loaded. Without it, stale CSS looks
+   exactly like a code bug. */
+#buildstamp {
+  font: 10px var(--mono);
+  color: var(--fg-faint);
+  opacity: .7;
+}
+
+/* ── Provenance badge ────────────────────────────────────────────────────
+   Always visible, always states which renderer is drawing and which dataset
+   the reported numbers actually come from. Those are not the same thing, and
+   conflating them is how someone ends up trusting an elevation read off a
+   decorative mesh. */
+
+#provenance {
+  position: absolute; left: 14px; top: 14px; z-index: 7;
+  pointer-events: none;
+  padding: 9px 12px;
+  background: rgba(8, 10, 14, .9);
+  border: 1px solid var(--border-lt);
+  border-left: 3px solid var(--accent);
+  border-radius: 7px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  font: 11px/1.6 var(--sans);
+  min-width: 224px;
+}
+#provenance.cesium { border-left-color: #b06cf0; }
+
+.pv-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 650; color: var(--fg);
+  margin-bottom: 6px;
+}
+.pv-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(77,163,255,.18);
+}
+#provenance.cesium .pv-dot {
+  background: #b06cf0; box-shadow: 0 0 0 3px rgba(176,108,240,.18);
+}
+
+.pv-rows > div {
+  display: flex; justify-content: space-between; gap: 14px;
+  color: var(--fg-dim); font: 10.5px var(--mono);
+}
+.pv-k { color: var(--fg-faint); }
+.pv-rows > div:last-child { color: #6fd39b; }
+.pv-rows > div:last-child .pv-k { color: var(--fg-faint); }
+
+/* ── Renderer switch ─────────────────────────────────────────────────── */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-lt);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-right: 4px;
+}
+.segmented .seg {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 550;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--fg-faint);
+}
+.segmented .seg + .seg { border-left: 1px solid var(--border-lt); }
+.segmented .seg:hover { background: var(--bg-raised); color: var(--fg-dim); }
+.segmented .seg.on { background: var(--accent-dk); color: #fff; }
+.segmented .seg:disabled { opacity: .45; cursor: wait; }
+
+/* Cesium mounts here; it sits over the Three.js canvas and only one is shown. */
+#cesiumContainer { position: absolute; inset: 0; }
+#cesiumContainer[hidden] { display: none; }
+.cesium-viewer-bottom, .cesium-widget-credits { display: none !important; }
+.cesium-viewer-toolbar { display: none !important; }
+.cesium-widget canvas { outline: none; }
+
+/* ── Tile refinement readout (Terrain renderer only) ─────────────────── */
+
+.tilestats {
+  position: absolute; right: 14px; bottom: 88px; z-index: 6;
+  pointer-events: none;
+  padding: 9px 12px;
+  min-width: 172px;
+  background: rgba(8, 10, 14, .92);
+  border: 1px solid var(--border-lt);
+  border-radius: 7px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.55);
+  font: 12px/1.75 var(--mono);
+  color: #dfe5ee;
+  text-align: right;
+}
+.tilestats b { color: #7dc0ff; font-size: 16px; font-weight: 700; }
+.tilestats .lbl {
+  color: #8a93a3; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.tilestats .busy { color: var(--warn); }
+
+/* ── Quick view shortcuts in the Places panel ────────────────────────── */
+
+.viewrow {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  padding-bottom: 9px; margin-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+.viewlbl {
+  font-size: 10px; color: var(--fg-faint);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-right: 2px;
+}
+.viewbtn {
+  padding: 3px 9px;
+  font-size: 11px;
+  border-radius: 11px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lt);
+  color: var(--fg-dim);
+}
+.viewbtn:hover {
+  background: var(--accent-dk); border-color: var(--accent-dk); color: #fff;
+}
+
+/* ── Scale bar ───────────────────────────────────────────────────────── */
+
+#scalebar {
+  position: absolute; left: 14px; bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+  pointer-events: none;
+  font: 10.5px var(--mono);
+  color: #dfe5ee;
+  text-shadow: 0 0 3px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.8);
+}
+#scalebar .bar {
+  position: relative;
+  height: 7px;
+  border: 1px solid rgba(255,255,255,.85);
+  border-top: none;
+  box-shadow: 0 0 4px rgba(0,0,0,.8);
+  transition: width .18s ease;
+}
+#scalebar .bar i {
+  position: absolute; left: 50%; top: 0;
+  width: 1px; height: 4px;
+  background: rgba(255,255,255,.85);
+}
+
+/* ── Zoom buttons ────────────────────────────────────────────────────── */
+
+#zoomctl {
+  position: absolute; right: 14px; bottom: 14px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+#zoomctl button {
+  width: 30px; height: 30px;
+  padding: 0;
+  font-size: 17px; line-height: 1;
+  background: rgba(17,20,26,.9);
+  border: 1px solid var(--border-lt);
+  border-radius: 6px;
+  color: var(--fg-dim);
+}
+#zoomctl button:hover { background: var(--accent-dk); color: #fff; }
+
+#poles { position: absolute; inset: 0; pointer-events: none; }
+.pole {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font: 10px var(--mono); color: var(--fg-faint);
+  padding: 2px 7px; border-radius: 3px;
+  background: rgba(10,12,16,.6);
+}
+.pole.n { top: 10px; }
+.pole.s { bottom: 10px; }
+
+/* ── Inspector body ──────────────────────────────────────────────────── */
+
+.empty { padding: 20px 16px; font-size: 12px; color: var(--fg-faint); line-height: 1.6; }
+
+#inspect-body { padding: 14px; }
+
+.sec { margin-bottom: 16px; }
+.sec > h4 {
+  margin-bottom: 7px;
+  font-size: 10px; font-weight: 650; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fg-faint);
+}
+
+.kv { display: flex; flex-direction: column; gap: 1px; }
+.kv .r {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 4px 7px; border-radius: 4px;
+  font-size: 11.5px;
+}
+.kv .r:nth-child(odd) { background: rgba(255,255,255,.022); }
+.kv .k { color: var(--fg-dim); }
+.kv .v { font: 11.5px var(--mono); color: var(--fg); text-align: right; }
+.kv .v.hi { color: var(--accent); }
+
+.cratercard {
+  padding: 9px 10px; margin-bottom: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 5px;
+}
+.cratercard .top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 5px;
+}
+.cratercard .id  { font: 11px var(--mono); color: var(--fg); }
+.cratercard .nm  { font-size: 13px; font-weight: 650; color: var(--fg); }
+.cratercard .cid { font: 10px var(--mono); color: var(--fg-faint); margin-left: 7px; }
+.cratercard.named { cursor: pointer; }
+.cratercard.named:hover {
+  background: #1c222c; border-color: var(--accent-dk);
+}
+.cratercard .cls { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
+.cratercard .dims { font: 10.5px var(--mono); color: var(--fg-dim); }
+
+/* Measured-vs-predicted ratio bar. The tick marks parity (1.0x); a bar short
+   of it means shallower than a fresh crater, past it means deeper. */
+.ratiobar {
+  position: relative;
+  height: 5px; margin: 10px 0 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-lt);
+  border-radius: 3px;
+  overflow: visible;
+}
+.ratiobar span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--warn), var(--accent));
+  border-radius: 2px;
+}
+.ratiobar i {
+  position: absolute; top: -3px;
+  width: 1px; height: 11px;
+  background: var(--fg-faint);
+}
+
+.srcnote {
+  padding: 8px 10px; border-radius: 5px;
+  background: rgba(77,163,255,.07);
+  border-left: 2px solid var(--accent-dk);
+  font-size: 10.5px; color: var(--fg-dim); line-height: 1.5;
+}
+.warnnote {
+  padding: 8px 10px; border-radius: 5px;
+  background: rgba(224,163,54,.08);
+  border-left: 2px solid var(--warn);
+  font-size: 10.5px; color: #d9b478; line-height: 1.5;
+}
+
+/* ── Status bar ──────────────────────────────────────────────────────── */
+
+#status {
+  grid-area: status;
+  display: flex; align-items: center; gap: 0;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  font: 11px var(--mono);
+  color: var(--fg-faint);
+}
+#status .cell { padding: 0 12px; border-right: 1px solid var(--border); white-space: nowrap; }
+#status .grow { flex: 1; border-right: none; color: var(--fg-dim); }
+#st-health { color: var(--fg-faint); font-size: 13px; border-right: none; }
+#st-health.ok   { color: var(--ok); }
+#st-health.bad  { color: var(--err); }
+
+/* ── Scrollbars ──────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: var(--bg-panel); }
+::-webkit-scrollbar-thumb { background: var(--border-lt); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #3c4454; }
+
+/* ── Narrow screens ──────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  #app { grid-template-columns: 220px 1fr 0; }
+  #inspect { display: none; }
+}
+@media (max-width: 820px) {
+  #app { grid-template-columns: 0 1fr 0; }
+  #layers { display: none; }
+  .goto label { display: none; }
+}

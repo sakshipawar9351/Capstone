@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html" class="active"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / ALGORITHMS.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-problem-formulation">1. Problem formulation</a></li>
+<li><a href="#2-candidate-algorithms-surveyed">2. Candidate algorithms surveyed</a><ul>
+<li><a href="#21-uninformed-graph-search">2.1 Uninformed graph search</a></li>
+<li><a href="#22-informed-graph-search">2.2 Informed graph search</a></li>
+<li><a href="#23-any-angle-search">2.3 Any-angle search</a></li>
+<li><a href="#24-incremental-replanning">2.4 Incremental replanning</a></li>
+<li><a href="#25-sampling-based">2.5 Sampling-based</a></li>
+<li><a href="#26-reactive">2.6 Reactive</a></li>
+</ul>
+</li>
+<li><a href="#3-comparison-matrix">3. Comparison matrix</a></li>
+<li><a href="#4-selection-a-on-an-8-connected-weighted-grid-with-cost-validated-path-smoothing">4. Selection: A* on an 8-connected weighted grid, with cost-validated path smoothing</a><ul>
+<li><a href="#41-the-decision">4.1 The decision</a></li>
+<li><a href="#42-why-a-five-reasons-mapped-to-the-problems-structure">4.2 Why A* — five reasons, mapped to the problem's structure</a></li>
+<li><a href="#43-honest-statement-of-as-limitation">4.3 Honest statement of A*'s limitation</a></li>
+</ul>
+</li>
+<li><a href="#5-why-all-algorithms-are-still-computed-and-displayed">5. Why all algorithms are still computed and displayed</a></li>
+<li><a href="#6-benchmark-protocol">6. Benchmark protocol</a></li>
+<li><a href="#7-complexity-summary">7. Complexity summary</a></li>
+<li><a href="#8-references">8. References</a></li>
+<li><a href="#9-revision-history">9. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-path-planning-algorithms-survey-comparison-and-selection">LunarSerpent — Path Planning Algorithms: Survey, Comparison and Selection</h1>
+<p><strong>Document ID:</strong> LS-DOC-006 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 6</strong> — analyse and compare the most-used, most-efficient path planning algorithms; select the best and state why; show outputs from the others too.</p>
+<hr />
+<h2 id="1-problem-formulation">1. Problem formulation</h2>
+<p>Before comparing algorithms it is necessary to state precisely what problem is being solved,
+because the correct choice depends entirely on the problem's structure.</p>
+<p><strong>Given:</strong>
+- A cost field <span class="math-inline">\(C:\mathcal{S}\to\mathbb{R}^+\cup\{\infty\}\)</span> over the lunar surface <span class="math-inline">\(\mathcal{S}\)</span>,
+  derived in <code>FORMULAS.md</code> §6.4, where <span class="math-inline">\(C\)</span> is traverse time inflated by a risk multiplier and
+  <span class="math-inline">\(\infty\)</span> marks impassable cells.
+- Start and goal in selenographic coordinates, <span class="math-inline">\((\varphi_s,\lambda_s)\)</span> and <span class="math-inline">\((\varphi_g,\lambda_g)\)</span>.
+- A rover mobility model <span class="math-inline">\(v(\theta)\)</span> (<code>FORMULAS.md</code> §7.1).</p>
+<p><strong>Find:</strong> the path <span class="math-inline">\(P\)</span> minimising <span class="math-inline">\(\int_P C\,ds\)</span>.</p>
+<p><strong>The five structural properties that determine the answer:</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Property</th>
+<th>Value for this problem</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Cost structure</td>
+<td><strong>Weighted continuum</strong>, not binary obstacles</td>
+<td>Rules out algorithms that assume free/blocked</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Environment</td>
+<td><strong>Static and fully known</strong> in advance</td>
+<td>Replanning algorithms lose their main advantage</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Dimensionality</td>
+<td><strong>2 DOF</strong> (position on a surface)</td>
+<td>Sampling methods lose their main advantage</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Optimality requirement</td>
+<td><strong>Hard</strong> — this is mission safety</td>
+<td>Rules out non-optimal heuristics as the primary</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Reproducibility</td>
+<td><strong>Mandatory</strong> — scientific deliverable</td>
+<td>Rules out stochastic algorithms as the primary</td>
+</tr>
+</tbody>
+</table></div>
+<p>Properties 1, 4 and 5 are the decisive ones, and §4 shows why.</p>
+<hr />
+<h2 id="2-candidate-algorithms-surveyed">2. Candidate algorithms surveyed</h2>
+<p>Eleven algorithms were considered, grouped by family.</p>
+<h3 id="21-uninformed-graph-search">2.1 Uninformed graph search</h3>
+<p><strong>Breadth-First Search (BFS)</strong> — expands by hop count.
+- Complexity: <span class="math-inline">\(O(V+E)\)</span>. Optimal <strong>only</strong> for uniform edge cost.
+- <em>Relevance:</em> Included as a <strong>baseline</strong> to demonstrate what ignoring terrain cost produces — it finds the fewest-cells route, which on real terrain drives straight over crater rims.</p>
+<p><strong>Dijkstra (1959)</strong> — expands in order of accumulated cost.
+- Complexity: <span class="math-inline">\(O(E + V\log V)\)</span> with a binary heap.
+- <strong>Optimal and complete</strong> for non-negative weights.
+- <em>Relevance:</em> This is the <strong>optimality reference</strong>. Its cost is by definition the true minimum on the given discretisation, so every other algorithm's result is reported as a ratio to it.</p>
+<h3 id="22-informed-graph-search">2.2 Informed graph search</h3>
+<p><strong>A* (Hart, Nilsson &amp; Raphael 1968)</strong> — Dijkstra guided by a heuristic <span class="math-inline">\(h\)</span>.
+- Complexity: <span class="math-inline">\(O(E + V\log V)\)</span> worst case, but expands dramatically fewer nodes in practice.
+- <strong>Optimal</strong> iff <span class="math-inline">\(h\)</span> is admissible; <strong>no node re-expansion</strong> iff <span class="math-inline">\(h\)</span> is consistent. Both are
+  <em>proved</em> for LunarSerpent's heuristic in <code>FORMULAS.md</code> §9.1.</p>
+<p><strong>Weighted A*</strong> — inflates the heuristic, <span class="math-inline">\(f = g + \varepsilon h\)</span>, <span class="math-inline">\(\varepsilon&gt;1\)</span>.
+- Faster, but the returned path can cost up to <span class="math-inline">\(\varepsilon\times\)</span> optimal.
+- <em>Relevance:</em> Included to quantify the <strong>speed-vs-optimality trade-off</strong> explicitly.</p>
+<h3 id="23-any-angle-search">2.3 Any-angle search</h3>
+<p><strong>Theta* (Nash et al. 2007)</strong> — A* that allows a node's parent to be any ancestor with
+line-of-sight, producing paths not constrained to 45° headings.
+- Removes the grid-discretisation penalty of up to <strong>+8.24 %</strong> derived in <code>FORMULAS.md</code> §9.2.
+- ⚠️ <strong>Critical caveat for this project:</strong> the line-of-sight shortcut assumes cost is
+  <em>homogeneous</em> along the shortcut. On a <strong>weighted</strong> cost field that assumption is false — a
+  straight line between two cheap cells may cross expensive ones. Theta* is therefore
+  provably optimal for <em>binary obstacle</em> maps but <strong>not</strong> for weighted terrain.</p>
+<p><strong>Lazy Theta*</strong> — defers line-of-sight checks; fewer checks, same path quality class.</p>
+<p><strong>Field D* (Ferguson &amp; Stentz 2006)</strong> — interpolates cost across cell edges, giving
+any-angle paths that <em>do</em> respect a continuously varying cost field.
+- The theoretically strongest fit for weighted terrain, at substantially higher implementation
+  and runtime complexity.</p>
+<h3 id="24-incremental-replanning">2.4 Incremental replanning</h3>
+<p><strong>D* Lite (Koenig &amp; Likhachev 2002)</strong> — repairs an existing solution when edge costs change,
+rather than replanning from scratch.
+- Complexity per repair is proportional to the <em>changed</em> region, not the whole map.
+- <em>Relevance:</em> The environment here is static, so D* Lite offers no advantage for initial
+  planning. It becomes essential for the <strong>operational</strong> case — a rover discovering an
+  unmapped boulder mid-traverse. Included for that scenario.</p>
+<h3 id="25-sampling-based">2.5 Sampling-based</h3>
+<p><strong>RRT (LaValle 1998)</strong> — grows a tree by random sampling.
+- Probabilistically complete; <strong>not</strong> optimal — converges to arbitrarily suboptimal paths.</p>
+<p><strong>RRT* (Karaman &amp; Frazzoli 2011)</strong> — adds rewiring; <strong>asymptotically optimal</strong>.
+- Converges to the optimum only as samples <span class="math-inline">\(\to\infty\)</span>; any finite run is suboptimal by an
+  unknown margin.
+- ⚠️ <strong>Stochastic</strong> — different runs give different paths. For a scientific deliverable that
+  must be reproducible, this is disqualifying for the primary planner.</p>
+<p><strong>PRM (Kavraki et al. 1996)</strong> — builds a reusable roadmap.
+- Efficient for <strong>many</strong> queries in one static environment; the roadmap construction cost is
+  amortised.</p>
+<h3 id="26-reactive">2.6 Reactive</h3>
+<p><strong>Artificial Potential Fields (Khatib 1986)</strong> — gradient descent on attraction/repulsion.
+- <span class="math-inline">\(O(1)\)</span> per step, but suffers <strong>local minima</strong> and is neither complete nor optimal.
+- <em>Relevance:</em> Included only to demonstrate the failure mode — it becomes trapped in concave
+  crater walls, which is exactly the terrain this project must handle.</p>
+<hr />
+<h2 id="3-comparison-matrix">3. Comparison matrix</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Optimal?</th>
+<th>Complete?</th>
+<th>Deterministic?</th>
+<th>Handles weighted cost?</th>
+<th>Any-angle?</th>
+<th>Complexity</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BFS</td>
+<td>✗ (uniform only)</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td><span class="math-inline">\(O(V+E)\)</span></td>
+<td>Baseline only</td>
+</tr>
+<tr>
+<td><strong>Dijkstra</strong></td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td><span class="math-inline">\(O(E+V\log V)\)</span></td>
+<td><strong>Reference</strong></td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td><span class="math-inline">\(O(E+V\log V)\)</span></td>
+<td><strong>★ SELECTED</strong></td>
+</tr>
+<tr>
+<td>Weighted A*</td>
+<td>✗ (<span class="math-inline">\(\le\varepsilon\cdot\)</span>opt)</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td>faster</td>
+<td>Trade-off study</td>
+</tr>
+<tr>
+<td>Theta*</td>
+<td>✓ binary / ✗ weighted</td>
+<td>✓</td>
+<td>✓</td>
+<td>⚠️ partial</td>
+<td>✓</td>
+<td><span class="math-inline">\(O(E+V\log V)\cdot\)</span>LOS</td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td>Lazy Theta*</td>
+<td>as Theta*</td>
+<td>✓</td>
+<td>✓</td>
+<td>⚠️ partial</td>
+<td>✓</td>
+<td>faster LOS</td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td>Field D*</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>high</td>
+<td>Future work</td>
+</tr>
+<tr>
+<td>D* Lite</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td>repair-local</td>
+<td><strong>Replanning role</strong></td>
+</tr>
+<tr>
+<td>RRT</td>
+<td>✗</td>
+<td>prob.</td>
+<td>✗</td>
+<td>⚠️</td>
+<td>✓</td>
+<td><span class="math-inline">\(O(n\log n)\)</span></td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td>RRT*</td>
+<td>asymptotic</td>
+<td>prob.</td>
+<td>✗</td>
+<td>⚠️</td>
+<td>✓</td>
+<td><span class="math-inline">\(O(n\log n)\)</span></td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td>PRM</td>
+<td>asymptotic</td>
+<td>prob.</td>
+<td>✗</td>
+<td>⚠️</td>
+<td>✓</td>
+<td>build+query</td>
+<td>Comparison</td>
+</tr>
+<tr>
+<td>Potential fields</td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td><span class="math-inline">\(O(1)\)</span>/step</td>
+<td>Failure demo</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="4-selection-a-on-an-8-connected-weighted-grid-with-cost-validated-path-smoothing">4. Selection: <strong>A* on an 8-connected weighted grid, with cost-validated path smoothing</strong></h2>
+<h3 id="41-the-decision">4.1 The decision</h3>
+<p><strong>Primary planner: A*.</strong> With a great-circle/<span class="math-inline">\(v_{\max}\)</span> heuristic proved admissible <em>and</em>
+consistent in <code>FORMULAS.md</code> §9.1.</p>
+<p><strong>Post-process: cost-validated shortcut smoothing.</strong> Candidate shortcuts between non-adjacent
+waypoints are accepted <strong>only if the actual line-integrated cost along the shortcut is lower
+than the original sub-path.</strong> This recovers most of the any-angle benefit <em>without</em> Theta*'s
+false homogeneity assumption.</p>
+<p><strong>Replanning: D* Lite</strong>, for the operational case of newly-discovered hazards.</p>
+<h3 id="42-why-a-five-reasons-mapped-to-the-problems-structure">4.2 Why A* — five reasons, mapped to the problem's structure</h3>
+<p><strong>1. The cost field is weighted, not binary.</strong> This is the decisive point that eliminates the
+any-angle family as primary. Theta*'s line-of-sight shortcut is optimal only when the terrain
+between two points is uniform. Here cost varies <em>continuously</em> with slope, roughness and
+crater proximity, so a straight shortcut can silently cross a hazard. A* evaluates <strong>every
+cell it traverses</strong>, so the reported cost is the cost actually incurred.</p>
+<p><strong>2. Optimality is proved, not assumed.</strong> With an admissible and consistent heuristic, A*
+returns a provably minimum-cost path on the discretisation and never re-expands a node. For a
+mission-safety deliverable, "provably optimal" and "empirically good" are not
+interchangeable. RRT* offers only <em>asymptotic</em> optimality — no finite run carries a bound.</p>
+<p><strong>3. Determinism is mandatory.</strong> A capstone must be reproducible: the same inputs must give
+the same route every time, and a reviewer must be able to verify it. Every sampling method
+fails this test. A* is fully deterministic given a tie-breaking rule (LunarSerpent breaks
+ties by lower <span class="math-inline">\(h\)</span>, which biases expansion toward the goal and is itself deterministic).</p>
+<p><strong>4. The problem is low-dimensional.</strong> Sampling methods exist to defeat the curse of
+dimensionality in configuration spaces of 6+ DOF. Here the state space is 2-D and modest —
+a 1000×1000 AOI is <span class="math-inline">\(10^6\)</span> cells, trivially searchable exhaustively. Using RRT* here would
+accept stochasticity and suboptimality to solve a problem that does not exist.</p>
+<p><strong>5. It degenerates gracefully.</strong> Setting <span class="math-inline">\(h\equiv 0\)</span> turns A* into Dijkstra, so the same
+implementation produces the optimality reference — guaranteeing the comparison is
+apples-to-apples rather than confounded by differing cost accounting.</p>
+<h3 id="43-honest-statement-of-as-limitation">4.3 Honest statement of A*'s limitation</h3>
+<p>A* on an 8-connected grid inherits the discretisation penalty of up to <strong>+8.24 %</strong> in path
+length (<code>FORMULAS.md</code> §9.2). This is real and is <strong>not concealed</strong>: the benchmark reports A*'s
+path length both before and after smoothing, and against Theta* and Field D* references. The
+selection rests on the argument that a <em>correctly-costed</em> path 8 % longer is preferable to a
+<em>shorter path whose cost is unverified</em> — and that smoothing recovers most of the difference
+anyway.</p>
+<hr />
+<h2 id="5-why-all-algorithms-are-still-computed-and-displayed">5. Why all algorithms are still computed and displayed</h2>
+<p>The brief requires outputs from the other algorithms, not only the selected one. This is good
+scientific practice and each serves a distinct purpose:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>What its output demonstrates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dijkstra</strong></td>
+<td>The true optimal cost — every other result is reported as a ratio to it</td>
+</tr>
+<tr>
+<td><strong>A*</strong></td>
+<td>Same cost as Dijkstra (validating the heuristic) with far fewer node expansions</td>
+</tr>
+<tr>
+<td><strong>BFS</strong></td>
+<td>What ignoring terrain produces — a route that drives over crater rims</td>
+</tr>
+<tr>
+<td><strong>Weighted A*</strong></td>
+<td>The quantified speed-vs-optimality curve as <span class="math-inline">\(\varepsilon\)</span> varies</td>
+</tr>
+<tr>
+<td><strong>Theta*</strong></td>
+<td>A geometrically shorter path, and whether its cost is genuinely lower once integrated</td>
+</tr>
+<tr>
+<td><strong>RRT*</strong></td>
+<td>Run-to-run variance — showing directly why stochastic methods were rejected</td>
+</tr>
+<tr>
+<td><strong>Potential fields</strong></td>
+<td>The local-minimum trap inside a crater — a concrete failure case</td>
+</tr>
+<tr>
+<td><strong>D* Lite</strong></td>
+<td>Repair cost when a new hazard appears mid-traverse</td>
+</tr>
+</tbody>
+</table></div>
+<p>Showing A* alone would be an assertion. Showing all eight makes the selection an
+<strong>empirical result</strong>.</p>
+<hr />
+<h2 id="6-benchmark-protocol">6. Benchmark protocol</h2>
+<p>To make the comparison fair and reproducible, every algorithm is run under identical
+conditions and the following are recorded.</p>
+<p><strong>Controlled variables:</strong> identical cost surface, identical start/goal, identical
+connectivity (8-connected where applicable), identical hazard parameters, single-threaded,
+same machine.</p>
+<p><strong>Metrics recorded per run:</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Why it is recorded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Path cost</td>
+<td>Primary quality measure; ratio to Dijkstra = optimality gap</td>
+</tr>
+<tr>
+<td>Path length (m)</td>
+<td>Geometric length, 3-D per <code>FORMULAS.md</code> §2.2</td>
+</tr>
+<tr>
+<td>Traverse time (s)</td>
+<td>From the mobility model §7.1</td>
+</tr>
+<tr>
+<td>Energy (J)</td>
+<td>Often the binding mission constraint</td>
+</tr>
+<tr>
+<td>Nodes expanded</td>
+<td>The true measure of search efficiency, machine-independent</td>
+</tr>
+<tr>
+<td>Peak open-set size</td>
+<td>Memory behaviour</td>
+</tr>
+<tr>
+<td>Wall-clock (ms)</td>
+<td>Practical runtime; reported as median of 5 runs</td>
+</tr>
+<tr>
+<td>Max / mean slope</td>
+<td>Safety characterisation</td>
+</tr>
+<tr>
+<td>Safety score</td>
+<td><code>FORMULAS.md</code> §6.5</td>
+</tr>
+<tr>
+<td>Craters intersected / avoided</td>
+<td>Direct answer to the brief's reporting requirement</td>
+</tr>
+<tr>
+<td>Success</td>
+<td>Whether a path was found at all</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Test scenarios</strong>, chosen to exercise different regimes:</p>
+<ol>
+<li><strong>Open mare</strong> — gentle terrain; tests baseline efficiency where few obstacles exist.</li>
+<li><strong>Dense crater field</strong> — many small obstacles; tests obstacle negotiation.</li>
+<li><strong>Highland traverse</strong> — sustained steep slopes; tests the mobility model's binding limits.</li>
+<li><strong>Crater-rim crossing</strong> — start and goal separated by a rim; the case where potential
+   fields are expected to fail and where the detour-vs-climb trade-off is sharpest.</li>
+<li><strong>Polar site</strong> — high latitude; tests the <span class="math-inline">\(\cos\varphi\)</span> cell-size correction of
+   <code>FORMULAS.md</code> §2.4 and the projection switch above 85°.</li>
+</ol>
+<p><strong>Statistical treatment.</strong> Deterministic algorithms are run 5× and the <strong>median</strong> wall-clock
+is reported (path is identical by construction). Stochastic algorithms (RRT, RRT*, PRM) are
+run <strong>30×</strong> with mean ± standard deviation on every metric — the variance is itself a
+reported result supporting §4.2 reason 3.</p>
+<hr />
+<h2 id="7-complexity-summary">7. Complexity summary</h2>
+<p>With <span class="math-inline">\(V\)</span> cells, <span class="math-inline">\(E \approx 8V\)</span> for an 8-connected grid, <span class="math-inline">\(b\)</span> the branching factor, <span class="math-inline">\(d\)</span> the
+solution depth, and <span class="math-inline">\(\varepsilon^*\)</span> the heuristic's relative error:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Time</th>
+<th>Space</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BFS</td>
+<td><span class="math-inline">\(O(V+E)\)</span></td>
+<td><span class="math-inline">\(O(V)\)</span></td>
+<td>Optimal only for uniform cost</td>
+</tr>
+<tr>
+<td>Dijkstra</td>
+<td><span class="math-inline">\(O(E+V\log V)\)</span></td>
+<td><span class="math-inline">\(O(V)\)</span></td>
+<td>Binary heap</td>
+</tr>
+<tr>
+<td>A*</td>
+<td><span class="math-inline">\(O(b^{\varepsilon^* d})\)</span></td>
+<td><span class="math-inline">\(O(V)\)</span></td>
+<td>Approaches <span class="math-inline">\(O(d)\)</span> as <span class="math-inline">\(h\to h^*\)</span></td>
+</tr>
+<tr>
+<td>Theta*</td>
+<td>A* × LOS cost</td>
+<td><span class="math-inline">\(O(V)\)</span></td>
+<td>LOS is <span class="math-inline">\(O(\max(\Delta x,\Delta y))\)</span> per check</td>
+</tr>
+<tr>
+<td>D* Lite</td>
+<td><span class="math-inline">\(O(k\log V)\)</span> per repair</td>
+<td><span class="math-inline">\(O(V)\)</span></td>
+<td><span class="math-inline">\(k\)</span> = affected nodes</td>
+</tr>
+<tr>
+<td>RRT*</td>
+<td><span class="math-inline">\(O(n\log n)\)</span></td>
+<td><span class="math-inline">\(O(n)\)</span></td>
+<td><span class="math-inline">\(n\)</span> = samples</td>
+</tr>
+</tbody>
+</table></div>
+<p>The practical significance: A*'s advantage over Dijkstra grows with map size, because
+Dijkstra expands an area <span class="math-inline">\(\propto d^2\)</span> (a disc around the start) while A* with a good
+heuristic expands closer to <span class="math-inline">\(\propto d\)</span> (an ellipse elongated toward the goal). On the
+polar-site scenario this is expected to be a large factor — a prediction the benchmark tests
+rather than assumes.</p>
+<hr />
+<h2 id="8-references">8. References</h2>
+<ol>
+<li>Dijkstra, E. W. (1959), <em>A note on two problems in connexion with graphs</em>, Numerische
+   Mathematik <strong>1</strong>, 269–271. DOI: <a href="https://doi.org/10.1007/BF01386390">10.1007/BF01386390</a></li>
+<li>Hart, P. E., Nilsson, N. J. &amp; Raphael, B. (1968), <em>A Formal Basis for the Heuristic
+   Determination of Minimum Cost Paths</em>, IEEE Trans. SSC <strong>4</strong>(2), 100–107.
+   DOI: <a href="https://doi.org/10.1109/TSSC.1968.300136">10.1109/TSSC.1968.300136</a></li>
+<li>Nash, A., Daniel, K., Koenig, S. &amp; Felner, A. (2007), <em>Theta*: Any-Angle Path Planning on
+   Grids</em>, Proc. AAAI, 1177–1183.</li>
+<li>Koenig, S. &amp; Likhachev, M. (2002), <em>D* Lite</em>, Proc. AAAI, 476–483.</li>
+<li>Ferguson, D. &amp; Stentz, A. (2006), <em>Using interpolation to improve path planning: The Field
+   D* algorithm</em>, Journal of Field Robotics <strong>23</strong>(2), 79–101.
+   DOI: <a href="https://doi.org/10.1002/rob.20109">10.1002/rob.20109</a></li>
+<li>LaValle, S. M. (1998), <em>Rapidly-exploring random trees: A new tool for path planning</em>,
+   TR 98-11, Iowa State University.</li>
+<li>Karaman, S. &amp; Frazzoli, E. (2011), <em>Sampling-based algorithms for optimal motion planning</em>,
+   Int. J. Robotics Research <strong>30</strong>(7), 846–894.
+   DOI: <a href="https://doi.org/10.1177/0278364911406761">10.1177/0278364911406761</a></li>
+<li>Kavraki, L. E., Svestka, P., Latombe, J.-C. &amp; Overmars, M. H. (1996), <em>Probabilistic
+   roadmaps for path planning in high-dimensional configuration spaces</em>, IEEE Trans. Robotics
+   and Automation <strong>12</strong>(4), 566–580. DOI: <a href="https://doi.org/10.1109/70.508439">10.1109/70.508439</a></li>
+<li>Khatib, O. (1986), <em>Real-time obstacle avoidance for manipulators and mobile robots</em>,
+   Int. J. Robotics Research <strong>5</strong>(1), 90–98. DOI: <a href="https://doi.org/10.1177/027836498600500106">10.1177/027836498600500106</a></li>
+<li>Pearl, J. (1984), <em>Heuristics: Intelligent Search Strategies for Computer Problem Solving</em>,
+    Addison-Wesley.</li>
+</ol>
+<hr />
+<h2 id="9-revision-history">9. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. Eleven algorithms surveyed; A* selected with cost-validated smoothing; benchmark protocol defined. Benchmark <em>results</em> will be appended once the engine is implemented.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/ALGORITHMS.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

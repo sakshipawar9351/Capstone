@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html" class="active"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / SRD.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-document-control">1. Document control</a></li>
+<li><a href="#2-system-architecture">2. System architecture</a><ul>
+<li><a href="#21-architectural-style">2.1 Architectural style</a></li>
+<li><a href="#22-key-architectural-decisions">2.2 Key architectural decisions</a></li>
+</ul>
+</li>
+<li><a href="#3-directory-structure">3. Directory structure</a></li>
+<li><a href="#4-layer-l0-data-access">4. Layer L0 — Data access</a><ul>
+<li><a href="#41-sources">4.1 Sources</a></li>
+<li><a href="#42-requirements">4.2 Requirements</a></li>
+<li><a href="#43-robbins-index-format">4.3 Robbins index format</a></li>
+</ul>
+</li>
+<li><a href="#5-layer-l1-core">5. Layer L1 — Core</a><ul>
+<li><a href="#51-coreselenographicpy">5.1 core/selenographic.py</a></li>
+<li><a href="#52-corepdspy">5.2 core/pds.py</a></li>
+<li><a href="#53-corerasterpy">5.3 core/raster.py</a></li>
+</ul>
+</li>
+<li><a href="#6-layer-l2-analysis">6. Layer L2 — Analysis</a><ul>
+<li><a href="#61-analysisterrainpy">6.1 analysis/terrain.py</a></li>
+<li><a href="#62-analysiscraterspy">6.2 analysis/craters.py</a></li>
+<li><a href="#63-analysisboulderspy">6.3 analysis/boulders.py</a></li>
+<li><a href="#64-analysisclassifypy">6.4 analysis/classify.py</a></li>
+<li><a href="#65-analysishazardpy">6.5 analysis/hazard.py</a></li>
+</ul>
+</li>
+<li><a href="#7-layer-l3-planning">7. Layer L3 — Planning</a></li>
+<li><a href="#8-layer-l4-service-api">8. Layer L4 — Service API</a><ul>
+<li><a href="#81-metadata">8.1 Metadata</a></li>
+<li><a href="#82-terrain">8.2 Terrain</a></li>
+<li><a href="#83-features">8.3 Features</a></li>
+<li><a href="#84-layers">8.4 Layers</a></li>
+<li><a href="#85-planning">8.5 Planning</a></li>
+<li><a href="#86-api-requirements">8.6 API requirements</a></li>
+</ul>
+</li>
+<li><a href="#9-layer-l5-presentation">9. Layer L5 — Presentation</a></li>
+<li><a href="#10-data-models">10. Data models</a><ul>
+<li><a href="#101-terrainpoint">10.1 TerrainPoint</a></li>
+<li><a href="#102-crater">10.2 Crater</a></li>
+<li><a href="#103-plannedpath">10.3 PlannedPath</a></li>
+</ul>
+</li>
+<li><a href="#11-performance-and-resources">11. Performance and resources</a></li>
+<li><a href="#12-error-handling">12. Error handling</a></li>
+<li><a href="#13-verification-strategy">13. Verification strategy</a></li>
+<li><a href="#14-deployment">14. Deployment</a></li>
+<li><a href="#15-traceability-prd-srd">15. Traceability — PRD → SRD</a></li>
+<li><a href="#16-revision-history">16. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-system-requirements-document-srd">LunarSerpent — System Requirements Document (SRD)</h1>
+<p><strong>Document ID:</strong> LS-DOC-002 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 9</strong>. Defines <em>how</em> the system satisfies the requirements in <code>PRD.md</code>.</p>
+<hr />
+<h2 id="1-document-control">1. Document control</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System</td>
+<td>LunarSerpent</td>
+</tr>
+<tr>
+<td>Parent document</td>
+<td><code>PRD.md</code> (LS-DOC-001)</td>
+</tr>
+<tr>
+<td>Related</td>
+<td><code>FORMULAS.md</code>, <code>DATASETS.md</code>, <code>TECHNOLOGY.md</code>, <code>ALGORITHMS.md</code></td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Architecture, components, interfaces, data models, verification</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="2-system-architecture">2. System architecture</h2>
+<h3 id="21-architectural-style">2.1 Architectural style</h3>
+<p><strong>Layered, with strict downward dependency.</strong> A layer may call the layer below it and never
+the layer above. This guarantees that the scientific core is independent of presentation and
+can therefore be tested in isolation — a prerequisite for NFR-1 (scientific integrity) and
+NFR-9 (maintainability).</p>
+<pre><code>┌───────────────────────────────────────────────────────────────┐
+│  L5  PRESENTATION      Three.js globe · layers panel · charts │
+├───────────────────────────────────────────────────────────────┤
+│  L4  SERVICE           FastAPI routes · schemas · caching     │
+├───────────────────────────────────────────────────────────────┤
+│  L3  PLANNING          algorithms · rover model · benchmark   │
+├───────────────────────────────────────────────────────────────┤
+│  L2  ANALYSIS          terrain · detection · classify · hazard│
+├───────────────────────────────────────────────────────────────┤
+│  L1  CORE              selenographic · PDS reader · raster    │
+├───────────────────────────────────────────────────────────────┤
+│  L0  DATA              Drive mount · PDS HTTP range · WMTS    │
+└───────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="22-key-architectural-decisions">2.2 Key architectural decisions</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AD-1</td>
+<td>Layered monolith, not microservices</td>
+<td>Single-user analysis tool; network hops would add latency for no benefit</td>
+</tr>
+<tr>
+<td>AD-2</td>
+<td>Data read in place, never copied</td>
+<td>NFR-5; source provably unmodified</td>
+</tr>
+<tr>
+<td>AD-3</td>
+<td>Coordinates are <code>(lat, lon)</code> at every layer boundary</td>
+<td>Enforces PRD FR-1.3 (no pixel-based positioning) structurally, not by convention</td>
+</tr>
+<tr>
+<td>AD-4</td>
+<td>Analysis layer has <strong>zero</strong> web dependencies</td>
+<td>Testable and reusable without a server</td>
+</tr>
+<tr>
+<td>AD-5</td>
+<td>Frontend consumes only the public API</td>
+<td>No hidden coupling; API is the contract</td>
+</tr>
+<tr>
+<td>AD-6</td>
+<td>All derived rasters share one projection</td>
+<td>Layers register pixel-exactly with no reprojection</td>
+</tr>
+<tr>
+<td>AD-7</td>
+<td>Formulas isolated in pure functions</td>
+<td>Each is unit-testable against published values (FR-5.5)</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3-directory-structure">3. Directory structure</h2>
+<pre><code>d:\Lunar_Serpent\
+├── backend/
+│   ├── config.py                  # paths, constants, product registry, rover profiles
+│   ├── core/
+│   │   ├── selenographic.py       # FORMULAS §1, §2  — coordinates &amp; geodesy
+│   │   ├── pds.py                 # PDS3 label parser + .IMG reader
+│   │   ├── raster.py              # windowed DEM access (memmap + HTTP range)
+│   │   └── remote.py              # HTTP range client, WMTS tile client
+│   ├── data/
+│   │   ├── sources.py             # dataset discovery &amp; availability checks
+│   │   ├── catalog_robbins.py     # 227 MB CSV -&gt; compact NumPy index
+│   │   └── catalog_iau.py         # IAU Gazetteer nomenclature
+│   ├── analysis/
+│   │   ├── terrain.py             # FORMULAS §3 — slope, aspect, curvature, roughness
+│   │   ├── craters.py             # FORMULAS §5.1 — DEM crater detection
+│   │   ├── boulders.py            # FORMULAS §5.2/5.3 — shadow-based detection
+│   │   ├── classify.py            # FORMULAS §4 — taxonomy &amp; morphometry
+│   │   └── hazard.py              # FORMULAS §6 — hazard, risk, cost surfaces
+│   ├── planning/
+│   │   ├── costmap.py             # cost surface construction
+│   │   ├── algorithms.py          # A*, Dijkstra, Theta*, D* Lite, RRT*, PRM, BFS, APF
+│   │   ├── rover.py               # FORMULAS §7 — mobility model
+│   │   ├── smoothing.py           # cost-validated shortcut smoothing
+│   │   └── benchmark.py           # comparison harness
+│   ├── api/
+│   │   ├── schemas.py             # Pydantic models
+│   │   └── routes/                # terrain, features, layers, paths, meta
+│   └── main.py                    # FastAPI application
+├── frontend/
+│   ├── index.html
+│   ├── css/
+│   └── js/
+│       ├── main.js                # bootstrap
+│       ├── globe.js               # Three.js scene, sphere, camera
+│       ├── tiles.js               # WMTS quadtree LOD
+│       ├── layers.js              # layer registry &amp; compositing
+│       ├── features.js            # markers, labels, decluttering
+│       ├── coords.js              # FORMULAS §1.3 (mirrors backend)
+│       ├── panels/                # inspector, planner, legend
+│       └── api.js                 # typed API client
+├── docs/                          # PRD, SRD, FORMULAS, DATASETS, TECHNOLOGY, ALGORITHMS
+├── tests/                         # formula &amp; component tests
+├── data/derived/                  # generated products (git-ignorable)
+└── run.py                         # launcher
+</code></pre>
+<hr />
+<h2 id="4-layer-l0-data-access">4. Layer L0 — Data access</h2>
+<h3 id="41-sources">4.1 Sources</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Source</th>
+<th>Access</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DS-1</td>
+<td>LOLA <code>LDEM_16</code></td>
+<td><code>G:</code> Drive mount, <code>numpy.memmap</code></td>
+<td>Primary elevation</td>
+</tr>
+<tr>
+<td>DS-2</td>
+<td>LOLA <code>LDEM_64/128</code></td>
+<td>PDS <strong>HTTP range</strong></td>
+<td>On-demand detail</td>
+</tr>
+<tr>
+<td>DS-3</td>
+<td>Robbins catalogue</td>
+<td><code>G:</code> mount, streaming CSV parse</td>
+<td>Crater layer</td>
+</tr>
+<tr>
+<td>DS-4</td>
+<td>Moon Trek WMTS</td>
+<td>HTTPS tiles, LRU cache</td>
+<td>Basemap</td>
+</tr>
+<tr>
+<td>DS-5</td>
+<td>IAU Gazetteer</td>
+<td>HTTPS, cached</td>
+<td>Feature names</td>
+</tr>
+<tr>
+<td>DS-6</td>
+<td>OHRC / NAC</td>
+<td><code>G:</code> mount / ODE</td>
+<td>AOI boulder detection</td>
+</tr>
+<tr>
+<td>DS-7</td>
+<td><code>artificial_lunar</code></td>
+<td><code>G:</code> mount</td>
+<td>Detector validation</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="42-requirements">4.2 Requirements</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-D1</td>
+<td>Source availability shall be probed at startup; each source reports <code>available</code> / <code>degraded</code> / <code>unavailable</code> with a human-readable reason</td>
+</tr>
+<tr>
+<td>SR-D2</td>
+<td>Absence of any single source shall not prevent startup</td>
+</tr>
+<tr>
+<td>SR-D3</td>
+<td>No source file shall be opened for writing</td>
+</tr>
+<tr>
+<td>SR-D4</td>
+<td>Remote reads shall use HTTP range requests where the server supports them (verified: PDS returns 206)</td>
+</tr>
+<tr>
+<td>SR-D5</td>
+<td>Tile cache shall be bounded (default 512 MB) with LRU eviction</td>
+</tr>
+<tr>
+<td>SR-D6</td>
+<td>The 227 MB Robbins CSV shall be converted <strong>once</strong> to a memory-mapped NumPy index; subsequent loads shall be O(1)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="43-robbins-index-format">4.3 Robbins index format</h3>
+<p>Streaming single-pass conversion (never fully in memory), producing a fixed-width binary:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>dtype</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lat</code></td>
+<td><code>float32</code></td>
+<td>planetocentric degrees</td>
+</tr>
+<tr>
+<td><code>lon</code></td>
+<td><code>float32</code></td>
+<td>east, 0–360</td>
+</tr>
+<tr>
+<td><code>diam_km</code></td>
+<td><code>float32</code></td>
+<td>circle-fit diameter</td>
+</tr>
+<tr>
+<td><code>ellipticity</code></td>
+<td><code>float32</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>arc_frac</code></td>
+<td><code>float32</code></td>
+<td>rim fraction traced (confidence proxy)</td>
+</tr>
+<tr>
+<td><code>class_id</code></td>
+<td><code>uint8</code></td>
+<td>assigned per <code>FORMULAS.md</code> §4.3</td>
+</tr>
+</tbody>
+</table></div>
+<p>≈ 1.3 M rows × 21 B ≈ <strong>28 MB</strong>, memory-mapped. A coarse lat/lon bucket index enables
+sub-millisecond spatial queries without a database.</p>
+<hr />
+<h2 id="5-layer-l1-core">5. Layer L1 — Core</h2>
+<h3 id="51-coreselenographicpy">5.1 <code>core/selenographic.py</code></h3>
+<p>Implements <code>FORMULAS.md</code> §1–2. Pure functions, no I/O.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Implements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>latlon_to_rowcol(lat, lon, W, H)</code></td>
+<td>§1.2</td>
+</tr>
+<tr>
+<td><code>rowcol_to_latlon(row, col, W, H)</code></td>
+<td>§1.2 inverse</td>
+</tr>
+<tr>
+<td><code>latlon_to_xyz(lat, lon, z)</code></td>
+<td>§1.4</td>
+</tr>
+<tr>
+<td><code>haversine(lat1, lon1, lat2, lon2)</code></td>
+<td>§2.1</td>
+</tr>
+<tr>
+<td><code>surface_distance_3d(s_gc, dz)</code></td>
+<td>§2.2</td>
+</tr>
+<tr>
+<td><code>initial_bearing(...)</code></td>
+<td>§2.3</td>
+</tr>
+<tr>
+<td><code>cell_size_m(lat, W, H)</code></td>
+<td>§2.4 — <strong>returns (dx, dy)</strong>, dx latitude-corrected</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-C1</td>
+<td><code>latlon_to_rowcol</code> and its inverse shall round-trip within 1e-9 degrees</td>
+</tr>
+<tr>
+<td>SR-C2</td>
+<td><code>cell_size_m</code> shall reproduce the PDS <code>MAP_SCALE</code> at the equator to within 0.01 m</td>
+</tr>
+<tr>
+<td>SR-C3</td>
+<td>Functions shall accept scalars <strong>and</strong> NumPy arrays (vectorised)</td>
+</tr>
+<tr>
+<td>SR-C4</td>
+<td>Longitude shall be normalised to [0, 360) on input; −180…180 accepted</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="52-corepdspy">5.2 <code>core/pds.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-C5</td>
+<td>Shall parse PDS3 <code>.LBL</code> key/value and <code>OBJECT</code> blocks</td>
+</tr>
+<tr>
+<td>SR-C6</td>
+<td>Shall extract <code>LINES</code>, <code>LINE_SAMPLES</code>, <code>SAMPLE_TYPE</code>, <code>SAMPLE_BITS</code>, <code>SCALING_FACTOR</code>, <code>OFFSET</code>, <code>MAP_RESOLUTION</code>, <code>MAP_SCALE</code></td>
+</tr>
+<tr>
+<td>SR-C7</td>
+<td>Shall map <code>SAMPLE_TYPE</code>/<code>SAMPLE_BITS</code> to a NumPy dtype (<code>LSB_INTEGER</code>/16 → <code>&lt;i2</code>)</td>
+</tr>
+<tr>
+<td>SR-C8</td>
+<td>Shall <strong>never</strong> hard-code raster parameters — always read from the label, falling back to the registry only if the label is absent, and warn when it does</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="53-corerasterpy">5.3 <code>core/raster.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-C9</td>
+<td><code>window(lat_min, lat_max, lon_min, lon_max, product)</code> shall return elevations in <strong>metres</strong> plus the geotransform</td>
+</tr>
+<tr>
+<td>SR-C10</td>
+<td>Shall handle antimeridian-crossing windows</td>
+</tr>
+<tr>
+<td>SR-C11</td>
+<td>Shall clamp latitude requests to ±90° and report clamping</td>
+</tr>
+<tr>
+<td>SR-C12</td>
+<td>Shall select the product resolution appropriate to the requested extent, and report which was used</td>
+</tr>
+<tr>
+<td>SR-C13</td>
+<td>Local memmap shall be preferred; remote range requests used only when the product is not local</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="6-layer-l2-analysis">6. Layer L2 — Analysis</h2>
+<h3 id="61-analysisterrainpy">6.1 <code>analysis/terrain.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-A1</td>
+<td>Slope shall use Horn's operator (<code>FORMULAS.md</code> §3.2)</td>
+</tr>
+<tr>
+<td>SR-A2</td>
+<td>Slope shall use <strong>latitude-corrected</strong> <code>dx</code> per row (§2.4). <em>This is a correctness requirement, not an optimisation</em></td>
+</tr>
+<tr>
+<td>SR-A3</td>
+<td>Every terrain product shall be returned with its <code>baseline_m</code></td>
+</tr>
+<tr>
+<td>SR-A4</td>
+<td>Slopes below the noise floor (§3.5) shall be flagged, not silently rounded</td>
+</tr>
+<tr>
+<td>SR-A5</td>
+<td>Curvature shall use Zevenbergen &amp; Thorne (§3.4)</td>
+</tr>
+<tr>
+<td>SR-A6</td>
+<td>Roughness shall provide TRI, RMS slope and relief, each with window size</td>
+</tr>
+<tr>
+<td>SR-A7</td>
+<td>Above 85° latitude the module shall refuse cylindrical analysis and report that polar stereographic data is required</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="62-analysiscraterspy">6.2 <code>analysis/craters.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-A8</td>
+<td>Detection shall require <strong>all three</strong> of: curvature signature, Hough circularity, depth-diameter consistency (§5.1)</td>
+</tr>
+<tr>
+<td>SR-A9</td>
+<td>Each detection shall carry a confidence score calibrated against Robbins on D ≥ 1 km</td>
+</tr>
+<tr>
+<td>SR-A10</td>
+<td>Detections shall be deduplicated against the catalogue; catalogue entries always take precedence</td>
+</tr>
+<tr>
+<td>SR-A11</td>
+<td>Detector shall report precision, recall and F1 against Robbins on the overlap range</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="63-analysisboulderspy">6.3 <code>analysis/boulders.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-A12</td>
+<td>Height shall be derived from shadow length and solar incidence (§5.2)</td>
+</tr>
+<tr>
+<td>SR-A13</td>
+<td>Solar incidence shall be read from image metadata; <strong>detection shall fail loudly if unavailable</strong> rather than assume a value</td>
+</tr>
+<tr>
+<td>SR-A14</td>
+<td>Minimum detectable height <span class="math-inline">\(h_{\min}\)</span> shall be computed and returned with every survey</td>
+</tr>
+<tr>
+<td>SR-A15</td>
+<td>Local slope correction shall be applied to shadow-derived heights</td>
+</tr>
+<tr>
+<td>SR-A16</td>
+<td>Size–frequency distribution shall be fitted and sub-resolution population extrapolated (§5.3)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="64-analysisclassifypy">6.4 <code>analysis/classify.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-A17</td>
+<td>Classification shall follow <code>FORMULAS.md</code> §4.3 exactly</td>
+</tr>
+<tr>
+<td>SR-A18</td>
+<td>Degradation index Δ shall be computed where depth is measurable (§4.4a)</td>
+</tr>
+<tr>
+<td>SR-A19</td>
+<td>Age shall be exposed only as: degradation index, stratigraphic epoch, or model age <strong>with uncertainty</strong> — never a bare number</td>
+</tr>
+<tr>
+<td>SR-A20</td>
+<td>Colour assignment shall be colour-vision-deficiency safe</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="65-analysishazardpy">6.5 <code>analysis/hazard.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-A21</td>
+<td>Hazards shall combine with <code>max()</code>, not a weighted sum (§6.4)</td>
+</tr>
+<tr>
+<td>SR-A22</td>
+<td>Impassable cells shall be represented as <code>inf</code>, never a large finite number</td>
+</tr>
+<tr>
+<td>SR-A23</td>
+<td>Hazard shall be parameterised by the selected rover profile</td>
+</tr>
+<tr>
+<td>SR-A24</td>
+<td>Cost, hazard and risk surfaces shall be independently renderable as layers</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="7-layer-l3-planning">7. Layer L3 — Planning</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-P1</td>
+<td>Algorithms shall share one <code>PlannerResult</code> interface so metrics are comparable</td>
+</tr>
+<tr>
+<td>SR-P2</td>
+<td>Every algorithm shall report: path, cost, length, time, energy, nodes expanded, peak open-set size, wall-clock, success</td>
+</tr>
+<tr>
+<td>SR-P3</td>
+<td>A* heuristic shall be the admissible/consistent form proved in <code>FORMULAS.md</code> §9.1</td>
+</tr>
+<tr>
+<td>SR-P4</td>
+<td>A* and Dijkstra shall return <strong>identical cost</strong> on identical input — an automated test, since divergence proves a heuristic bug</td>
+</tr>
+<tr>
+<td>SR-P5</td>
+<td>Stochastic algorithms shall accept a seed and report it, so runs are reproducible</td>
+</tr>
+<tr>
+<td>SR-P6</td>
+<td>Smoothing shall accept a shortcut only if integrated cost strictly decreases</td>
+</tr>
+<tr>
+<td>SR-P7</td>
+<td>The benchmark harness shall run all algorithms on identical inputs and emit a comparison table</td>
+</tr>
+<tr>
+<td>SR-P8</td>
+<td>Planner shall operate on an AOI sub-grid, not the global grid, and report the AOI used</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="8-layer-l4-service-api">8. Layer L4 — Service API</h2>
+<p>Base path <code>/api/v1</code>. All responses JSON unless noted.</p>
+<h3 id="81-metadata">8.1 Metadata</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/meta/health</code></td>
+<td>Service status</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/meta/sources</code></td>
+<td>Dataset availability (SR-D1)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/meta/layers</code></td>
+<td>Layer registry with legends, units, credits</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/meta/rovers</code></td>
+<td>Rover profiles</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="82-terrain">8.2 Terrain</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/terrain/point?lat=&amp;lon=</code></td>
+<td>Full terrain science at a point (FR-4.2)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/terrain/profile</code></td>
+<td>Elevation/slope profile along a polyline (FR-4.5, 4.6)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/terrain/window?...</code></td>
+<td>Gridded terrain products for an extent</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="83-features">8.3 Features</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/features/craters?bbox=&amp;min_diam=</code></td>
+<td>Catalogue query</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/features/crater/{id}</code></td>
+<td>Full crater profile (FR-4.1)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/features/named?q=</code></td>
+<td>IAU name search (FR-7.4)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/features/detect/craters</code></td>
+<td>Run detection on an AOI</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/features/detect/boulders</code></td>
+<td>Run boulder detection on an AOI</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="84-layers">8.4 Layers</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/layers/{layer}/{z}/{x}/{y}.png</code></td>
+<td>Rendered analysis tile</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/layers/basemap/{layer}/{z}/{x}/{y}.jpg</code></td>
+<td>Proxied + cached WMTS tile</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="85-planning">8.5 Planning</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/plan/path</code></td>
+<td>Plan with the selected algorithm</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/plan/compare</code></td>
+<td>Run all algorithms, return comparison (FR-6.3, 6.5)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="86-api-requirements">8.6 API requirements</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-S1</td>
+<td>Every numeric field shall carry units in its schema</td>
+</tr>
+<tr>
+<td>SR-S2</td>
+<td>Every slope/roughness field shall carry <code>baseline_m</code> as a <strong>required</strong> field (FR-4.4)</td>
+</tr>
+<tr>
+<td>SR-S3</td>
+<td>Every response shall include a <code>provenance</code> block naming source datasets</td>
+</tr>
+<tr>
+<td>SR-S4</td>
+<td>Errors shall be structured <code>{code, message, detail}</code> with actionable messages</td>
+</tr>
+<tr>
+<td>SR-S5</td>
+<td>Requests exceeding resource limits shall return 413 with the limit stated, not time out</td>
+</tr>
+<tr>
+<td>SR-S6</td>
+<td>OpenAPI documentation shall be auto-served at <code>/docs</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="9-layer-l5-presentation">9. Layer L5 — Presentation</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-F1</td>
+<td>Sphere shall be generated procedurally with UV per <code>FORMULAS.md</code> §1.3</td>
+</tr>
+<tr>
+<td>SR-F2</td>
+<td>Surface material shall be <strong>unlit</strong>; the scene shall contain <strong>no light sources</strong> (FR-1.6)</td>
+</tr>
+<tr>
+<td>SR-F3</td>
+<td>Basemap shall use quadtree LOD; tiles loaded only for the visible frustum</td>
+</tr>
+<tr>
+<td>SR-F4</td>
+<td>Tile cache shall be bounded with LRU eviction (NFR-4)</td>
+</tr>
+<tr>
+<td>SR-F5</td>
+<td>Click shall ray-cast to the sphere and invert UV to (lat, lon) exactly</td>
+</tr>
+<tr>
+<td>SR-F6</td>
+<td>Labels shall declutter by feature importance and zoom (FR-1.11)</td>
+</tr>
+<tr>
+<td>SR-F7</td>
+<td>Layer panel shall support toggle + opacity per layer, with legend</td>
+</tr>
+<tr>
+<td>SR-F8</td>
+<td>Auto-rotate shall pause on interaction and resume after an idle interval</td>
+</tr>
+<tr>
+<td>SR-F9</td>
+<td>Camera shall reach ±90° latitude without gimbal artefacts (FR-1.4)</td>
+</tr>
+<tr>
+<td>SR-F10</td>
+<td>UI shall show a clear indicator when running on cached or offline data</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="10-data-models">10. Data models</h2>
+<h3 id="101-terrainpoint">10.1 <code>TerrainPoint</code></h3>
+<pre><code class="language-jsonc">{
+  &quot;lat&quot;: -43.31, &quot;lon&quot;: 348.64,
+  &quot;elevation_m&quot;: 1234.5,
+  &quot;elevation_uncertainty_m&quot;: 0.5,      // quantisation, FORMULAS §3.1
+  &quot;slope_deg&quot;: 12.4,
+  &quot;slope_baseline_m&quot;: 1895.21,         // REQUIRED — FORMULAS §3.5
+  &quot;slope_below_noise_floor&quot;: false,
+  &quot;aspect_deg&quot;: 217.8,
+  &quot;aspect_defined&quot;: true,
+  &quot;curvature_profile&quot;: -0.0021,
+  &quot;curvature_plan&quot;: 0.0009,
+  &quot;roughness_tri_m&quot;: 45.2,
+  &quot;roughness_window_px&quot;: 3,
+  &quot;hazard&quot;: { &quot;slope&quot;: 0.31, &quot;roughness&quot;: 0.12, &quot;crater&quot;: 0.0, &quot;combined&quot;: 0.31 },
+  &quot;provenance&quot;: { &quot;dem&quot;: &quot;LOLA LDEM_16&quot;, &quot;producer&quot;: &quot;NASA/GSFC/MIT&quot; }
+}
+</code></pre>
+<h3 id="102-crater">10.2 <code>Crater</code></h3>
+<pre><code class="language-jsonc">{
+  &quot;id&quot;: &quot;ROBBINS-00123456&quot;,
+  &quot;name&quot;: &quot;Tycho&quot;,                     // null if unnamed
+  &quot;lat&quot;: -43.31, &quot;lon&quot;: 348.64,
+  &quot;diameter_km&quot;: 85.3,
+  &quot;area_km2&quot;: 5715.0,
+  &quot;depth_m&quot;: 4700, &quot;depth_source&quot;: &quot;measured&quot;,   // measured | predicted
+  &quot;depth_uncertainty_m&quot;: 1410,                   // ±30 % if predicted
+  &quot;rim_height_m&quot;: 1200,
+  &quot;class&quot;: &quot;large&quot;, &quot;morphology&quot;: &quot;complex&quot;,
+  &quot;degradation_index&quot;: 0.94,
+  &quot;epoch&quot;: &quot;Copernican&quot;,
+  &quot;model_age_ga&quot;: null,                          // only with adequate counts
+  &quot;source&quot;: &quot;Robbins 2019&quot;
+}
+</code></pre>
+<h3 id="103-plannedpath">10.3 <code>PlannedPath</code></h3>
+<pre><code class="language-jsonc">{
+  &quot;algorithm&quot;: &quot;astar&quot;,
+  &quot;success&quot;: true,
+  &quot;waypoints&quot;: [{&quot;lat&quot;: .., &quot;lon&quot;: .., &quot;elevation_m&quot;: ..}],
+  &quot;distance_m&quot;: 42350.0,
+  &quot;distance_3d_m&quot;: 42910.0,
+  &quot;time_s&quot;: 214550.0,
+  &quot;energy_j&quot;: 1.83e7,
+  &quot;cost&quot;: 231400.0,
+  &quot;cost_ratio_to_optimal&quot;: 1.00,
+  &quot;elevation&quot;: {&quot;mean_m&quot;: 1210, &quot;max_m&quot;: 2340, &quot;min_m&quot;: 890},
+  &quot;slope&quot;: {&quot;mean_deg&quot;: 4.2, &quot;max_deg&quot;: 13.8},
+  &quot;terrain_risk&quot;: 0.13,
+  &quot;safety_score&quot;: 87.0,
+  &quot;craters_intersected&quot;: 0,
+  &quot;craters_avoided&quot;: 47,
+  &quot;recommended_speed_ms&quot;: 0.18,
+  &quot;metrics&quot;: {&quot;nodes_expanded&quot;: 18432, &quot;peak_open_set&quot;: 921, &quot;wall_clock_ms&quot;: 342},
+  &quot;rationale&quot;: &quot;Lowest cost of all candidates; matches the Dijkstra optimum ...&quot;
+}
+</code></pre>
+<hr />
+<h2 id="11-performance-and-resources">11. Performance and resources</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-N1</td>
+<td>Point query &lt; 500 ms (NFR-4)</td>
+</tr>
+<tr>
+<td>SR-N2</td>
+<td>Path planning &lt; 10 s on a 1000×1000 AOI</td>
+</tr>
+<tr>
+<td>SR-N3</td>
+<td>Backend RSS &lt; 1 GB under normal operation</td>
+</tr>
+<tr>
+<td>SR-N4</td>
+<td>Global DEM shall never be loaded fully into RAM; memmap windows only</td>
+</tr>
+<tr>
+<td>SR-N5</td>
+<td>Analysis tiles shall be cached; identical requests recomputed at most once</td>
+</tr>
+<tr>
+<td>SR-N6</td>
+<td>Globe ≥ 30 fps at 1080p on integrated graphics</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="12-error-handling">12. Error handling</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drive mount unavailable</td>
+<td>Startup succeeds; sources report <code>unavailable</code>; UI banner; PDS fallback where possible</td>
+</tr>
+<tr>
+<td>Network unavailable</td>
+<td>Basemap falls back to <code>moon_texture.jpg</code>; UI indicates offline</td>
+</tr>
+<tr>
+<td>Requested latitude &gt; 85° with cylindrical product</td>
+<td>422 with explanation and pointer to polar products</td>
+</tr>
+<tr>
+<td>AOI too large</td>
+<td>413 stating the limit and the requested size</td>
+</tr>
+<tr>
+<td>Solar incidence missing for boulder detection</td>
+<td>422 — <strong>never</strong> substitute a default (SR-A13)</td>
+</tr>
+<tr>
+<td>Corrupt/short DEM read</td>
+<td>Fail with byte offsets; never return zeros as elevation</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="13-verification-strategy">13. Verification strategy</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Method</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Formula</strong></td>
+<td>Unit test per formula against hand-computed or published values</td>
+<td>100 % of <code>FORMULAS.md</code></td>
+</tr>
+<tr>
+<td><strong>Georeferencing</strong></td>
+<td>Round-trip lat/lon ↔ row/col; PDS label reproduction</td>
+<td>SR-C1, SR-C2</td>
+</tr>
+<tr>
+<td><strong>Physical plausibility</strong></td>
+<td>Known-location elevation checks (SPA basin deepest; farside highlands positive)</td>
+<td>Data layer</td>
+</tr>
+<tr>
+<td><strong>Detector</strong></td>
+<td>Precision/recall vs Robbins; synthetic <strong>and</strong> real scores</td>
+<td>SR-A11, FR-2.7</td>
+</tr>
+<tr>
+<td><strong>Planner</strong></td>
+<td>A* cost ≡ Dijkstra cost; networkx cross-check</td>
+<td>SR-P4</td>
+</tr>
+<tr>
+<td><strong>API</strong></td>
+<td>Schema validation; required-field enforcement</td>
+<td>SR-S1, SR-S2</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>End-to-end: coordinates → analysis → path → render</td>
+<td>PRD §9</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Physical-plausibility tests are first-class.</strong> A DEM reader that returns syntactically valid
+but physically wrong elevations passes every type check and fails science. Tests therefore
+assert against <em>known lunar facts</em> — the South Pole–Aitken basin must be the deepest region;
+the farside must average higher than the nearside; the global range must bracket the label's
+stated min/max.</p>
+<hr />
+<h2 id="14-deployment">14. Deployment</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Specification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runtime</td>
+<td>Python 3.13, Windows 11</td>
+</tr>
+<tr>
+<td>Launch</td>
+<td><code>python run.py</code> → Uvicorn on <code>127.0.0.1:8765</code></td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>Served statically by FastAPI; no build step</td>
+</tr>
+<tr>
+<td>Dependencies</td>
+<td>9 runtime packages, all verified importable</td>
+</tr>
+<tr>
+<td>Privileges</td>
+<td>None required</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Read-only from <code>G:</code> mount + network</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="15-traceability-prd-srd">15. Traceability — PRD → SRD</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>PRD requirement</th>
+<th>Satisfied by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-1.3 (real coordinates)</td>
+<td>AD-3, SR-C1, SR-C4, SR-F5</td>
+</tr>
+<tr>
+<td>FR-1.4 (poles visible)</td>
+<td>SR-F9, SR-A7</td>
+</tr>
+<tr>
+<td>FR-1.6 (no illumination)</td>
+<td>SR-F2</td>
+</tr>
+<tr>
+<td>FR-1.7 (zoom clarity)</td>
+<td>SR-F3, SR-F4</td>
+</tr>
+<tr>
+<td>FR-1.13 (six layers)</td>
+<td>SR-A24, SR-F7</td>
+</tr>
+<tr>
+<td>FR-2.3 (boulder detection)</td>
+<td>SR-A12 … SR-A16</td>
+</tr>
+<tr>
+<td>FR-2.5 (state detection limit)</td>
+<td>SR-A14</td>
+</tr>
+<tr>
+<td>FR-3.1–3.3 (classification)</td>
+<td>SR-A17</td>
+</tr>
+<tr>
+<td>FR-4.4 (units + baseline)</td>
+<td>SR-S1, SR-S2, SR-A3</td>
+</tr>
+<tr>
+<td>FR-5.5 (executable formulas)</td>
+<td>§13 Formula level</td>
+</tr>
+<tr>
+<td>FR-6.3–6.5 (compare algorithms)</td>
+<td>SR-P1, SR-P2, SR-P7</td>
+</tr>
+<tr>
+<td>FR-6.8 (path metrics)</td>
+<td>§10.3 <code>PlannedPath</code></td>
+</tr>
+<tr>
+<td>NFR-1 (integrity)</td>
+<td>AD-4, AD-7, §13</td>
+</tr>
+<tr>
+<td>NFR-2 (reproducibility)</td>
+<td>SR-P5</td>
+</tr>
+<tr>
+<td>NFR-5 (storage)</td>
+<td>AD-2, SR-D5, SR-N4</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="16-revision-history">16. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. Architecture, component requirements, API surface, data models and verification strategy defined against PRD v1.0.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/SRD.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

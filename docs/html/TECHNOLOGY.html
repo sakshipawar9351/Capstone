@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html" class="active"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / TECHNOLOGY.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-how-these-decisions-were-made">1. How these decisions were made</a></li>
+<li><a href="#2-environment-constraints-the-facts-that-forced-the-stack">2. Environment constraints — the facts that forced the stack</a><ul>
+<li><a href="#21-windows-application-control-blocks-new-compiled-extensions">2.1 Windows Application Control blocks new compiled extensions ⚠️</a></li>
+<li><a href="#22-no-nodejs-no-npm-no-git">2.2 No Node.js, no npm, no git</a></li>
+<li><a href="#23-storage-is-constrained-data-is-on-google-drive">2.3 Storage is constrained; data is on Google Drive</a></li>
+<li><a href="#24-turning-constraints-into-strengths">2.4 Turning constraints into strengths</a></li>
+</ul>
+</li>
+<li><a href="#3-technology-by-project-part">3. Technology by project part</a><ul>
+<li><a href="#part-1-the-3d-moon-globe">Part 1 — The 3D Moon globe</a></li>
+<li><a href="#part-2-crater-and-boulder-detection">Part 2 — Crater and boulder detection</a></li>
+<li><a href="#part-3-classification">Part 3 — Classification</a></li>
+<li><a href="#part-4-per-feature-scientific-calculation">Part 4 — Per-feature scientific calculation</a></li>
+<li><a href="#part-5-formula-documentation">Part 5 — Formula documentation</a></li>
+<li><a href="#part-6-path-planning">Part 6 — Path planning</a></li>
+<li><a href="#part-7-interface">Part 7 — Interface</a></li>
+<li><a href="#backend">Backend</a></li>
+</ul>
+</li>
+<li><a href="#4-complete-technology-stack-summary">4. Complete technology stack summary</a></li>
+<li><a href="#5-technique-summary-the-single-best-method-per-task">5. Technique summary — the single best method per task</a></li>
+<li><a href="#6-risks-arising-from-these-choices">6. Risks arising from these choices</a></li>
+<li><a href="#7-revision-history">7. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-technology-selection-and-justification">LunarSerpent — Technology Selection and Justification</h1>
+<p><strong>Document ID:</strong> LS-DOC-004 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 8</strong> — which technologies should be used for each part of the project, and the best-suited technique for each part.</p>
+<hr />
+<h2 id="1-how-these-decisions-were-made">1. How these decisions were made</h2>
+<p>Technology was chosen against four criteria, applied in this order:</p>
+<ol>
+<li><strong>Does it run on the target machine?</strong> A superior tool that cannot execute is worth nothing.</li>
+<li><strong>Is the result scientifically auditable?</strong> A reviewer must be able to trace any output to
+   a formula in <code>FORMULAS.md</code>. This penalises black boxes.</li>
+<li><strong>Is it the standard in its domain?</strong> Standard tools make results comparable with published
+   work; bespoke tools make them incommensurable.</li>
+<li><strong>Does it minimise moving parts?</strong> Every dependency is a future failure.</li>
+</ol>
+<p>Criterion 1 turned out to be unusually decisive here, so it is documented first.</p>
+<hr />
+<h2 id="2-environment-constraints-the-facts-that-forced-the-stack">2. Environment constraints — the facts that forced the stack</h2>
+<p>These were established by direct measurement on the target machine, not assumed.</p>
+<h3 id="21-windows-application-control-blocks-new-compiled-extensions">2.1 Windows Application Control blocks new compiled extensions ⚠️</h3>
+<p>Newly-downloaded binary Python extensions fail at import:</p>
+<pre><code>ImportError: DLL load failed while importing conversion:
+             An Application Control policy has blocked this file.
+</code></pre>
+<p><strong>Confirmed blocked:</strong> <code>pandas</code>, <code>rasterio</code> (and by extension GDAL), <code>pyproj</code>.
+<strong>Confirmed working:</strong> <code>numpy</code>, <code>scipy</code>, <code>scikit-image</code>, <code>OpenCV</code>, <code>scikit-learn</code>,
+<code>matplotlib</code>, <code>networkx</code>, <code>Pillow</code>, <code>tifffile</code>, <code>FastAPI</code>, <code>uvicorn</code>, <code>pydantic</code>, <code>requests</code>,
+<code>httpx</code> — the pre-existing scientific stack is intact.</p>
+<p><strong>Consequences:</strong>
+- <strong>No GDAL/rasterio</strong> → raster I/O is implemented directly against the PDS3 format.
+- <strong>No pyproj</strong> → map projections are implemented explicitly from published formulas.
+- <strong>No PyTorch</strong> (≈2.5 GB of compiled extensions; certain to be blocked) → <strong>no deep learning.</strong></p>
+<h3 id="22-no-nodejs-no-npm-no-git">2.2 No Node.js, no npm, no git</h3>
+<p><strong>Consequence:</strong> no build step is possible for the frontend. React, Vue, Vite, webpack and
+TypeScript compilation are all unavailable. The frontend must run directly from source in a
+browser.</p>
+<h3 id="23-storage-is-constrained-data-is-on-google-drive">2.3 Storage is constrained; data is on Google Drive</h3>
+<p>Datasets are mounted read-only at <code>G:</code> via Google Drive for Desktop.
+<strong>Consequence:</strong> the system reads data in place and copies nothing.</p>
+<h3 id="24-turning-constraints-into-strengths">2.4 Turning constraints into strengths</h3>
+<p>Each constraint has a defensible upside for a <em>scientific</em> project:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Naive reading</th>
+<th>Actual effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No GDAL</td>
+<td>"Can't do GIS"</td>
+<td>Every coordinate transform is explicit, cited and unit-tested — no hidden library behaviour</td>
+</tr>
+<tr>
+<td>No PyTorch</td>
+<td>"Can't do modern CV"</td>
+<td>No unexplainable weights; every detection traces to a documented operator</td>
+</tr>
+<tr>
+<td>No build step</td>
+<td>"Primitive frontend"</td>
+<td>Zero-install, runs anywhere, no toolchain rot</td>
+</tr>
+<tr>
+<td>Read-only data</td>
+<td>"Inconvenient"</td>
+<td>Source data provably unmodified — reproducibility guaranteed</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3-technology-by-project-part">3. Technology by project part</h2>
+<h3 id="part-1-the-3d-moon-globe">Part 1 — The 3D Moon globe</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3-D rendering</td>
+<td><strong>Three.js r170+</strong>, ESM via CDN import-map</td>
+<td>The mature WebGL library. Import-map delivery needs no bundler — satisfies §2.2</td>
+</tr>
+<tr>
+<td>Geometry</td>
+<td><strong>Procedural <code>SphereGeometry</code></strong></td>
+<td>UV maps to lat/lon by construction (<code>FORMULAS.md</code> §1.3). The supplied <code>moon_small.glb</code> is <em>not</em> used for rendering, because an arbitrary mesh carries an arbitrary UV layout with no selenographic guarantee</td>
+</tr>
+<tr>
+<td>Surface material</td>
+<td><strong><code>MeshBasicMaterial</code> (unlit)</strong></td>
+<td><strong>The technical answer to "no sunlight effects".</strong> Colour = texture, independent of surface normal and light direction, so all 360° including both poles render equally bright (<code>FORMULAS.md</code> §8.1)</td>
+</tr>
+<tr>
+<td>Camera control</td>
+<td><strong><code>OrbitControls</code></strong> + custom damping</td>
+<td>Standard rotate/zoom/pan; auto-rotate is a per-frame azimuth increment</td>
+</tr>
+<tr>
+<td>Imagery</td>
+<td><strong>NASA Moon Trek WMTS</strong>, quadtree LOD</td>
+<td>Google-Maps-style progressive refinement; keeps detail sharp at any zoom without storing 100 GB</td>
+</tr>
+<tr>
+<td>Labels</td>
+<td><strong><code>CSS2DRenderer</code></strong></td>
+<td>Renders feature names as DOM elements — crisp at any zoom and selectable, unlike texture-baked text</td>
+</tr>
+<tr>
+<td>Click → coordinate</td>
+<td><strong><code>Raycaster</code></strong> + inverse UV</td>
+<td>Exact ray–sphere intersection → <span class="math-inline">\((\varphi,\lambda)\)</span>; no pixel approximation</td>
+</tr>
+<tr>
+<td>Offline fallback</td>
+<td><code>moon_texture.jpg</code></td>
+<td>Globe still renders with no network</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Best-suited technique — the layers panel.</strong> Analysis layers (hazard, risk, slope, cost) are
+generated server-side as PNG overlays in the same simple-cylindrical projection as the
+basemap, then composited as additional textures with per-layer opacity. Because both share the
+projection of <code>FORMULAS.md</code> §1.2, <strong>no reprojection or alignment step is needed</strong> — layers
+register pixel-exactly by construction.</p>
+<p><strong>Rejected:</strong> CesiumJS (heavyweight, Earth-centric, its Moon support is immature);
+Google Maps API (Earth only); deck.gl (needs a bundler); raw WebGL (months of work Three.js
+already solves).</p>
+<hr />
+<h3 id="part-2-crater-and-boulder-detection">Part 2 — Crater and boulder detection</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DEM access</td>
+<td><strong><code>numpy.memmap</code></strong> on raw PDS3 <code>.IMG</code></td>
+<td>PDS3 is headerless raw binary — memmap gives O(1) random access with no parse and no full read. Replaces GDAL entirely</td>
+</tr>
+<tr>
+<td>Remote DEM access</td>
+<td><strong>HTTP range requests</strong> (<code>requests</code>)</td>
+<td>Verified: a 1 KB read from a 506 MB product, HTTP 206. Higher-resolution DEMs usable at zero storage</td>
+</tr>
+<tr>
+<td>Curvature / gradient</td>
+<td><strong>SciPy <code>ndimage</code></strong> convolution</td>
+<td>Separable convolutions; the Horn and Zevenbergen–Thorne operators are 3×3 kernels</td>
+</tr>
+<tr>
+<td>Circle detection</td>
+<td><strong>OpenCV <code>HoughCircles</code></strong></td>
+<td>The optimised reference implementation of the standard method</td>
+</tr>
+<tr>
+<td>Blob / boulder detection</td>
+<td><strong>scikit-image</strong> <code>blob_dog</code>, <code>blob_log</code></td>
+<td>Scale-space Difference-of-Gaussian — the principled multi-scale detector for round bright/dark features</td>
+</tr>
+<tr>
+<td>Shadow segmentation</td>
+<td><strong>OpenCV</strong> adaptive threshold + morphology</td>
+<td>Shadows are the darkest connected regions; adaptive thresholding handles albedo variation</td>
+</tr>
+<tr>
+<td>Classification</td>
+<td><strong>scikit-learn</strong> RandomForest / SVM</td>
+<td>Trains on interpretable geometric features, not raw pixels — every decision is inspectable</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td><strong>Robbins catalogue</strong> + <code>artificial_lunar</code> masks + <code>kaggle_craters</code> labels</td>
+<td>Three independent ground truths</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Best-suited technique — craters: topographic, not photometric.</strong> Detection runs on the
+<strong>DEM</strong>, not on imagery. Rationale: image-based detection confounds craters with albedo
+features (fresh ejecta rays, mare/highland boundaries) that have no topographic expression.
+A crater has an unambiguous topographic signature — an annulus of negative profile curvature
+enclosing positive curvature (<code>FORMULAS.md</code> §5.1) — which albedo features do not. Three
+quasi-independent tests (curvature signature, Hough circularity, depth-diameter consistency)
+must all pass, so false positives are strongly suppressed.</p>
+<p><strong>Best-suited technique — boulders: shadow photoclinometry.</strong> Boulder <em>height</em> comes from
+shadow length and solar incidence angle, <span class="math-inline">\(h = L\tan e\)</span> (<code>FORMULAS.md</code> §5.2). This is the only
+method that recovers absolute height from a single monoscopic image — stereo needs a pair,
+photoclinometry needs a calibrated reflectance model.</p>
+<blockquote>
+<p><strong>Note the deliberate tension with Part 1.</strong> The globe must show <em>no</em> illumination effects,
+while boulder detection <em>depends</em> on shadows. These are different pipelines with opposite
+requirements: display uses photometrically-normalised WAC (illumination removed at source);
+detection uses raw low-sun OHRC/NAC (illumination essential). Conflating them would break
+both.</p>
+</blockquote>
+<p><strong>On the absence of deep learning.</strong> A YOLO segmentation dataset exists in the supplied data,
+but PyTorch cannot be installed (§2.1). This is presented honestly rather than worked around:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>CNN/YOLO</th>
+<th>Classical CV (selected)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accuracy on trained domain</td>
+<td>Higher</td>
+<td>Good</td>
+</tr>
+<tr>
+<td>Explains <em>why</em> it detected something</td>
+<td>✗</td>
+<td>✓ every step traces to a formula</td>
+</tr>
+<tr>
+<td>Runs on this machine</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Transfers across sensors</td>
+<td>Poor (domain gap)</td>
+<td>Better (geometry-based)</td>
+</tr>
+<tr>
+<td>Suits "scientifically proven with formulas"</td>
+<td>Weak</td>
+<td><strong>Strong</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>For a project whose stated requirement is that every method be provable and referenced, a
+detector built from published operators with citable behaviour is arguably the <em>better</em>
+choice, not merely the available one. The YOLO labels are still used — as <strong>independent
+validation truth</strong>.</p>
+<hr />
+<h3 id="part-3-classification">Part 3 — Classification</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Size taxonomy</td>
+<td><strong>Pike (1974, 1977)</strong> morphometric boundaries</td>
+<td>Class edges track physical transitions (simple→complex at ~15 km), not round numbers</td>
+</tr>
+<tr>
+<td>Depth measurement</td>
+<td><strong>NumPy</strong> radial profile extraction from DEM</td>
+<td>Direct rim-to-floor measurement</td>
+</tr>
+<tr>
+<td>Statistical validation</td>
+<td><strong>scikit-learn</strong> clustering; <strong>SciPy</strong> regression</td>
+<td>Tests whether measured <span class="math-inline">\(d/D\)</span> actually separates into the predicted classes</td>
+</tr>
+<tr>
+<td>Colour encoding</td>
+<td>Perceptually-ordered categorical palette</td>
+<td>Distinct classes must be distinguishable, including for colour-vision deficiency</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Best-suited technique.</strong> Classification is <strong>rule-based from published scaling laws</strong>, not
+learned from data. A learned classifier would produce boundaries that cannot be justified from
+cratering mechanics; Pike's transition diameter can be derived from the gravity-vs-strength
+argument in <code>FORMULAS.md</code> §4.1. Machine learning is used only to <em>validate</em> that the
+rule-based classes are statistically separable — the correct division of labour.</p>
+<hr />
+<h3 id="part-4-per-feature-scientific-calculation">Part 4 — Per-feature scientific calculation</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windowed DEM extraction</td>
+<td><strong><code>numpy.memmap</code></strong> slicing</td>
+<td>Reads only the neighbourhood, not the globe</td>
+</tr>
+<tr>
+<td>Slope / aspect</td>
+<td><strong>Horn (1981)</strong> via SciPy convolution</td>
+<td>GIS-standard; directly comparable with ArcGIS/GDAL output</td>
+</tr>
+<tr>
+<td>Curvature</td>
+<td><strong>Zevenbergen &amp; Thorne (1987)</strong></td>
+<td>Exact 9-point quadratic; separates rim from floor</td>
+</tr>
+<tr>
+<td>Profile extraction</td>
+<td><strong>SciPy <code>map_coordinates</code></strong></td>
+<td>Bilinear/spline sampling along an arbitrary transect</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td><strong>NumPy</strong></td>
+<td>Vectorised; no pandas needed (and pandas is blocked)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Best-suited technique — resolution honesty.</strong> Every returned value carries its <strong>baseline
+length</strong> and an uncertainty. Because roughness is scale-dependent (<code>FORMULAS.md</code> §3.5),
+a slope value without its baseline is scientifically meaningless. The API response schema
+makes the baseline a <strong>required</strong> field, so it cannot be omitted by accident.</p>
+<hr />
+<h3 id="part-5-formula-documentation">Part 5 — Formula documentation</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Format</td>
+<td><strong>Markdown + KaTeX</strong></td>
+<td>Renders as typeset mathematics in-browser; stays diffable as plain text</td>
+</tr>
+<tr>
+<td>Citations</td>
+<td>Inline DOI links</td>
+<td>Verifiable at point of use, not buried in a bibliography</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td><strong><code>pytest</code></strong>-style unit tests</td>
+<td>Each formula has a test against a hand-computed or published value — the documentation is <em>executable</em></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h3 id="part-6-path-planning">Part 6 — Path planning</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Algorithms</td>
+<td><strong>Hand-implemented</strong> A*, Dijkstra, Theta*, D* Lite, RRT*, PRM, BFS, potential fields</td>
+<td>The brief requires per-algorithm metrics (nodes expanded, peak open-set, runtime) to <em>justify</em> the selection. A library hides exactly those numbers</td>
+</tr>
+<tr>
+<td>Priority queue</td>
+<td><strong><code>heapq</code></strong> (stdlib)</td>
+<td>Binary heap, <span class="math-inline">\(O(\log n)\)</span> — the standard structure for Dijkstra/A*</td>
+</tr>
+<tr>
+<td>Cost surface</td>
+<td><strong>NumPy</strong> arrays</td>
+<td>Vectorised construction; the planner indexes it directly</td>
+</tr>
+<tr>
+<td>Cross-validation</td>
+<td><strong><code>networkx</code></strong></td>
+<td>Independent shortest-path implementation to confirm our A* agrees — guards against a subtle bug in our own code</td>
+</tr>
+<tr>
+<td>Line-of-sight</td>
+<td><strong>Bresenham</strong></td>
+<td>Integer-only; exact cell enumeration for Theta* and smoothing</td>
+</tr>
+<tr>
+<td>Benchmarking</td>
+<td><strong><code>time.perf_counter</code></strong> + explicit counters</td>
+<td>Machine-independent metrics (nodes expanded) alongside wall-clock</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Best-suited technique.</strong> A* with an admissible <em>and consistent</em> heuristic, proved in
+<code>FORMULAS.md</code> §9.1, plus <strong>cost-validated shortcut smoothing</strong> — shortcuts accepted only when
+the integrated cost genuinely decreases. Full reasoning in <code>ALGORITHMS.md</code> §4.</p>
+<hr />
+<h3 id="part-7-interface">Part 7 — Interface</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Structure</td>
+<td><strong>Vanilla HTML5 + ES modules</strong></td>
+<td>Forced by §2.2; also gives zero-install portability</td>
+</tr>
+<tr>
+<td>Styling</td>
+<td><strong>Modern CSS</strong> — custom properties, grid, <code>color-mix()</code></td>
+<td>Theming and layout without a framework</td>
+</tr>
+<tr>
+<td>State</td>
+<td>Small hand-rolled observable store</td>
+<td>The app has modest state; a framework would be overhead</td>
+</tr>
+<tr>
+<td>Charts</td>
+<td><strong>Inline SVG</strong>, generated</td>
+<td>Elevation/slope profiles along a path; crisp at any zoom, no chart library</td>
+</tr>
+<tr>
+<td>Icons</td>
+<td>Inline SVG</td>
+<td>No icon-font dependency</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Rejected:</strong> React/Vue/Svelte (all need a build step, §2.2); Bootstrap/Tailwind (Tailwind
+needs a build; Bootstrap imposes an ill-fitting visual language on a scientific instrument).</p>
+<hr />
+<h3 id="backend">Backend</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Technology</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web framework</td>
+<td><strong>FastAPI</strong></td>
+<td>Verified working. Async (matters for tile proxying), auto-generated OpenAPI docs, Pydantic validation</td>
+</tr>
+<tr>
+<td>Server</td>
+<td><strong>Uvicorn</strong></td>
+<td>ASGI server FastAPI is designed for</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td><strong>Pydantic v2</strong></td>
+<td>Schemas enforce that e.g. slope always carries its baseline</td>
+</tr>
+<tr>
+<td>Numerics</td>
+<td><strong>NumPy / SciPy</strong></td>
+<td>The scientific computing standard</td>
+</tr>
+<tr>
+<td>Caching</td>
+<td><strong><code>functools.lru_cache</code></strong> + on-disk tile cache</td>
+<td>Avoids recomputing identical analysis windows</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td><strong><code>unittest</code></strong> (stdlib)</td>
+<td>No extra dependency; <code>pytest</code> optional</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Rejected:</strong> Flask (no async, no built-in validation); Django (ORM/admin/templating all
+unnecessary here); Node/Express (§2.2).</p>
+<hr />
+<h2 id="4-complete-technology-stack-summary">4. Complete technology stack summary</h2>
+<pre><code>┌──────────────────────── PRESENTATION ────────────────────────┐
+│  Three.js r170  ·  CSS2DRenderer  ·  OrbitControls           │
+│  Vanilla ES modules  ·  Modern CSS  ·  Inline SVG            │
+│  (no build step — CDN import-map)                            │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ REST / JSON  +  PNG layer tiles
+┌───────────────────────────┴──────────────────────────────────┐
+│                        APPLICATION                           │
+│  FastAPI  ·  Uvicorn  ·  Pydantic v2                         │
+└───────────────────────────┬──────────────────────────────────┘
+┌───────────────────────────┴──────────────────────────────────┐
+│                          ANALYSIS                            │
+│  Terrain    : NumPy · SciPy ndimage (Horn, Zevenbergen)      │
+│  Detection  : OpenCV · scikit-image (Hough, DoG, morphology) │
+│  Classify   : scikit-learn · SciPy stats (Pike laws)         │
+│  Planning   : heapq · NumPy · networkx (cross-check)         │
+└───────────────────────────┬──────────────────────────────────┘
+┌───────────────────────────┴──────────────────────────────────┐
+│                            DATA                              │
+│  numpy.memmap → PDS3 .IMG   (local, G: Drive mount)          │
+│  HTTP range   → PDS remote  (LDEM_64/128, zero storage)      │
+│  WMTS tiles   → Moon Trek   (bounded LRU cache)              │
+│  csv (stdlib) → Robbins catalogue → compact NumPy index      │
+└──────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>Total runtime dependencies: 9</strong> — <code>numpy</code>, <code>scipy</code>, <code>scikit-image</code>, <code>opencv-python</code>,
+<code>scikit-learn</code>, <code>networkx</code>, <code>Pillow</code>, <code>fastapi</code>, <code>uvicorn</code> (+ <code>requests</code> for acquisition).
+All verified working on the target machine.</p>
+<hr />
+<h2 id="5-technique-summary-the-single-best-method-per-task">5. Technique summary — the single best method per task</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Best-suited technique</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Globe illumination</td>
+<td><strong>Unlit material</strong></td>
+<td>Only way to guarantee uniform 360° legibility</td>
+</tr>
+<tr>
+<td>Basemap delivery</td>
+<td><strong>WMTS quadtree streaming</strong></td>
+<td>Google-Maps sharpness without 100 GB</td>
+</tr>
+<tr>
+<td>Coordinate mapping</td>
+<td><strong>Explicit pixel-registered transform</strong></td>
+<td>Verified against PDS labels at two resolutions</td>
+</tr>
+<tr>
+<td>DEM access</td>
+<td><strong>memmap + HTTP range</strong></td>
+<td>O(1) random access, zero storage</td>
+</tr>
+<tr>
+<td>Slope</td>
+<td><strong>Horn 3×3</strong></td>
+<td>Most accurate on noisy real DEMs; GIS-standard</td>
+</tr>
+<tr>
+<td>Cell size</td>
+<td><strong>Latitude-corrected <span class="math-inline">\(\Delta x=\frac{2\pi R\cos\varphi}{W}\)</span></strong></td>
+<td>Prevents severe polar slope underestimation</td>
+</tr>
+<tr>
+<td>Crater detection</td>
+<td><strong>Curvature + Hough + physical consistency</strong></td>
+<td>Three independent tests; immune to albedo confusion</td>
+</tr>
+<tr>
+<td>Boulder height</td>
+<td><strong>Shadow photoclinometry</strong></td>
+<td>Only monoscopic absolute-height method</td>
+</tr>
+<tr>
+<td>Sub-resolution boulders</td>
+<td><strong>Size–frequency extrapolation</strong></td>
+<td>Quantifies what cannot be seen</td>
+</tr>
+<tr>
+<td>Classification</td>
+<td><strong>Pike scaling laws</strong></td>
+<td>Boundaries follow physics, not round numbers</td>
+</tr>
+<tr>
+<td>Crater age</td>
+<td><strong>Degradation index + epoch + model age</strong></td>
+<td>Three separately-labelled quantities, no false precision</td>
+</tr>
+<tr>
+<td>Hazard combination</td>
+<td><strong>max(), not weighted sum</strong></td>
+<td>Safety is non-compensatory</td>
+</tr>
+<tr>
+<td>Path planning</td>
+<td><strong>A* + cost-validated smoothing</strong></td>
+<td>Provably optimal, deterministic, correct on weighted cost</td>
+</tr>
+<tr>
+<td>Replanning</td>
+<td><strong>D* Lite</strong></td>
+<td>Repair cost local to the change</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="6-risks-arising-from-these-choices">6. Risks arising from these choices</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Risk</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Moon Trek WMTS unavailable</td>
+<td>Low</td>
+<td>High</td>
+<td><code>moon_texture.jpg</code> offline fallback; tile cache</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Classical CV underperforms CNN on small craters</td>
+<td><strong>Medium</strong></td>
+<td>Medium</td>
+<td>Quantify honestly against Robbins; report precision/recall, never claim parity</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OHRC raw rasters absent from supplied data</td>
+<td><strong>Medium</strong></td>
+<td><strong>High</strong></td>
+<td>Confirm early; fall back to LROC NAC via ODE</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Application Control blocks a future dependency</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Prefer pure-Python; verify import before adopting</td>
+</tr>
+<tr>
+<td>5</td>
+<td>227 MB Robbins CSV too slow to parse repeatedly</td>
+<td>High</td>
+<td>Low</td>
+<td>One-pass conversion to a memory-mapped NumPy index</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Browser memory at high zoom</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Bounded LOD tile cache with LRU eviction</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Drive mount unavailable (offline/unsynced)</td>
+<td>Medium</td>
+<td>High</td>
+<td>Detect at startup; clear error; PDS streaming fallback</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="7-revision-history">7. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. All selections verified against measured environment constraints; blocked and working packages confirmed by direct import test.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/TECHNOLOGY.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

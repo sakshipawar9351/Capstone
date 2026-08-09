@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html" class="active"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / DATASETS.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-purpose-and-provenance-policy">1. Purpose and provenance policy</a></li>
+<li><a href="#2-reference-frame-standard">2. Reference frame standard</a></li>
+<li><a href="#3-storage-architecture-why-local-disk-cost-is-zero">3. Storage architecture — why local disk cost is ~zero</a></li>
+<li><a href="#4-owner-supplied-datasets-mounted-at-g">4. Owner-supplied datasets (mounted at G:) ✅</a><ul>
+<li><a href="#41-lola_dem-lola-topography-primary-elevation-source">4.1 lola_dem/ — LOLA topography ✅ [primary elevation source]</a></li>
+<li><a href="#42-robbins_db-robbins-2019-global-crater-database-primary-crater-layer">4.2 robbins_db/ — Robbins (2019) global crater database ✅ [primary crater layer]</a></li>
+<li><a href="#43-artificial_lunar-keio-artificial-lunar-landscape-dataset-boulder-detection-ground-truth">4.3 artificial_lunar/ — Keio Artificial Lunar Landscape dataset ✅ [boulder-detection ground truth]</a></li>
+<li><a href="#44-chandrayaan-chandrayaan-2-ohrc-highest-resolution-real-imagery">4.4 chandrayaan/ — Chandrayaan-2 OHRC ✅ [highest-resolution real imagery]</a></li>
+<li><a href="#45-kaggle_craters-yolo-format-crater-dataset">4.5 kaggle_craters/ — YOLO-format crater dataset ✅</a></li>
+<li><a href="#46-supporting-assets">4.6 Supporting assets ✅</a></li>
+</ul>
+</li>
+<li><a href="#5-streamed-public-datasets">5. Streamed public datasets</a><ul>
+<li><a href="#51-nasa-moon-trek-wmts-the-primary-basemap">5.1 NASA Moon Trek WMTS ✅ — the primary basemap</a></li>
+<li><a href="#52-pds-geosciences-node-higher-resolution-topography-on-demand">5.2 PDS Geosciences Node ✅ — higher-resolution topography on demand</a></li>
+<li><a href="#53-lola-polar-products-required-for-part-1s-pole-requirement">5.3 LOLA polar products 📚 — required for Part 1's pole requirement</a></li>
+<li><a href="#54-iau-gazetteer-of-planetary-nomenclature-official-feature-names">5.4 IAU Gazetteer of Planetary Nomenclature ✅ — official feature names</a></li>
+<li><a href="#55-pds-orbital-data-explorer-ode">5.5 PDS Orbital Data Explorer (ODE) ✅</a></li>
+</ul>
+</li>
+<li><a href="#6-reference-datasets-used-as-scientific-authority-not-ingested">6. Reference datasets used as scientific authority (not ingested)</a></li>
+<li><a href="#7-dataset-project-part-mapping">7. Dataset → project-part mapping</a></li>
+<li><a href="#8-open-items-additional-data-that-may-be-requested">8. Open items — additional data that may be requested</a></li>
+<li><a href="#9-licensing-and-citation-obligations">9. Licensing and citation obligations</a></li>
+<li><a href="#10-revision-history">10. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-dataset-catalogue">LunarSerpent — Dataset Catalogue</h1>
+<p><strong>Document ID:</strong> LS-DOC-003 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-04
+<strong>Covers:</strong> Project brief <strong>Part 8</strong> — which datasets are available, accessible and scientifically valid, with resources and links.</p>
+<hr />
+<h2 id="1-purpose-and-provenance-policy">1. Purpose and provenance policy</h2>
+<p>This document is the single authoritative register of every dataset LunarSerpent
+consumes. It exists so that <strong>any number the system displays can be traced backwards
+to a named, published, citable source.</strong></p>
+<p>Four rules govern this catalogue:</p>
+<ol>
+<li><strong>No unsourced data.</strong> Every layer rendered in the application resolves to an entry here.</li>
+<li><strong>Verified means verified.</strong> Entries marked ✅ were physically confirmed during system
+   design on 2026-08-04 — either read from local storage or fetched over the network.
+   Entries marked 📚 are documented in peer-reviewed literature but their live endpoint
+   has not yet been exercised by this project. The distinction is never blurred.</li>
+<li><strong>Resolution is declared, not implied.</strong> Each product carries its true ground sample
+   distance. The system never renders a derived quantity finer than the source that produced it.</li>
+<li><strong>Synthetic data is labelled synthetic.</strong> Simulated imagery is never presented as observation.</li>
+</ol>
+<hr />
+<h2 id="2-reference-frame-standard">2. Reference frame standard</h2>
+<p>All datasets are used in, or transformed into, one common frame:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Body-fixed frame</td>
+<td>IAU <strong>Mean Earth / Polar Axis (ME)</strong>, DE421 realisation</td>
+</tr>
+<tr>
+<td>Reference sphere radius</td>
+<td><strong>1 737 400 m</strong> exactly</td>
+</tr>
+<tr>
+<td>Longitude convention</td>
+<td><strong>East-positive</strong>, 0°–360°</td>
+</tr>
+<tr>
+<td>Latitude convention</td>
+<td>Planetocentric, −90° … +90°</td>
+</tr>
+<tr>
+<td>Vertical datum</td>
+<td>Radius relative to the 1737.4 km sphere</td>
+</tr>
+</tbody>
+</table></div>
+<p>This is not an arbitrary choice — it is the <strong>native frame of the LOLA products</strong>, declared
+in their PDS3 label as <code>COORDINATE_SYSTEM_NAME = "MEAN EARTH/POLAR AXIS OF DE421"</code> with
+<code>A_AXIS_RADIUS = B_AXIS_RADIUS = C_AXIS_RADIUS = 1737.4 &lt;km&gt;</code>.</p>
+<p>Because all three axis radii are <strong>equal</strong>, the Moon is treated as a <strong>sphere, not an
+ellipsoid</strong>, and no flattening correction is applied anywhere in the system. The
+consequence — that the great-circle distance is the <em>exact</em> geodesic rather than an
+approximation — is derived in <code>FORMULAS.md</code> §2.</p>
+<blockquote>
+<p>Archinal, B. A. et al. (2018), <em>Report of the IAU Working Group on Cartographic
+Coordinates and Rotational Elements: 2015</em>, Celest. Mech. Dyn. Astron. 130:22.
+DOI: <a href="https://doi.org/10.1007/s10569-017-9805-5">10.1007/s10569-017-9805-5</a></p>
+</blockquote>
+<hr />
+<h2 id="3-storage-architecture-why-local-disk-cost-is-zero">3. Storage architecture — why local disk cost is ~zero</h2>
+<p>The project owner's datasets are held in Google Drive and exposed to the machine through
+<strong>Google Drive for Desktop</strong>, mounted as drive <code>G:</code>. Files are therefore addressable as
+ordinary filesystem paths and are streamed on access by the Drive client — they are <strong>not
+copied into the project</strong>.</p>
+<p><strong>Configured data root:</strong></p>
+<pre><code>G:\My Drive\LunarNavigator_capstone_project_temp\lunar-navigator\data\raw\
+</code></pre>
+<p>This yields a three-tier access strategy:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Source</th>
+<th>Mechanism</th>
+<th>Local disk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Owner datasets</strong></td>
+<td>Google Drive → <code>G:</code></td>
+<td>Drive for Desktop streaming; <code>numpy.memmap</code> for rasters</td>
+<td><strong>0 bytes</strong></td>
+</tr>
+<tr>
+<td><strong>Large public rasters</strong></td>
+<td>PDS Geosciences</td>
+<td><strong>HTTP range requests</strong> (verified 206 ✅)</td>
+<td><strong>0 bytes</strong></td>
+</tr>
+<tr>
+<td><strong>Basemap imagery</strong></td>
+<td>NASA Moon Trek WMTS</td>
+<td>Per-tile GET, bounded LRU cache</td>
+<td>a few MB</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Verified ✅ — HTTP range access.</strong> During design, a 1 024-byte window was read out of the
+506 MB <code>LDEM_64</code> product without downloading the file:
+<code>Content-Range: bytes 265443840-265444863/530841600</code>, returning elevations
+<code>[2730.0, 2770.0, 2779.0, 2764.0, 2733.5 …] m</code> at (0 °N, 180 °E) — physically correct
+values for the farside highlands. <strong>Random access into a half-gigabyte DEM cost 1 KB.</strong></p>
+</blockquote>
+<p>This is why the project needs neither GDAL nor rasterio, and why no dataset above needs to
+be duplicated onto the project drive.</p>
+<hr />
+<h2 id="4-owner-supplied-datasets-mounted-at-g">4. Owner-supplied datasets (mounted at <code>G:</code>) ✅</h2>
+<p>Confirmed present on 2026-08-04. Sizes are as reported by the filesystem.</p>
+<h3 id="41-lola_dem-lola-topography-primary-elevation-source">4.1 <code>lola_dem/</code> — LOLA topography ✅ <strong>[primary elevation source]</strong></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LDEM_16.IMG</code></td>
+<td><strong>31.64 MB</strong></td>
+</tr>
+<tr>
+<td><code>LDEM_16.LBL</code></td>
+<td>4.4 KB</td>
+</tr>
+</tbody>
+</table></div>
+<p>The PDS3 label was read directly (not assumed) and yields these parameters:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grid</td>
+<td>5760 × 2880 (<code>LINE_SAMPLES</code> × <code>LINES</code>)</td>
+</tr>
+<tr>
+<td>Resolution</td>
+<td>16 pixels/degree</td>
+</tr>
+<tr>
+<td>Map scale</td>
+<td><strong>1895.21 m/px</strong> at the equator</td>
+</tr>
+<tr>
+<td><code>SAMPLE_TYPE</code></td>
+<td><code>LSB_INTEGER</code> → little-endian signed</td>
+</tr>
+<tr>
+<td><code>SAMPLE_BITS</code></td>
+<td>16 → NumPy <code>&lt;i2</code></td>
+</tr>
+<tr>
+<td><code>SCALING_FACTOR</code></td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><code>OFFSET</code></td>
+<td>1 737 400.0 m</td>
+</tr>
+<tr>
+<td>Header</td>
+<td><strong>none</strong> — byte 0 is pixel (0,0)</td>
+</tr>
+<tr>
+<td>Stated range</td>
+<td>DN −18150 … +21580 → <strong>−9075.0 … +10790.0 m</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Conversion, quoted verbatim from the label:</p>
+<pre><code>HEIGHT           = DN × SCALING_FACTOR
+PLANETARY_RADIUS = DN × SCALING_FACTOR + OFFSET
+</code></pre>
+<p>Because the file is raw, uncompressed and headerless, it is opened with <code>numpy.memmap</code>,
+giving O(1) random access to any window with no parse step and no full-file read.</p>
+<p><strong>Georeferencing (pixel-registered):</strong></p>
+<pre><code>lat(row) = +90 − (row + 0.5) · (180 / H)
+lon(col) =       (col + 0.5) · (360 / W)        [east, 0–360]
+</code></pre>
+<p><em>Verification:</em> substituting lon = 180° gives col = 2879.5 and lat = 0° gives row = 1439.5,
+which reproduce the label's <code>SAMPLE_PROJECTION_OFFSET</code> and <code>LINE_PROJECTION_OFFSET</code>
+exactly for this grid. ✅</p>
+<p><strong>Producer-stated limitation.</strong> The label warns: <em>"The gridfiles were produced in 45 degree
+latitude bands, and there may be edge artifacts at this boundary."</em> Above 64 ppd, GMT
+<code>surface</code> interpolation (tension 0.5) fills gaps between ground tracks. Therefore
+<strong>apparent fine-scale roughness in interpolated regions is not real topography</strong> and must
+not be treated as a hazard signal — handled explicitly in <code>FORMULAS.md</code> §3.5.</p>
+<blockquote>
+<p>Smith, D. E. et al. (2010), <em>The Lunar Orbiter Laser Altimeter Investigation on the LRO
+Mission</em>, Space Sci. Rev. 150, 209–241.
+DOI: <a href="https://doi.org/10.1007/s11214-009-9512-y">10.1007/s11214-009-9512-y</a></p>
+</blockquote>
+<hr />
+<h3 id="42-robbins_db-robbins-2019-global-crater-database-primary-crater-layer">4.2 <code>robbins_db/</code> — Robbins (2019) global crater database ✅ <strong>[primary crater layer]</strong></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lunar_crater_database_robbins_2018.csv</code></td>
+<td><strong>227.44 MB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The most complete global lunar crater database in existence.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total craters</td>
+<td>2 033 574</td>
+</tr>
+<tr>
+<td>Craters D ≥ 1 km</td>
+<td><strong>1 296 879</strong></td>
+</tr>
+<tr>
+<td>Craters D ≥ 5 km</td>
+<td>≈ 83 000</td>
+</tr>
+<tr>
+<td>Craters D ≥ 20 km</td>
+<td>6 972</td>
+</tr>
+<tr>
+<td>Stated completeness</td>
+<td><strong>complete for D ≥ 1 km</strong></td>
+</tr>
+<tr>
+<td>Method</td>
+<td><strong>Manual</strong> identification on LROC WAC, LOLA, Kaguya TC, and a merged LOLA+TC DTM</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why manual matters.</strong> Every crater was human-verified. No automated detector — including
+this project's — matches that reliability. LunarSerpent therefore uses Robbins as <strong>ground
+truth for D ≥ 1 km</strong>, and applies its own computer vision only <em>below</em> the catalogue's
+completeness limit, where no authoritative catalogue exists. This is the scientifically
+honest division of labour, and it is what makes Part 2's accuracy claim defensible.</p>
+<p><strong>Fields include:</strong> centre lat/lon, diameter from both ellipse and circle fits, ellipticity,
+rim arc-fraction traced, and per-crater confidence flags.</p>
+<p>Since 227 MB exceeds comfortable in-memory CSV parsing, the acquisition layer performs a
+<strong>one-pass streaming parse into a compact NumPy binary index</strong> (~40 MB) that is memory-mapped
+thereafter. See <code>SRD.md</code> §5.2.</p>
+<ul>
+<li>Landing page: <a href="https://astrogeology.usgs.gov/search/map/moon_crater_database_v1_robbins">https://astrogeology.usgs.gov/search/map/moon_crater_database_v1_robbins</a></li>
+</ul>
+<blockquote>
+<p>Robbins, S. J. (2019), <em>A New Global Database of Lunar Impact Craters &gt;1–2 km</em>,
+JGR Planets 124(4), 871–892. DOI: <a href="https://doi.org/10.1029/2018JE005592">10.1029/2018JE005592</a></p>
+</blockquote>
+<hr />
+<h3 id="43-artificial_lunar-keio-artificial-lunar-landscape-dataset-boulder-detection-ground-truth">4.3 <code>artificial_lunar/</code> — Keio Artificial Lunar Landscape dataset ✅ <strong>[boulder-detection ground truth]</strong></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Contents</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>images/render/</code> — synthetic rendered scenes</td>
+<td><strong>5 500</strong> PNG</td>
+</tr>
+<tr>
+<td><code>images/ground/</code> — ground-truth segmentation masks</td>
+<td><strong>5 500</strong> PNG</td>
+</tr>
+<tr>
+<td><code>images/clean/</code> — noise-free masks</td>
+<td><strong>5 500</strong> PNG</td>
+</tr>
+<tr>
+<td><code>real_moon_images/</code> — <strong>real</strong> lunar images + 2 CSV</td>
+<td>72 PNG</td>
+</tr>
+<tr>
+<td><code>bounding_boxes.csv</code></td>
+<td>rock bounding boxes</td>
+</tr>
+<tr>
+<td><code>shadow_IDs.txt</code>, <code>cam_anomaly_IDs.txt</code>, <code>ground_facing_IDs.txt</code>, <code>mismatch_IDs.txt</code>, <code>top200_largerocks_IDs.txt</code></td>
+<td>QA exclusion lists</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>16 500 labelled images.</strong> This is the dataset that lets Part 2's boulder detection be
+<strong>validated rather than merely asserted</strong> — the single most important scientific asset in
+the collection after LOLA and Robbins.</p>
+<blockquote>
+<p>⚠️ <strong>Critical caveat — this data is synthetic.</strong> The renders are Blender-generated, not
+observed. Detectors tuned on synthetic imagery suffer a well-documented <em>domain gap</em> when
+applied to real sensors. The authors bundled the 72 real Moon images precisely for this
+reason. <strong>LunarSerpent therefore tunes on <code>render/</code> but reports its accuracy on
+<code>real_moon_images/</code>, and publishes both numbers.</strong> Quoting only the synthetic score would
+misrepresent real-world performance.</p>
+</blockquote>
+<p>The QA <code>*_IDs.txt</code> lists identify frames with camera anomalies, ground-facing views and
+mask mismatches; these are <strong>excluded</strong> from both tuning and scoring.</p>
+<blockquote>
+<p>Pessia, R. &amp; Ishigami, G., Space Robotics Group, Keio University —
+<em>Artificial Lunar Landscape Dataset</em>.</p>
+</blockquote>
+<hr />
+<h3 id="44-chandrayaan-chandrayaan-2-ohrc-highest-resolution-real-imagery">4.4 <code>chandrayaan/</code> — Chandrayaan-2 OHRC ✅ <strong>[highest-resolution real imagery]</strong></h3>
+<p>Six scenes, ISRO product-ID convention <code>ch2_ohr_ncp_&lt;UTC timestamp&gt;_d_img_d18</code>:</p>
+<pre><code>ch2_ohr_ncp_20240406T0052354542_d_img_d18
+ch2_ohr_ncp_20240406T0647198948_d_img_d18
+ch2_ohr_ncp_20240425T1012478407_d_img_d18
+ch2_ohr_ncp_20240425T1209509264_d_img_d18
+ch2_ohr_ncp_20240425T1406019344_d_img_d18
+ch2_ohr_ncp_20240425T1603031918_d_img_d18
+</code></pre>
+<p>Each carries a per-scene <code>.csv</code> plus <code>images/</code>, and there is a parallel <code>output_shp/</code>
+tree of <strong>shapefiles</strong>.</p>
+<p><strong>Why this dataset matters.</strong> The Orbiter High Resolution Camera flies at <strong>~0.25 m/px —
+the finest lunar imaging resolution ever achieved by any mission.</strong> It is the only data in
+this collection capable of resolving individual boulders at the scale that actually
+threatens a rover wheel. <code>ncp</code> denotes the north circular-polar product line, and 2024
+acquisition dates place these in the Chandrayaan-2 extended mission.</p>
+<p>These six scenes are the <strong>AOI-scale evidence base</strong> for Part 2's boulder detection and for
+Part 6's rover-scale hazard assessment.</p>
+<blockquote>
+<p>⚠️ <strong>Verification pending.</strong> The <code>output_shp/</code> and per-scene CSV products appear to be
+<em>derived detections from a previous pipeline</em>, not raw observations. Per the project
+owner's instruction to build from scratch, <strong>these derived outputs are not consumed as
+input.</strong> Only the underlying imagery is used, and all detections are recomputed. Whether
+full-resolution OHRC rasters are present must be confirmed before the AOI pipeline is built
+(see §8, Open Items).</p>
+</blockquote>
+<hr />
+<h3 id="45-kaggle_craters-yolo-format-crater-dataset">4.5 <code>kaggle_craters/</code> — YOLO-format crater dataset ✅</h3>
+<pre><code>more-pics-dataset/
+  data.yaml
+  train/{images,labels}/  +  labels.cache
+  valid/{images,labels}/  +  labels.cache
+  test/{images,labels}/
+</code></pre>
+<p><code>data.yaml</code> + <code>labels.cache</code> are the signature of the <strong>Ultralytics YOLO</strong> training format;
+labels are normalised <code>class cx cy w h</code> text files.</p>
+<blockquote>
+<p>⚠️ <strong>Runtime constraint.</strong> Ultralytics YOLO requires PyTorch (~2.5 GB), which cannot be
+installed on the target machine — Windows Application Control blocks newly-downloaded
+compiled DLLs (confirmed: <code>pandas</code> and <code>rasterio</code> both fail with
+<em>"An Application Control policy has blocked this file"</em>). <strong>This dataset is therefore used
+for its labels, as independent validation truth for the classical-CV crater detector, not
+to train or run a neural network.</strong> See <code>TECHNOLOGY.md</code> §4 for why this constraint improves
+rather than harms the project's scientific defensibility.</p>
+</blockquote>
+<hr />
+<h3 id="46-supporting-assets">4.6 Supporting assets ✅</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Size</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>moon_texture/moon_texture.jpg</code></td>
+<td>0.23 MB</td>
+<td><strong>Offline fallback basemap</strong> — guarantees the globe renders with no network</td>
+</tr>
+<tr>
+<td><code>moon_model/moon_small.glb</code></td>
+<td>13.16 MB</td>
+<td>Reference 3D model. <em>Not used for rendering</em> — LunarSerpent generates its sphere procedurally so that UV coordinates map to selenographic lat/lon by construction (see <code>FORMULAS.md</code> §1.3)</td>
+</tr>
+<tr>
+<td><code>lroc_images/</code></td>
+<td>5 × ~0.04 MB</td>
+<td>LROC frames, Roboflow-exported (<code>*.rf.*</code> naming). Small sample; useful for detector smoke-tests</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="5-streamed-public-datasets">5. Streamed public datasets</h2>
+<h3 id="51-nasa-moon-trek-wmts-the-primary-basemap">5.1 NASA Moon Trek WMTS ✅ — the primary basemap</h3>
+<p><strong>Verified ✅</strong> — a tile request returned HTTP 200 with valid JPEG during design.</p>
+<pre><code>https://trek.nasa.gov/tiles/Moon/EQ/{layer}/1.0.0/default/default028mm/{z}/{y}/{x}.{ext}
+</code></pre>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Layer ID</th>
+<th>Content</th>
+<th>Native res.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LRO_WAC_Mosaic_Global_303ppd_v02</code></td>
+<td>WAC morphologic mosaic</td>
+<td>~100 m/px</td>
+</tr>
+<tr>
+<td><code>LRO_LOLA_ClrShade_Global_128ppd_v04</code></td>
+<td>Colour-coded shaded relief</td>
+<td>237 m/px</td>
+</tr>
+<tr>
+<td><code>LRO_LOLA_Shade_Global_128ppd_v04</code></td>
+<td>Grey hillshade</td>
+<td>237 m/px</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why streaming, not bulk download.</strong> The WAC global mosaic as a single file exceeds
+<strong>100 GB</strong>. WMTS delivers only the tiles in view, at only the zoom level needed — storage
+cost is bounded by what the user looks at, not by the size of the Moon.</p>
+<p><strong>Projection note.</strong> The <code>EQ</code> endpoint serves simple-cylindrical tiles, which map directly
+onto a sphere's UV parameterisation with no reprojection. This is precisely why the project
+can texture a scientifically-correct globe without a GIS stack.</p>
+<blockquote>
+<p>Robinson, M. S. et al. (2010), <em>Lunar Reconnaissance Orbiter Camera (LROC) Instrument
+Overview</em>, Space Sci. Rev. 150, 81–124.
+DOI: <a href="https://doi.org/10.1007/s11214-010-9634-2">10.1007/s11214-010-9634-2</a></p>
+</blockquote>
+<h3 id="52-pds-geosciences-node-higher-resolution-topography-on-demand">5.2 PDS Geosciences Node ✅ — higher-resolution topography on demand</h3>
+<p><code>https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/</code></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Grid</th>
+<th>Resolution</th>
+<th>Map scale</th>
+<th>Size</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LDEM_4</code></td>
+<td>1440 × 720</td>
+<td>4 ppd</td>
+<td>7580.84 m/px</td>
+<td>2.0 MB</td>
+<td>full fetch</td>
+</tr>
+<tr>
+<td><code>LDEM_16</code></td>
+<td>5760 × 2880</td>
+<td>16 ppd</td>
+<td>1895.21 m/px</td>
+<td>31.6 MB</td>
+<td><strong>already local (§4.1)</strong></td>
+</tr>
+<tr>
+<td><code>LDEM_64</code></td>
+<td>23040 × 11520</td>
+<td>64 ppd</td>
+<td>473.802 m/px</td>
+<td>506 MB</td>
+<td><strong>range request</strong></td>
+</tr>
+<tr>
+<td><code>LDEM_128</code></td>
+<td>46080 × 23040</td>
+<td>128 ppd</td>
+<td>236.901 m/px</td>
+<td>2.0 GB</td>
+<td><strong>range request</strong></td>
+</tr>
+<tr>
+<td><code>LDEM_1024_*</code></td>
+<td>tiled</td>
+<td>1024 ppd</td>
+<td>29.6 m/px</td>
+<td>~900 MB/tile</td>
+<td><strong>range request</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>All parameters above were read from the live PDS <code>.LBL</code> files during design ✅.
+Because range access works, the finer products are usable <strong>without ever storing them.</strong></p>
+<h3 id="53-lola-polar-products-required-for-part-1s-pole-requirement">5.3 LOLA polar products 📚 — required for Part 1's pole requirement</h3>
+<p>Simple-cylindrical grids degenerate at the poles: at 85° latitude east–west pixel spacing has
+collapsed to 8.7 % of its equatorial value, and at the pole it is <strong>zero</strong>. Polar analysis
+therefore uses <strong>polar stereographic</strong> products.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Product family</th>
+<th>Coverage</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LDEM_85S</code> / <code>LDEM_85N</code></td>
+<td>±85° → pole</td>
+<td>Polar terrain analysis</td>
+</tr>
+<tr>
+<td><code>LDEM_87S</code> / <code>LDEM_87N</code></td>
+<td>±87° → pole</td>
+<td>Artemis candidate sites</td>
+</tr>
+<tr>
+<td><code>LDEM_875S</code></td>
+<td>±87.5° → pole</td>
+<td>Shackleton-class detail (20 m/px)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Directory: <code>.../lola_gdr/polar/img/</code></p>
+<h3 id="54-iau-gazetteer-of-planetary-nomenclature-official-feature-names">5.4 IAU Gazetteer of Planetary Nomenclature ✅ — official feature names</h3>
+<p><code>https://planetarynames.wr.usgs.gov/</code> — host verified reachable, returns results for
+<code>target=MOON</code>.</p>
+<p>The <strong>only</strong> authoritative source for official feature names: ~9 000 named lunar features
+(craters, maria, montes, rimae, valles, rupes, catenae, landing sites), with name, feature
+type, centre coordinates, diameter, approval year and etymology.</p>
+<p>Robbins gives the system 1.3 million craters; the Gazetteer tells it <strong>which ones have names</strong>
+— this is what populates the labelled features required by Part 1.</p>
+<p><em>Access note:</em> the public interface returns HTML; the <code>displayType=csv</code> parameter yields a
+results page rather than clean CSV, so the acquisition layer parses the returned table rather
+than assuming a CSV endpoint exists.</p>
+<h3 id="55-pds-orbital-data-explorer-ode">5.5 PDS Orbital Data Explorer (ODE) ✅</h3>
+<p><code>https://ode.rsl.wustl.edu/</code> — programmatic footprint search across LRO products. This is how
+the AOI pipeline discovers which NAC images cover a requested region <strong>and what their solar
+incidence angles are</strong> — a required input to shadow-based boulder height retrieval
+(<code>FORMULAS.md</code> §5.2).</p>
+<hr />
+<h2 id="6-reference-datasets-used-as-scientific-authority-not-ingested">6. Reference datasets used as scientific authority (not ingested)</h2>
+<p>These are not consumed as files but are the <strong>published basis</strong> for formulas and
+classification thresholds. Full derivations in <code>FORMULAS.md</code>.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Supplies</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pike (1974, 1977)</strong></td>
+<td>Depth–diameter scaling; simple→complex transition</td>
+<td>Part 3 classification</td>
+</tr>
+<tr>
+<td><strong>Wang et al. (2021)</strong></td>
+<td>3D morphometry (depth, rim height, volume) for ~1.3 M craters from SLDEM2015</td>
+<td>Part 3 validation</td>
+</tr>
+<tr>
+<td><strong>Head et al. (2010)</strong></td>
+<td>5 185 craters D ≥ 20 km from LOLA; global size–frequency distribution</td>
+<td>Part 3 cross-check</td>
+</tr>
+<tr>
+<td><strong>Horn (1981)</strong></td>
+<td>3×3 slope operator</td>
+<td>Part 4, Part 6</td>
+</tr>
+<tr>
+<td><strong>Zevenbergen &amp; Thorne (1987)</strong></td>
+<td>Surface curvature</td>
+<td>Part 4</td>
+</tr>
+<tr>
+<td><strong>Barker et al. (2016)</strong></td>
+<td>SLDEM2015 LOLA+Kaguya merged DEM</td>
+<td>Resolution benchmarking</td>
+</tr>
+<tr>
+<td><strong>Fortezzo et al. (2020)</strong></td>
+<td>Unified Geologic Map of the Moon, 1:5 M</td>
+<td>Stratigraphic epoch → defensible crater "age"</td>
+</tr>
+<tr>
+<td><strong>Neukum et al. (2001)</strong></td>
+<td>Production &amp; chronology functions</td>
+<td>Model-age estimation with uncertainty</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>Wang, Y. et al. (2021), JGR Planets 126, e2020JE006728. DOI: <a href="https://doi.org/10.1029/2020JE006728">10.1029/2020JE006728</a>
+Head, J. W. et al. (2010), Science 329, 1504–1507. DOI: <a href="https://doi.org/10.1126/science.1195050">10.1126/science.1195050</a>
+Barker, M. K. et al. (2016), Icarus 273, 346–355. DOI: <a href="https://doi.org/10.1016/j.icarus.2015.07.039">10.1016/j.icarus.2015.07.039</a></p>
+</blockquote>
+<hr />
+<h2 id="7-dataset-project-part-mapping">7. Dataset → project-part mapping</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Brief part</th>
+<th>Datasets consumed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong> — 3D globe</td>
+<td>Moon Trek WMTS (WAC, LOLA colour shade); <code>moon_texture.jpg</code> fallback; IAU Gazetteer; <code>LDEM_16</code></td>
+</tr>
+<tr>
+<td><strong>2</strong> — Crater/boulder detection</td>
+<td>Robbins 2019 (global ≥ 1 km); <code>LDEM_16</code> (DEM-based detection); <code>artificial_lunar</code> (tuning + validation); Chandrayaan-2 OHRC (AOI boulders); <code>kaggle_craters</code> labels (independent validation)</td>
+</tr>
+<tr>
+<td><strong>3</strong> — Classification</td>
+<td>Pike 1974/1977; Wang 2021; Head 2010; Robbins diameters</td>
+</tr>
+<tr>
+<td><strong>4</strong> — Per-feature calculation</td>
+<td><code>LDEM_16</code> windows; <code>LDEM_64</code> via range request for detail</td>
+</tr>
+<tr>
+<td><strong>5</strong> — Formula documentation</td>
+<td>All of the above, cited at point of use</td>
+</tr>
+<tr>
+<td><strong>6</strong> — Path planning</td>
+<td>LOLA-derived slope/roughness; crater + boulder layers; LOLA illumination</td>
+</tr>
+<tr>
+<td><strong>8</strong> — Technology research</td>
+<td>This document + <code>TECHNOLOGY.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="8-open-items-additional-data-that-may-be-requested">8. Open items — additional data that may be requested</h2>
+<p>Per agreement with the project owner, further data will be discussed rather than assumed.
+Nothing below currently blocks development.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Why it might be needed</th>
+<th>Can it be avoided?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Confirm raw OHRC rasters exist</strong> in <code>chandrayaan/</code></td>
+<td>The listing exposed derived CSV/shapefiles; full-resolution imagery is required for genuine boulder detection</td>
+<td><strong>Blocking for Part 2 AOI</strong> if absent — would need re-download from ISRO Pradan</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LOLA <strong>polar stereographic</strong> DEMs</td>
+<td>Part 1 requires poles "properly and clearly visible"; cylindrical grids degenerate there</td>
+<td>✅ Streamable from PDS — no action needed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>LDEM_64</code> / <code>LDEM_128</code></td>
+<td>Finer slope for rover-scale hazard</td>
+<td>✅ Range-request streamable — no action needed</td>
+</tr>
+<tr>
+<td>4</td>
+<td>IAU Gazetteer name table</td>
+<td>Named-feature labels</td>
+<td>✅ Fetchable (~1 MB) — no action needed</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>LROC NAC</strong> scenes for non-OHRC AOIs</td>
+<td>Boulder detection outside the six OHRC footprints</td>
+<td>✅ Discoverable via ODE — no action needed</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Summary:</strong> only item 1 could require the owner to supply more data. Everything else is
+reachable from public services at zero storage cost.</p>
+<hr />
+<h2 id="9-licensing-and-citation-obligations">9. Licensing and citation obligations</h2>
+<p>All NASA, USGS, PDS and ISRO products listed here are <strong>public domain / open access</strong> and
+carry no licence fee or redistribution restriction. Scientific practice — and this project's
+integrity requirement — nonetheless obliges attribution:</p>
+<ul>
+<li><strong>Data-producer credit</strong> is displayed in the application's layer panel for every active layer.</li>
+<li><strong>Peer-reviewed sources</strong> are cited <em>at the point of use</em> in <code>FORMULAS.md</code>, not merely in a
+  bibliography.</li>
+<li>The <strong>Robbins database</strong> and <strong>Wang catalogue</strong> are released under PDS terms requesting
+  citation of the associated journal article in any derived publication. Any academic output
+  from this capstone must carry those citations.</li>
+<li>The <strong>Artificial Lunar Landscape</strong> dataset requires attribution to the Space Robotics Group,
+  Keio University, and — as noted in §4.3 — must be identified as synthetic wherever results
+  derived from it are reported.</li>
+</ul>
+<hr />
+<h2 id="10-revision-history">10. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-04</td>
+<td>Baseline. LOLA parameters read from live PDS labels; PDS range access verified (HTTP 206); Moon Trek, Gazetteer, ODE and Astrogeology endpoints verified reachable; owner Drive datasets inventoried and mounted at <code>G:</code>.</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/DATASETS.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

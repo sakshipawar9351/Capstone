@@ -1,0 +1,81 @@
+# ---------------------------------------------------------------------------
+# LunarSerpent — version control exclusions
+#
+# Policy: source and documentation are versioned; anything reproducible from
+# them, and anything large enough to bloat the repository, is not.
+# ---------------------------------------------------------------------------
+
+# Python bytecode and build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# ---------------------------------------------------------------------------
+# Data — never versioned
+#
+# Source datasets are read in place from the mounted Drive and are not copied
+# into the project (see docs/DATASETS.md §3).  Derived products and caches are
+# regenerated from source, so versioning them would add hundreds of megabytes
+# for no benefit.
+# ---------------------------------------------------------------------------
+data/cache/
+data/derived/
+data/raw/
+
+# Planetary rasters and catalogues — large binaries, always fetched not stored
+*.IMG
+*.img
+*.LBL
+*.lbl
+*.tif
+*.tiff
+*.npy
+lunar_crater_database*.csv
+
+# ---------------------------------------------------------------------------
+# Generated documentation
+#
+# NOTE: docs/html/ and the root index.html ARE committed deliberately, so that
+# a fresh clone is immediately readable without running the build step.
+# Regenerate with:  python scripts/build_docs.py
+# ---------------------------------------------------------------------------
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and scratch
+*.log
+scratch/
+tmp/
+
+# pip download cache, redirected here to keep C: clear (PIP_CACHE_DIR)
+.pipcache/
+
+# Working scratch for one-off diagnostics; kept on D: so nothing lands on C:
+.scratch/
+
+# Local credentials - never commit
+.env
+

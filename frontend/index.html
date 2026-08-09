@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — Lunar Surface Analysis</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Top bar ───────────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <div class="brand">
+      <span class="mark"></span>
+      <div>
+        <h1>LunarSerpent</h1>
+        <p>Lunar surface analysis &amp; traverse planning</p>
+      </div>
+    </div>
+
+    <div class="search">
+      <input id="in-search" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Search craters — Tycho, Copernicus, Clavius…">
+      <div id="suggest" class="suggest" hidden></div>
+    </div>
+
+    <div class="goto">
+      <label for="in-lat">Lat</label>
+      <input id="in-lat" type="number" step="0.01" min="-90" max="90" placeholder="0.00">
+      <label for="in-lon">Lon °E</label>
+      <input id="in-lon" type="number" step="0.01" placeholder="0.00">
+      <button id="btn-goto" class="primary">Go</button>
+    </div>
+
+    <div class="tools">
+      <div class="segmented" role="group" aria-label="Renderer">
+        <button id="rnd-three" class="seg on"
+                title="Three.js sphere with LOLA relief — no external dependency">Classic</button>
+        <button id="rnd-cesium" class="seg"
+                title="Cesium Moon Terrain — 3D Tiles, finer surface detail">Terrain</button>
+      </div>
+      <button id="btn-names" class="toggle on" title="Show or hide feature names">Names</button>
+      <button id="btn-spin" class="toggle" title="Toggle auto-rotation">Auto-rotate</button>
+      <button id="btn-grid" class="toggle on" title="Toggle graticule">Graticule</button>
+      <button id="btn-reset" title="Reset view">Reset</button>
+    </div>
+  </header>
+
+  <!-- ── Layers panel ──────────────────────────────────────────────────── -->
+  <aside id="layers">
+    <div class="ptabs" role="tablist">
+      <button class="ptab on" data-tab="tab-layers" role="tab">Layers</button>
+      <button class="ptab" data-tab="tab-discover" role="tab">Places</button>
+      <button class="ptab" data-tab="tab-missions" role="tab">Missions</button>
+      <button class="ptab" data-tab="tab-science" role="tab">Science</button>
+    </div>
+
+    <!-- ── Discoveries ──────────────────────────────────────────────── -->
+    <div id="tab-science" class="ptabpane" hidden>
+      <p class="note" style="margin:0 0 10px">
+        What we learned, and how confidently. Each finding names the mission
+        and instrument that established it, and cites the primary paper.
+      </p>
+      <div id="sci-legend" class="scilegend"></div>
+      <div id="sci-cats" class="chips"></div>
+      <div id="sci-blurb" class="credit"></div>
+      <div id="sci-list" class="disclist"></div>
+    </div>
+
+    <!-- ── Missions ─────────────────────────────────────────────────── -->
+    <div id="tab-missions" class="ptabpane" hidden>
+      <div id="mis-stats" class="misstats"></div>
+      <div id="mis-filters" class="chips"></div>
+      <div id="mis-list" class="disclist"></div>
+    </div>
+
+    <!-- ── Discover ─────────────────────────────────────────────────── -->
+    <div id="tab-discover" class="ptabpane" hidden>
+      <p class="note" style="margin:0 0 10px">
+        Places worth visiting. Names, coordinates and sizes come from the IAU
+        gazetteer; clicking one measures it against LOLA topography.
+      </p>
+      <div class="viewrow">
+        <span class="viewlbl">Jump to</span>
+        <button class="viewbtn" data-view="npole">North pole</button>
+        <button class="viewbtn" data-view="spole">South pole</button>
+        <button class="viewbtn" data-view="nearside">Nearside</button>
+        <button class="viewbtn" data-view="farside">Farside</button>
+      </div>
+      <div id="disc-cats" class="chips"></div>
+      <div id="disc-blurb" class="credit"></div>
+      <div id="disc-list" class="disclist"></div>
+    </div>
+
+    <div id="tab-layers" class="ptabpane">
+
+    <section class="grp">
+      <h3>Basemap</h3>
+      <div id="basemaps" class="radios"></div>
+      <div class="credit" id="basemap-credit"></div>
+    </section>
+
+    <section class="grp">
+      <h3>Terrain relief</h3>
+      <label class="row">
+        <span>Vertical exaggeration</span>
+        <output id="out-relief">3×</output>
+      </label>
+      <input type="range" id="rng-relief" min="0" max="12" step="1" value="3">
+      <div id="relief-info" class="credit">
+        Elevation from LOLA displaces the surface radially. Lunar relief spans
+        ~20 km on a 1737 km radius, so it is invisible at true scale —
+        the factor shown is a rendering choice, not a measurement.
+        Set to 0 for a true sphere.
+      </div>
+    </section>
+
+    <section class="grp">
+      <h3>Crater catalogue
+        <span class="pill" id="crater-count">—</span>
+      </h3>
+      <label class="chk on"><input type="checkbox" id="lyr-craters" checked> Show crater rims</label>
+      <label class="row">
+        <span>Min diameter</span>
+        <output id="out-mindiam">20 km</output>
+      </label>
+      <input type="range" id="rng-mindiam" min="0" max="100" value="55">
+      <label class="row">
+        <span>Max drawn</span>
+        <output id="out-maxdraw">800</output>
+      </label>
+      <input type="range" id="rng-maxdraw" min="100" max="4000" step="100" value="800">
+      <div id="classes" class="legend"></div>
+    </section>
+
+    <section class="grp">
+      <h3>Named features
+        <span class="pill" id="named-count">—</span>
+      </h3>
+      <label class="chk on"><input type="checkbox" id="lyr-names" checked> Show names</label>
+      <label class="row">
+        <span>Size floor</span>
+        <output id="out-namediam">≥ 2 km</output>
+      </label>
+      <input type="range" id="rng-namediam" min="0" max="100" value="10">
+      <label class="row">
+        <span>Density</span>
+        <output id="out-maxlabels">60</output>
+      </label>
+      <input type="range" id="rng-maxlabels" min="10" max="200" step="10" value="60">
+      <div id="kinds" class="legend"></div>
+      <p class="note">Names appear by scale, as on a map — zoom in for smaller
+      features. Overlapping labels are dropped by cartographic priority, so what
+      survives is the most significant feature in that space. Click any name for
+      morphometry measured from LOLA topography.</p>
+    </section>
+
+    <section class="grp">
+      <h3>Landmarks</h3>
+      <div id="landmarks" class="landmarks"></div>
+      <p class="note">Jump to a well-known crater and measure it immediately.</p>
+    </section>
+
+    <section class="grp">
+      <h3>Derived layers</h3>
+      <div class="pending">
+        <label class="chk dis"><input type="checkbox" disabled> Slope analysis</label>
+        <label class="chk dis"><input type="checkbox" disabled> Hazard map</label>
+        <label class="chk dis"><input type="checkbox" disabled> Risk map</label>
+        <label class="chk dis"><input type="checkbox" disabled> Cost map</label>
+        <label class="chk dis"><input type="checkbox" disabled> Boulder detection</label>
+        <label class="chk dis"><input type="checkbox" disabled> Illumination</label>
+        <p class="note">Phase 2 — terrain analysis engine. Layer slots reserved
+        so the interface reflects the full system design.</p>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h3>Provenance</h3>
+      <ul class="prov">
+        <li><b>Topography</b> LOLA LDEM_16 · 1895 m/px<br><span>Smith et al. 2010</span></li>
+        <li><b>Craters</b> Robbins 2019 · complete ≥ 1 km<br><span>doi:10.1029/2018JE005592</span></li>
+        <li><b>Imagery</b> LROC WAC · NASA Moon Trek</li>
+        <li><b>Frame</b> IAU Mean Earth / Polar Axis (DE421)<br><span>R = 1737.4 km sphere</span></li>
+      </ul>
+    </section>
+    </div><!-- /tab-layers -->
+  </aside>
+
+  <!-- ── Viewport ──────────────────────────────────────────────────────── -->
+  <main id="view">
+    <canvas id="gl"></canvas>
+
+    <div id="loading">
+      <div class="spin"></div>
+      <p id="loading-msg">Initialising…</p>
+    </div>
+
+    <div id="crosshair" hidden></div>
+
+    <div id="cesiumContainer" hidden></div>
+
+    <!-- Which Moon is on screen, and where its numbers come from. For a
+         mission-planning tool the renderer must never be mistaken for the
+         measurement source. -->
+    <div id="provenance">
+      <div class="pv-head">
+        <span class="pv-dot"></span>
+        <span id="pv-name">Classic globe</span>
+      </div>
+      <div class="pv-rows">
+        <div><span class="pv-k">Surface</span><span id="pv-surface">LROC WAC · 100 m/px</span></div>
+        <div><span class="pv-k">Shape</span><span id="pv-shape">LOLA LDEM_64 · 474 m/px</span></div>
+        <div><span class="pv-k">Measured by</span><span id="pv-measure">LOLA · ±0.5 m</span></div>
+      </div>
+    </div>
+
+    <div id="poles">
+      <span class="pole n">N 90°</span>
+      <span class="pole s">S 90°</span>
+    </div>
+
+    <div id="tilestats" class="tilestats" hidden></div>
+
+    <div id="scalebar">
+      <div class="bar"><i></i></div>
+      <span id="scale-label">—</span>
+    </div>
+
+    <div id="zoomctl">
+      <button id="btn-zin"  title="Zoom in">+</button>
+      <button id="btn-zout" title="Zoom out">−</button>
+    </div>
+  </main>
+
+  <!-- ── Inspector ─────────────────────────────────────────────────────── -->
+  <aside id="inspect">
+    <h2>Inspector <button id="btn-close-inspect" title="Clear">×</button></h2>
+    <div id="inspect-empty" class="empty">
+      <p>Click anywhere on the Moon to sample terrain and query the crater
+      catalogue at that coordinate.</p>
+    </div>
+    <div id="inspect-body" hidden></div>
+  </aside>
+
+  <!-- ── Status bar ────────────────────────────────────────────────────── -->
+  <footer id="status">
+    <span class="cell" id="st-coord">— , —</span>
+    <span class="cell" id="st-elev">—</span>
+    <span class="cell" id="st-alt">—</span>
+    <span class="cell grow" id="st-msg">Ready</span>
+    <span class="cell" id="buildstamp" title="Asset build actually loaded">build —</span>
+    <span class="cell" id="st-health">●</span>
+  </footer>
+
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
