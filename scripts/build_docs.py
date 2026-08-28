@@ -46,6 +46,7 @@ NAV: list[tuple[str, str, str]] = [
     ("TECHNOLOGY", "Technology", "Stack selection and justification"),
     ("ALGORITHMS", "Algorithms", "Path planner survey, comparison, selection"),
     ("SCIENCE_BACKGROUND", "Lunar Science", "Surface science and exploration insights"),
+    ("CONTRIBUTIONS", "Contributions", "What is inherited, what is adapted, what is new"),
 ]
 
 MATH_BLOCK = re.compile(r"\$\$(.+?)\$\$", re.S)
