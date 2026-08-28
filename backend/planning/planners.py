@@ -60,7 +60,7 @@ import numpy as np
 __all__ = [
     "Grid", "PlanResult", "ALGORITHMS",
     "bfs", "dijkstra", "astar", "weighted_astar", "theta_star",
-    "dstar_lite", "rrt_star", "plan",
+    "dstar_lite", "rrt_star", "plan", "smooth_path",
 ]
 
 SQRT2 = math.sqrt(2.0)
@@ -207,10 +207,30 @@ def _reconstruct(came, node):
 
 
 def _path_cost(grid: Grid, path) -> float:
+    """Cost of a route, integrating along every segment it actually crosses.
+
+    Adjacent waypoints are one ``edge_cost`` apart. Any-angle planners emit
+    waypoints that are *not* adjacent, and for those the two endpoint costs say
+    nothing about the ground between them: a chord spanning 200 cells averaged
+    from its two ends ignores 198 of them, which understates the cost of exactly
+    the shortcuts an any-angle planner exists to take.
+
+    Segments longer than one step are therefore integrated cell by cell via
+    :meth:`Grid.line_of_sight`, so a Theta* route and a Dijkstra route are
+    priced on the same terrain and can be compared.
+    """
     if len(path) < 2:
         return 0.0
-    return sum(grid.edge_cost(a[0], a[1], b[0], b[1])
-               for a, b in zip(path, path[1:]))
+    total = 0.0
+    for a, b in zip(path, path[1:]):
+        if max(abs(b[0] - a[0]), abs(b[1] - a[1])) <= 1:
+            total += grid.edge_cost(a[0], a[1], b[0], b[1])
+        else:
+            visible, seg = grid.line_of_sight(a, b)
+            if not visible:
+                return math.inf
+            total += seg
+    return total
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +439,13 @@ def dstar_lite(grid: Grid, start, goal) -> PlanResult:
     only the affected region instead of replanning from scratch, which is the
     difference between a vehicle that can react to a newly-seen boulder and one
     that must stop and recompute its entire route.
+
+    The priority queue uses lazy deletion. D* Lite's ``UpdateVertex`` must be
+    able to remove an arbitrary node, which a binary heap cannot do directly;
+    scanning the heap for it instead costs O(n) per call and is invoked eight
+    times per expansion, which on a 500x500 grid turns a three-second plan into
+    a six-minute one. Recording each node's current key and discarding entries
+    that no longer match it on pop gives the same result in O(log n).
     """
     t0 = time.perf_counter()
     INF = math.inf
@@ -438,7 +465,17 @@ def dstar_lite(grid: Grid, start, goal) -> PlanResult:
         k = min(G(s), R(s))
         return (k + grid.heuristic(start, s) + km, k)
 
-    U = [(key(goal), goal)]
+    #: The key each node is currently queued under. An entry popped with a key
+    #: that no longer matches this is stale and skipped — the lazy deletion.
+    queued: dict[tuple[int, int], tuple[float, float]] = {}
+    U: list = []
+
+    def push(s):
+        k = key(s)
+        queued[s] = k
+        heapq.heappush(U, (k, s))
+
+    push(goal)
 
     def update(s):
         if s != goal:
@@ -446,24 +483,29 @@ def dstar_lite(grid: Grid, start, goal) -> PlanResult:
             for nr, nc, w in grid.neighbours(*s):
                 best = min(best, G((nr, nc)) + w)
             rhs[s] = best
-        for i, (_, node) in enumerate(U):
-            if node == s:
-                U.pop(i)
-                heapq.heapify(U)
-                break
+        queued.pop(s, None)              # logical removal; the heap entry rots
         if G(s) != R(s):
-            heapq.heappush(U, (key(s), s))
+            push(s)
 
     while U:
         peak = max(peak, len(U))
         k_old, u = heapq.heappop(U)
-        if k_old > key(u) or (G(start) == R(start) and R(start) < INF):
-            if k_old > key(u):
-                heapq.heappush(U, (key(u), u))
-                continue
+        if queued.get(u) != k_old:
+            continue                     # stale entry, superseded by a later push
+
+        # Terminate once the start is locally consistent and no queued node can
+        # still improve it.
+        if not (k_old < key(start) or R(start) != G(start)):
+            queued[u] = k_old
+            heapq.heappush(U, (k_old, u))
             break
+
+        queued.pop(u, None)
         expanded += 1
-        if G(u) > R(u):
+
+        if k_old < key(u):
+            push(u)                      # key had gone stale-low; requeue it
+        elif G(u) > R(u):
             gv[u] = R(u)
             for nr, nc, _ in grid.neighbours(*u):
                 update((nr, nc))
@@ -472,6 +514,7 @@ def dstar_lite(grid: Grid, start, goal) -> PlanResult:
             update(u)
             for nr, nc, _ in grid.neighbours(*u):
                 update((nr, nc))
+
         if expanded > grid.h * grid.w * 4:
             break                              # guard against pathological input
 
@@ -621,6 +664,58 @@ ALGORITHMS = {
     "dstar_lite": ("D* Lite", dstar_lite),
     "rrt_star": ("RRT*", rrt_star),
 }
+
+
+def smooth_path(grid: Grid, path, *, max_span: int = 0) -> tuple[list, float, float]:
+    r"""Replace sub-paths with straight chords, but only where they are cheaper.
+
+    A grid path can only turn in 45° increments, which costs up to 8.24 % in
+    length on a route that wants an intermediate heading. Any-angle planners
+    avoid that by construction and give up the optimality guarantee to do it.
+    This recovers most of the same benefit *after* an optimal search, without
+    giving anything up, because a shortcut is accepted only when the cost
+    integrated along the chord is genuinely lower than the sub-path it replaces:
+
+    .. math::
+        \text{accept } (i \to j) \iff
+        C_\text{chord}(i,j) < \sum_{k=i}^{j-1} c(p_k, p_{k+1})
+
+    The comparison is the decisive detail. Theta*'s line-of-sight test asks only
+    whether a chord is *passable*; asking whether it is *cheaper* is what makes
+    this safe on a weighted surface. Because every accepted step strictly
+    lowers the total, the smoothed path can never cost more than the input —
+    the optimality of the search survives the post-process.
+
+    ``max_span`` caps how far ahead a chord may reach; 0 means unlimited. A cap
+    trades a little quality for a large reduction in line-of-sight tests, which
+    dominate the runtime on long routes.
+    """
+    if len(path) < 3:
+        return list(path), _path_cost(grid, path), 0.0
+
+    # Prefix sums make the cost of any sub-path an O(1) lookup instead of a walk.
+    prefix = [0.0]
+    for a, b in zip(path, path[1:]):
+        prefix.append(prefix[-1] + grid.edge_cost(a[0], a[1], b[0], b[1]))
+    before = prefix[-1]
+
+    out = [path[0]]
+    i = 0
+    n = len(path)
+    while i < n - 1:
+        limit = n - 1 if max_span <= 0 else min(n - 1, i + max_span)
+        best_j, best_cost = i + 1, None
+        # Search from the furthest candidate back, so the first acceptance is
+        # the longest shortcut available from here.
+        for j in range(limit, i + 1, -1):
+            visible, chord = grid.line_of_sight(path[i], path[j])
+            if visible and chord < prefix[j] - prefix[i]:
+                best_j, best_cost = j, chord
+                break
+        out.append(path[best_j])
+        i = best_j
+
+    return out, _path_cost(grid, out), before
 
 
 def plan(grid: Grid, start, goal, algorithm: str = "astar", **kw) -> PlanResult:

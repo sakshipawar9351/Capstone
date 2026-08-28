@@ -225,6 +225,31 @@ class TileLayer:
 
 
 BASEMAP_LAYERS: dict[str, TileLayer] = {
+    # The finest global imagery this project has found. Kaguya's Terrain Camera
+    # orthomosaic is published at 4096 ppd (7.40 m/px), but Trek's tile pyramid
+    # for it stops at z=10 — probed directly, and 404 at every z=11 tile tried,
+    # at the equator, in Imbrium, at Tycho, on the far side and near the south
+    # pole. So 20.82 m/px is what can actually be served, which is still four
+    # times finer than the WAC mosaic and sixteen times the pixels.
+    #
+    # It is PNG, not JPEG: the pyramid is published that way, and the extension
+    # is part of the tile URL rather than a preference.
+    "kaguya_tc": TileLayer(
+        key="kaguya_tc",
+        title="Kaguya TC Orthomosaic",
+        layer_id="Kaguya_TCortho_Mosaic_Global_4096ppd",
+        ext="png",
+        max_zoom=10,
+        native_m_px=7.40,
+        description=(
+            "SELENE/Kaguya Terrain Camera orthorectified mosaic — the finest "
+            "global lunar imagery available. Published at 7.40 m/px; served "
+            "here to 20.8 m/px, which is where the tile pyramid ends. Same "
+            "IAU Mean Earth/Polar Axis frame as the DEM, so it registers "
+            "against the analysis without reprojection."
+        ),
+        credit="JAXA/SELENE (Kaguya) Terrain Camera team",
+    ),
     "wac": TileLayer(
         key="wac",
         title="LROC WAC Global Mosaic",

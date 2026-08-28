@@ -22,6 +22,7 @@ from __future__ import annotations
 import io
 import math
 import re
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -45,6 +46,7 @@ from .config import (
     REFERENCE_FRAME,
     ROVER_PROFILES,
     TILE_CACHE_DIR,
+    TILE_CACHE_MAX_BYTES,
     dataset_path,
 )
 from .core import selenographic as sg
@@ -60,7 +62,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    # POST is needed to submit an analysis or a plan: those carry a region, a
+    # rover, a soil model and two endpoints, which is more than belongs in a
+    # query string.
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -134,6 +139,23 @@ def _validate_latlon(lat: float, lon: float) -> tuple[float, float]:
 # ---------------------------------------------------------------------------
 
 
+def dem_citation(dem=None) -> str:
+    """How to cite the elevation product that actually served the data.
+
+    Hardcoded as "LOLA LDEM_16" in four places until now, while
+    ``DEFAULT_DEM`` has been ``ldem_64`` — so every one of them named a
+    product four times coarser than the one being read, and any figure
+    captioned from an ``X-Source`` header carried the wrong citation.
+
+    Derived rather than written down, because a provenance string that can
+    drift from the data it describes is worse than none: it is confidently
+    wrong, and nothing downstream can tell.
+    """
+    spec = getattr(dem, "spec", None)
+    pid = getattr(spec, "product_id", None) or DEM_PRODUCTS[DEFAULT_DEM].product_id
+    return f"LOLA {pid} (Smith et al. 2010)"
+
+
 @app.get(f"{API_PREFIX}/meta/health")
 def health() -> dict:
     """Component availability. Never fails — reporting a gap is the point."""
@@ -184,6 +206,12 @@ def layers() -> dict:
                 "title": tl.title,
                 "max_zoom": tl.max_zoom,
                 "native_m_px": tl.native_m_px,
+                # What the deepest tile level actually delivers, which is not
+                # always the product's native posting: Kaguya is published at
+                # 7.40 m/px but its tile pyramid stops four times coarser. The
+                # client must be able to state what it is really showing.
+                "served_m_px": round(
+                    2 * math.pi * R_MOON_M / (2 ** (tl.max_zoom + 1) * 256), 2),
                 "description": tl.description,
                 "credit": tl.credit,
             }
@@ -226,13 +254,90 @@ def layers() -> dict:
 _session = requests.Session()
 _session.headers["User-Agent"] = "LunarSerpent/0.4 (capstone research)"
 
+#: Bytes written since the cache size was last checked. Walking a 2,800-file
+#: tree on every tile would cost more than the fetch does, so the check is
+#: amortised: roughly once per 32 MB of new tiles, which bounds the overrun to
+#: a fraction of the cap while keeping the common path free.
+_tile_bytes_since_sweep = 0
+_TILE_SWEEP_EVERY = 32 * 1024 * 1024
+_tile_sweep_lock = threading.Lock()
+
+
+def tile_cache_stats() -> dict:
+    """What the tile cache is holding, per layer."""
+    out: dict = {"bytes": 0, "files": 0, "cap_bytes": TILE_CACHE_MAX_BYTES,
+                 "by_layer": {}}
+    if not TILE_CACHE_DIR.exists():
+        return out
+    for layer_dir in TILE_CACHE_DIR.iterdir():
+        if not layer_dir.is_dir():
+            continue
+        n = b = 0
+        for p in layer_dir.rglob("*"):
+            if p.is_file():
+                n += 1
+                b += p.stat().st_size
+        out["by_layer"][layer_dir.name] = {"files": n, "bytes": b}
+        out["files"] += n
+        out["bytes"] += b
+    return out
+
+
+def _evict_tile_cache() -> int:
+    """Drop least-recently-used tiles once the cache is over its budget.
+
+    The cap has been declared in ``config`` since the beginning and nothing
+    ever enforced it, so the tile cache grew without bound — which matters
+    more now that Kaguya serves four times as many tiles per unit area as the
+    WAC mosaic, and as PNG rather than JPEG.
+
+    Least-recently-used by modification time. A tile is a pure function of its
+    coordinates, so discarding one costs a re-fetch and nothing else; there is
+    no correctness risk here, only bandwidth.
+    """
+    files = []
+    for p in TILE_CACHE_DIR.rglob("*"):
+        if p.is_file():
+            try:
+                files.append((p.stat().st_mtime, p.stat().st_size, p))
+            except OSError:
+                continue
+    total = sum(f[1] for f in files)
+    if total <= TILE_CACHE_MAX_BYTES:
+        return 0
+
+    files.sort(key=lambda f: f[0])
+    freed = 0
+    # Down to 80 % of the cap rather than exactly to it, so a cache sitting at
+    # the limit does not re-sweep on every single tile thereafter.
+    target = int(TILE_CACHE_MAX_BYTES * 0.8)
+    for _mtime, size, p in files:
+        if total <= target:
+            break
+        try:
+            p.unlink()
+        except OSError:
+            continue
+        total -= size
+        freed += size
+    return freed
+
 
 def _fetch_tile(layer_key: str, z: int, y: int, x: int) -> bytes | None:
     """Fetch one WMTS tile, using the on-disk cache when possible."""
+    global _tile_bytes_since_sweep
+
     tl = BASEMAP_LAYERS[layer_key]
     cache = TILE_CACHE_DIR / layer_key / str(z) / str(y)
     fp = cache / f"{x}.{tl.ext}"
     if fp.exists():
+        # Touch on read so eviction is least-recently-*used*, not merely
+        # least-recently-written: the tiles a user keeps returning to are
+        # exactly the ones worth keeping.
+        try:
+            fp.touch()
+        except OSError:
+            pass
         return fp.read_bytes()
 
     url = tl.url_template.format(z=z, y=y, x=x)
@@ -247,7 +352,15 @@ def _fetch_tile(layer_key: str, z: int, y: int, x: int) -> bytes | None:
     try:
         fp.write_bytes(r.content)
     except OSError:
-        pass
+        return r.content
+
+    with _tile_sweep_lock:
+        _tile_bytes_since_sweep += len(r.content)
+        due = _tile_bytes_since_sweep >= _TILE_SWEEP_EVERY
+        if due:
+            _tile_bytes_since_sweep = 0
+    if due:
+        _evict_tile_cache()
     return r.content
 
 
@@ -326,7 +439,10 @@ def region_mosaic(
     north: float = Query(..., ge=-90, le=90),
     west: float = Query(...),
     east: float = Query(...),
-    z: int = Query(6, ge=0, le=8),
+    # 10 because Kaguya's pyramid reaches it; each layer is still clamped to its
+    # own `max_zoom` below, so asking for depth a product does not have returns
+    # that product's best rather than an error.
+    z: int = Query(6, ge=0, le=10),
     max_tiles: int = Query(320, ge=4, le=1024),
 ) -> Response:
     """High-resolution mosaic covering one lat/lon window.
@@ -689,7 +805,7 @@ def mission_detail(key: str) -> dict:
             dem = get_dem_source()
             out["terrain"] = {
                 "elevation_m": round(float(dem.elevation_at(m.lat, m.lon)), 1),
-                "source": "LOLA LDEM_16 (Smith et al. 2010)",
+                "source": dem_citation(dem),
             }
         except Exception:  # noqa: BLE001 — terrain is a bonus, not the point
             pass
@@ -802,7 +918,7 @@ def terrain_point(lat: float, lon: float) -> dict:
         "lon": round(lon, 5),
         "elevation_m": round(elev, 2),
         "radius_m": round(R_MOON_M + elev, 2),
-        "source": "LOLA LDEM_16 (Smith et al. 2010)",
+        "source": dem_citation(dem),
         "resolution_m_px": round(dem.baseline_m, 2),
         "cell_size_m": {"east_west": round(float(dx), 2),
                         "north_south": round(float(dy), 2)},
@@ -841,7 +957,7 @@ def terrain_window(
         "bounds": {"south": south, "north": north, "west": west, "east": east},
         "shape": list(win.shape),
         "stats": win.stats(),
-        "source": "LOLA LDEM_16 (Smith et al. 2010)",
+        "source": dem_citation(dem),
         "resolution_m_px": round(dem.baseline_m, 2),
     }
 
@@ -926,7 +1042,7 @@ def terrain_grid(
             "X-Min-M": f"{float(finite.min()) if finite.size else 0:.2f}",
             "X-Max-M": f"{float(finite.max()) if finite.size else 0:.2f}",
             "X-Resolution-M-Px": f"{dem.baseline_m:.2f}",
-            "X-Source": "LOLA LDEM_16 (Smith et al. 2010)",
+            "X-Source": dem_citation(dem),
             "Access-Control-Expose-Headers":
                 "X-Width,X-Height,X-South,X-North,X-West,X-East,"
                 "X-Min-M,X-Max-M,X-Resolution-M-Px,X-Source",
@@ -971,10 +1087,8 @@ def _asset_version() -> str:
     return h.hexdigest()[:10]
 
 
-@app.get("/")
-@app.get("/index.html")
-def index() -> Response:
-    """Serve the page with versioned asset links.
+def _page(name: str) -> Response:
+    """Serve a page with versioned asset links.
 
     `Cache-Control: no-store` on the stylesheet is not sufficient on its own:
     the browser revalidates the *document* on a hard reload, but a linked
@@ -984,7 +1098,7 @@ def index() -> Response:
     defeat — and leaves the URL unchanged when nothing has, so caching still
     works as intended.
     """
-    html = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+    html = (FRONTEND_DIR / name).read_text(encoding="utf-8")
     v = _asset_version()
     html = re.sub(r'(href|src)="((?:css|js)/[^"?]+)"',
                   rf'\1="\2?v={v}"', html)
@@ -994,6 +1108,25 @@ def index() -> Response:
         headers={"Cache-Control": "no-store, no-cache, must-revalidate",
                  "X-Asset-Version": v},
     )
+
+
+@app.get("/")
+@app.get("/index.html")
+def index() -> Response:
+    """The globe — where a region is chosen."""
+    return _page("index.html")
+
+
+@app.get("/region.html")
+def region_page() -> Response:
+    """The region analysis view, opened in its own tab from the globe.
+
+    Registered explicitly rather than left to the static mount so it gets the
+    same asset versioning as the globe. The two pages share ``api.js``, so a
+    stale copy on one and a fresh copy on the other is exactly the confusion
+    the versioning exists to prevent.
+    """
+    return _page("region.html")
 
 
 @app.middleware("http")
@@ -1017,6 +1150,16 @@ async def no_cache_frontend(request, call_next):
         response.headers["Expires"] = "0"
     return response
 
+
+# Must precede the static mount: StaticFiles at "/" is a catch-all and would
+# shadow anything registered after it.
+from .api.routes_layers import router as layers_router  # noqa: E402
+from .api.routes_plan import router as plan_router  # noqa: E402
+from .api.routes_terrain3d import router as terrain3d_router  # noqa: E402
+
+app.include_router(plan_router)
+app.include_router(layers_router)
+app.include_router(terrain3d_router)
 
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="client")
