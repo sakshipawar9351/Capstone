@@ -1,0 +1,175 @@
+/* ── Region analysis page ────────────────────────────────────────────────
+   Opened in its own tab from the globe. A document rather than an instrument
+   panel: this is where a region is read carefully, so it gets room, whereas
+   the globe's side panel is for acting quickly. Shares the palette and type of
+   style.css so the two do not feel like different products. */
+
+body.regionpage {
+  display: block;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+#rtop {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  position: sticky; top: 0; z-index: 10;
+}
+#rtop h1 { font-size: 15px; margin: 0; letter-spacing: -.01em; }
+#rtop p {
+  margin: 2px 0 0; font-size: 11px; color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* style.css hides the brand wordmark below 1400px, which is right on the globe
+   — there the toolbar is crowded and the wordmark is the least useful thing on
+   screen. Here that same <div> holds the region's centre, extent, posting and
+   source: the line that says *which* piece of the Moon this page is about.
+   Losing it on a 1366-wide laptop would leave eight unlabelled maps. */
+#rtop .brand > div { display: block; }
+.rtools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rtools label { font-size: 11px; color: var(--fg-faint); }
+.rtools select {
+  background: #12161d; color: var(--fg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 11px;
+  margin-left: 4px;
+}
+.rtools a { color: var(--accent); text-decoration: none; font-size: 12px; }
+.rtools a:hover { text-decoration: underline; }
+
+#rmain {
+  max-width: 1400px; margin: 0 auto; padding: 18px 20px 60px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.rcard {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 18px;
+}
+.rcard h2 {
+  margin: 0 0 10px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--fg-faint); font-weight: 600;
+}
+
+/* Statistics: numbers first, labels quiet. */
+.statgrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.statgrid .s { border-left: 2px solid var(--border); padding-left: 10px; }
+.statgrid .s .v {
+  font-size: 19px; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.statgrid .s .l { font-size: 10px; color: var(--fg-faint); margin-top: 1px; }
+
+/* ── The region as a surface ─────────────────────────────────────────── */
+
+#r3d-wrap {
+  position: relative; width: 100%; height: 460px;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  background: #0d1015;
+}
+#r3d { display: block; width: 100%; height: 100%; cursor: grab; }
+#r3d:active { cursor: grabbing; }
+
+#r3d-status {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 11px; color: var(--fg-faint); pointer-events: none;
+  background: #0d1015;
+}
+#r3d-status.gone { display: none; }
+#r3d-status.err { color: #e07a5a; padding: 0 24px; text-align: center; }
+
+/* The exaggeration is never off-screen. A reader who forgets it is reading
+   a landscape that does not exist, so it rides in the corner of the view
+   itself rather than in a caption below the fold. */
+#r3d-vx {
+  position: absolute; top: 9px; right: 10px; pointer-events: none;
+  font-size: 11px; font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  padding: 3px 8px; border-radius: 4px;
+  background: rgba(10,12,16,.78); border: 1px solid var(--border);
+  color: var(--fg-dim);
+}
+#r3d-vx.true { color: #35c48a; border-color: #35c48a66; }
+
+.r3d-bar {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+  margin-top: 10px;
+}
+.r3d-bar label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--fg-faint);
+}
+.r3d-bar select {
+  background: #12161d; color: var(--fg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 11px;
+}
+.r3d-bar input[type=range] { width: 170px; accent-color: var(--accent); }
+
+/* A drape finer than the DEM under it is the one way this view can mislead:
+   the imagery shows craters the elevation model does not contain. Amber, not
+   grey — this is a caveat that changes what the picture means. */
+#r3d-cap .mismatch { color: #e9c46a; }
+
+/* Maps. Pixelated, deliberately: at a 10 m posting one image pixel is one
+   analysed cell, and smoothing it would invent detail the data does not have. */
+.layergrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.layer { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.layer img {
+  display: block; width: 100%; height: auto; aspect-ratio: 1 / 1;
+  object-fit: contain; background: #0d1015;
+  image-rendering: pixelated;
+}
+.layer .cap { padding: 7px 9px; border-top: 1px solid var(--border); }
+.layer .cap b { font-size: 11px; }
+.layer .cap .rng {
+  font-size: 10px; color: var(--fg-faint); font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.layer .cap .why { font-size: 10px; color: var(--fg-faint); margin-top: 4px; line-height: 1.45; }
+/* The gradient itself is set inline from the catalogue: each layer publishes
+   the ramp it was actually drawn with, so the key cannot drift from the map. */
+.layer .ramp {
+  height: 6px; margin-top: 5px; border-radius: 3px;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.layer.err { padding: 14px; font-size: 11px; color: #e07a5a; }
+
+.legendrow { display: flex; flex-wrap: wrap; gap: 14px; }
+.legendrow .li { display: flex; align-items: flex-start; gap: 7px; max-width: 240px; }
+.legendrow .sw {
+  width: 13px; height: 13px; border-radius: 3px; flex: none; margin-top: 1px;
+  border: 1px solid rgba(255,255,255,.25);
+}
+.legendrow .lt { font-size: 11px; }
+.legendrow .lt small { display: block; color: var(--fg-faint); font-size: 10px; line-height: 1.4; }
+
+.planrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.planrow label { font-size: 11px; color: var(--fg-faint); display: flex; align-items: center; gap: 6px; }
+.planrow input {
+  width: 92px; background: #12161d; color: var(--fg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px;
+  font: inherit; font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.planrow .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.planrow .dot.start { background: #35c48a; }
+.planrow .dot.goal { background: #e0503a; }
+
+#r-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+#r-table th {
+  text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-faint); padding: 5px 6px; border-bottom: 1px solid var(--border);
+}
+#r-table td {
+  padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,.05);
+  font-variant-numeric: tabular-nums;
+}
+#r-table tr.rec td { background: rgba(125,192,255,.10); }
+#r-table tr.rec td:first-child::before { content: '★ '; color: #7dc0ff; }

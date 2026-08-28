@@ -115,6 +115,123 @@ export const api = {
   distance: (a, b) => get('/geodesy/distance', {
     lat1: a.lat, lon1: a.lon, lat2: b.lat, lon2: b.lon,
   }),
+
+  /* ── Planning ─────────────────────────────────────────────────────── */
+
+  planOptions: () => get('/plan/options'),
+
+  /** Footprints of local high-resolution topography. */
+  coverage: () => get('/meta/coverage'),
+
+  /** What a region can support. Fast enough to call while dragging a box. */
+  aoiPreview: (b) => get('/aoi/preview', {
+    south: b.south, north: b.north, west: b.west, east: b.east,
+    tier: b.tier, source: b.source, finest: b.finest,
+  }),
+
+  /** What can be rendered as a map, and how each layer is coloured. */
+  layerCatalogue: () => get('/aoi/layers'),
+
+  /**
+   * The region's elevation as a triangle mesh.
+   *
+   * Binary, in three concatenated blocks whose lengths come from the headers.
+   * The server builds it from the same array the analysis ran on, so a slope
+   * judged by eye on this surface is a slope of the ground that was actually
+   * costed — not of a second, independently resampled DEM.
+   *
+   * Heights are metres of relief about the region's mean, with no vertical
+   * exaggeration applied. Exaggeration is a rendering choice and belongs to
+   * the viewer, which must also say what factor it used.
+   */
+  async aoiMesh({ south, north, west, east, source, finest, maxVerts }) {
+    const u = new URL(`${BASE}/aoi/mesh`, window.location.origin);
+    for (const [k, v] of Object.entries(
+      { south, north, west, east, source, finest, max_verts: maxVerts })) {
+      if (v !== undefined && v !== null) u.searchParams.set(k, v);
+    }
+    const res = await fetch(u);
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { detail = (await res.json()).detail ?? detail; } catch { /* binary */ }
+      throw new Error(`${res.status} — ${detail}`);
+    }
+    const buf = await res.arrayBuffer();
+    const h = res.headers;
+    const n = parseInt(h.get('X-Vertices'), 10);
+    const tris = parseInt(h.get('X-Triangles'), 10);
+    const [ex, ey] = h.get('X-Extent-M').split(',').map(Number);
+    return {
+      // Subarrays of one buffer — no copying, and the offsets are exactly the
+      // block lengths the server documented.
+      positions: new Float32Array(buf, 0, n * 3),
+      normals: new Float32Array(buf, n * 12, n * 3),
+      indices: new Uint32Array(buf, n * 24, tris * 3),
+      rows: parseInt(h.get('X-Rows'), 10),
+      cols: parseInt(h.get('X-Cols'), 10),
+      cellM: parseFloat(h.get('X-Cell-M')),
+      nativeCellM: parseFloat(h.get('X-Native-Cell-M')),
+      stride: parseInt(h.get('X-Stride'), 10),
+      extentM: { x: ex, y: ey },
+      reliefM: parseFloat(h.get('X-Relief-M')),
+      minM: parseFloat(h.get('X-Min-M')),
+      maxM: parseFloat(h.get('X-Max-M')),
+      validFraction: parseFloat(h.get('X-Valid-Fraction')),
+      source: h.get('X-Source'),
+    };
+  },
+
+  /**
+   * One derived layer as a PNG URL.
+   *
+   * A URL rather than a blob, so a caller that only wants to show the picture
+   * can hand it straight to an <img>. Callers that also want the scaling range
+   * must fetch it themselves and read the X-Range-* headers — a colour with no
+   * numbers beside it is decoration, not a measurement.
+   */
+  layerUrl: (o) => {
+    const u = new URL(`${BASE}/aoi/layer`, window.location.origin);
+    for (const [k, v] of Object.entries(o)) {
+      if (v !== undefined && v !== null) u.searchParams.set(k, v);
+    }
+    return u.toString();
+  },
+
+  async post(path, body) {
+    const res = await fetch(BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // 422 carries the reason *and* the fix — surfacing the status alone
+      // would throw away the only useful part of the response.
+      throw new Error(data.detail || `${path} ${res.status}`);
+    }
+    return data;
+  },
+
+  /** Derive the region's terrain and traversability. Returns a job to poll. */
+  submitAnalysis(body) { return this.post('/aoi/analyse', body); },
+
+  /** Submit a plan. Returns immediately with a job to poll. */
+  submitPlan(body) { return this.post('/plan', body); },
+
+  job: (id) => get(`/jobs/${encodeURIComponent(id)}`),
+
+  /** Poll until a job settles, reporting progress as it goes. */
+  async awaitJob(id, { onProgress, intervalMs = 400, timeoutMs = 600000 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const j = await this.job(id);
+      if (onProgress) onProgress(j);
+      if (j.state === 'done') return j;
+      if (j.state === 'failed') throw new Error(j.error || 'job failed');
+      if (Date.now() > deadline) throw new Error('timed out waiting for the job');
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+  },
 };
 
 /* ── Formatting helpers ─────────────────────────────────────────────────── */

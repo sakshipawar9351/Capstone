@@ -545,6 +545,23 @@ export class Globe {
   setLabelsVisible(on) { this.labelGroup.visible = on; }
 
   /**
+   * Show or hide every DOM layer this renderer owns.
+   *
+   * The WebGL canvas is managed by the caller, but the CSS2D labels are *not*
+   * drawn into it — they are real `<div>`s in a sibling layer appended to the
+   * canvas's parent. Hiding the canvas therefore leaves them on screen, and
+   * because nothing is rendering any more their transforms freeze at whatever
+   * the camera last saw. The result is a screenful of names pinned in place
+   * over whichever renderer took over. Anything that hides this globe has to
+   * hide this layer too.
+   */
+  setOverlayVisible(on) {
+    if (this.labelRenderer) {
+      this.labelRenderer.domElement.style.visibility = on ? '' : 'hidden';
+    }
+  }
+
+  /**
    * Decide which labels are actually drawn this frame.
    *
    * Two filters, in order:
@@ -671,6 +688,26 @@ export class Globe {
     });
   }
 
+  /**
+   * Selenographic coordinate under a pointer event, or null off the limb.
+   *
+   * Public so region dragging can live in one place instead of being written
+   * twice, once per renderer.
+   */
+  pickLatLon(ev) { return this._hit(ev); }
+
+  /** The element pointer events for region selection should be bound to. */
+  get inputElement() { return this.canvas; }
+
+  /**
+   * Enable or suspend camera control.
+   *
+   * Dragging a rectangle and orbiting are the same gesture. Without suspending
+   * the camera, defining a region spins the Moon underneath it and the box
+   * ends up somewhere the user never pointed at.
+   */
+  setInteractive(on) { this.controls.enabled = on; }
+
   onPick(fn) { this._onPick = fn; }
   onHover(fn) { this._onHover = fn; }
 
@@ -705,6 +742,198 @@ export class Globe {
   }
 
   clearMarker() { this.marker.visible = false; }
+
+  /* ── Planning overlays ─────────────────────────────────────────────── */
+
+  /**
+   * Draw a planned route, coloured along its length by per-sample risk.
+   *
+   * The colour is the point. A single-colour line says a route exists; a line
+   * that reddens where the cost surface said "this is the part that could stop
+   * you" says *why the route bends where it does*. Risk comes from the same
+   * array the planner minimised, so the picture and the number agree.
+   *
+   * Lifted slightly off the sphere for the same reason crater rims are: at
+   * true radius the line z-fights the surface and disappears in patches.
+   */
+  setRoute(latlons, risk = null) {
+    this.clearRoute();
+    if (!latlons || latlons.length < 2) return 0;
+
+    const R = GLOBE_R * 1.0035;
+    const pts = [];
+    const cols = [];
+    const hot = new THREE.Color('#e0503a');
+    const cool = new THREE.Color('#35c48a');
+    const mid = new THREE.Color('#e9c46a');
+
+    const colourAt = (i) => {
+      if (!risk || risk.length !== latlons.length) return cool;
+      const r = Math.min(Math.max(risk[i], 0), 1);
+      const c = new THREE.Color();
+      return r < 0.5 ? c.lerpColors(cool, mid, r * 2)
+                     : c.lerpColors(mid, hot, (r - 0.5) * 2);
+    };
+
+    for (let i = 1; i < latlons.length; i++) {
+      const a = latLonToVec3(latlons[i - 1][0], latlons[i - 1][1], R);
+      const b = latLonToVec3(latlons[i][0], latlons[i][1], R);
+      pts.push(a, b);
+      const ca = colourAt(i - 1), cb = colourAt(i);
+      cols.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b);
+    }
+
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    const mat = new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.95,
+    });
+    this.routeLine = new THREE.LineSegments(geo, mat);
+    this.routeLine.renderOrder = 5;
+    this.scene.add(this.routeLine);
+    return latlons.length;
+  }
+
+  clearRoute() {
+    if (this.routeLine) {
+      this.scene.remove(this.routeLine);
+      this.routeLine.geometry.dispose();
+      this.routeLine.material.dispose();
+      this.routeLine = null;
+    }
+  }
+
+  /** Start and goal markers. Distinct colours, because confusing them ruins a plan. */
+  setPins(start, goal) {
+    this.clearPins();
+    this.pinGroup = new THREE.Group();
+    const mk = (p, colour) => {
+      if (!p) return;
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.006, 14, 14),
+        new THREE.MeshBasicMaterial({ color: colour, depthTest: false }),
+      );
+      m.position.copy(latLonToVec3(p.lat, p.lon, GLOBE_R * 1.006));
+      m.renderOrder = 6;
+      this.pinGroup.add(m);
+    };
+    mk(start, 0x35c48a);          // green: where the rover begins
+    mk(goal, 0xe0503a);           // red: where it must arrive
+    this.scene.add(this.pinGroup);
+  }
+
+  clearPins() {
+    if (this.pinGroup) {
+      this.scene.remove(this.pinGroup);
+      this.pinGroup.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      });
+      this.pinGroup = null;
+    }
+  }
+
+  /**
+   * Outline the selected region.
+   *
+   * Drawn by walking the edges in small steps rather than joining four
+   * corners: a lat/lon box is not a rectangle on a sphere, and a
+   * four-segment outline would cut across the ground it claims to enclose.
+   */
+  setAOIBox(bounds) {
+    this.clearAOIBox();
+    if (!bounds) return;
+    const { south, north, west, east } = bounds;
+    const span = ((east - west) % 360 + 360) % 360 || 360;
+    const group = new THREE.Group();
+
+    // A translucent fill, not just an outline.
+    //
+    // WebGL ignores `linewidth` on LineBasicMaterial — every line is one pixel
+    // wide whatever is asked for, which is why the old single-pixel outline
+    // was hard to see against grey terrain. A tinted face reads as an area at
+    // any zoom and does not depend on line width at all, so the region stays
+    // obvious even when the border is a hairline.
+    const wSeg = Math.max(24, Math.ceil(span * 1.5));
+    const hSeg = Math.max(18, Math.ceil((north - south) * 1.5));
+    const fill = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        GLOBE_R * 1.0018, wSeg, hSeg,
+        west * DEG, span * DEG,
+        (90 - north) * DEG, (north - south) * DEG,
+      ),
+      new THREE.MeshBasicMaterial({
+        color: 0x4da3ff, transparent: true, opacity: 0.16,
+        side: THREE.DoubleSide, depthWrite: false,
+      }),
+    );
+    fill.renderOrder = 3;
+    group.add(fill);
+
+    // Two outlines at slightly different radii: the darker one sits underneath
+    // and gives the bright edge something to read against on pale terrain.
+    const N = 128;
+    const edge = (r) => {
+      const pts = [];
+      const push = (la1, lo1, la2, lo2) => {
+        pts.push(latLonToVec3(la1, lo1, r), latLonToVec3(la2, lo2, r));
+      };
+      for (let i = 0; i < N; i++) {
+        const t0 = i / N, t1 = (i + 1) / N;
+        push(south, west + span * t0, south, west + span * t1);
+        push(north, west + span * t0, north, west + span * t1);
+        push(south + (north - south) * t0, west,
+             south + (north - south) * t1, west);
+        push(south + (north - south) * t0, east,
+             south + (north - south) * t1, east);
+      }
+      return new THREE.BufferGeometry().setFromPoints(pts);
+    };
+    // Black edge over a white casing. Black alone disappears into shadowed
+    // crater floors, which is most of what a polar region contains; the pale
+    // line beneath is what keeps it readable there without making the border
+    // itself any colour other than black.
+    for (const [r, colour, opacity, order] of [
+      [GLOBE_R * 1.0026, 0xffffff, 0.55, 4],   // casing
+      [GLOBE_R * 1.0030, 0x000000, 1.00, 5],   // black edge
+    ]) {
+      const seg = new THREE.LineSegments(edge(r), new THREE.LineBasicMaterial({
+        color: colour, transparent: true, opacity, depthTest: false,
+      }));
+      seg.renderOrder = order;
+      group.add(seg);
+    }
+
+    // Corner pips, so the region's extent is unambiguous when it is small
+    // enough on screen that the four edges merge into one mark.
+    const pip = new THREE.SphereGeometry(0.0035, 10, 10);
+    const pipMat = new THREE.MeshBasicMaterial({
+      color: 0x000000, depthTest: false,
+    });
+    for (const [la, lo] of [[south, west], [south, west + span],
+                            [north, west], [north, west + span]]) {
+      const m = new THREE.Mesh(pip, pipMat);
+      m.position.copy(latLonToVec3(la, lo, GLOBE_R * 1.0032));
+      m.renderOrder = 6;
+      group.add(m);
+    }
+
+    this.aoiBox = group;
+    this.scene.add(group);
+  }
+
+  clearAOIBox() {
+    if (this.aoiBox) {
+      this.scene.remove(this.aoiBox);
+      // A group now, not a single mesh: dispose every child or each redraw
+      // during a drag leaks a geometry and a material.
+      this.aoiBox.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) o.material.dispose();
+      });
+      this.aoiBox = null;
+    }
+  }
 
   /** Camera altitude above the mean surface, in kilometres. */
   altitudeKm() {

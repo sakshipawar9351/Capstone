@@ -62,6 +62,27 @@ let three = null;
 /** The Cesium renderer, constructed on first use rather than at startup. */
 let cesium = null;
 
+/**
+ * Traverse-planning state.
+ *
+ * Declared here rather than beside its functions, for the same reason `three`
+ * and `cesium` are: `boot()` touches it long before those functions appear in
+ * the file, and a `const` referenced above its declaration is a temporal dead
+ * zone away from taking the whole application down. It happens to be safe at
+ * runtime today — `boot()` is invoked last — but that is a property of one
+ * call site, not of the code.
+ */
+const plan = {
+  start: null,
+  goal: null,
+  picking: null,        // 'start' | 'goal' | null
+  dragging: false,      // region rectangle being drawn on the globe
+  dragHandlers: null,
+  options: null,
+  result: null,
+  previewTimer: null,
+};
+
 /* ── Boot ───────────────────────────────────────────────────────────────── */
 
 async function boot() {
@@ -132,6 +153,15 @@ async function boot() {
       await refreshNames(true);
     } catch (err) {
       say(`Named features unavailable: ${err.message}`);
+    }
+
+    try {
+      buildPlanPanel(await api.planOptions());
+    } catch (err) {
+      // The globe is still fully usable without the planner, so a failure here
+      // degrades one panel rather than the application.
+      $('plan-status').textContent = `Planning unavailable: ${err.message}`;
+      say(`Planning unavailable: ${err.message}`);
     }
 
     hideLoading();
@@ -524,6 +554,15 @@ function renderAnalysis(a, f) {
 /* ── Selection / inspector ──────────────────────────────────────────────── */
 
 async function select(lat, lon) {
+  // An armed picker consumes the click: the user asked to place an endpoint,
+  // not to inspect the terrain under it.
+  if (plan.picking) {
+    setPin(plan.picking, lat, lon);
+    say(`${plan.picking === 'start' ? 'Start' : 'Goal'} set to ${fmtCoord(lat, lon)}.`);
+    armPicker(plan.picking);
+    return;
+  }
+
   state.selection = { lat, lon };
   globe.setMarker(lat, lon);
   $('in-lat').value = lat.toFixed(4);
@@ -761,8 +800,12 @@ async function useRenderer(which) {
       return;
     }
     canvas.style.visibility = 'hidden';
+    // The CSS2D labels live in a sibling div, not inside the canvas, so hiding
+    // the canvas alone leaves them frozen on screen over the Cesium view.
+    three?.setOverlayVisible(false);
     globe = cesium;
     state.renderer = 'cesium';
+    syncSurfaceButton();
     btnC.textContent = 'Terrain';
     btnC.disabled = false;
     $('tilestats').hidden = false;
@@ -770,8 +813,10 @@ async function useRenderer(which) {
   } else {
     if (cesium) container.hidden = true;
     canvas.style.visibility = '';
+    three?.setOverlayVisible(true);
     globe = three;
     state.renderer = 'three';
+    syncSurfaceButton();
     $('tilestats').hidden = true;
     say('Classic globe — LOLA relief, no external dependency.');
   }
@@ -818,8 +863,28 @@ function updateProvenance() {
       ? (s.geometricError < 1000 ? `${s.geometricError.toFixed(0)} m`
                                  : `${(s.geometricError / 1000).toFixed(1)} km`)
       : 'streaming…';
-    $('pv-surface').textContent = `3D Tiles · ${detail}`;
-    $('pv-shape').textContent = 'tileset mesh · accuracy not published';
+    if (cesium?.surfaceMode === 'imagery') {
+      const b = state.basemaps.find((x) => x.key === state.basemap);
+      $('pv-surface').textContent =
+        `${b?.title || state.basemap} · ${b?.served_m_px ?? '?'} m/px`;
+      $('pv-shape').textContent =
+        'sphere · 1737.4 km · no relief in this mode';
+    } else {
+      // `geometricError` is a level-of-detail threshold — the screen-space
+      // error at which a tile subdivides — not the posting of any dataset.
+      // Labelling it "83 m" under "Surface" invited exactly the reading it
+      // does not support.
+      $('pv-surface').textContent = `3D Tiles · LOD ${detail} (not a resolution)`;
+      // Measured, not assumed. 240 samples of this tileset's own surface
+      // against LOLA LDEM_64 give a mean offset of +1,789 m and a best fit of
+      // 1.060 x LOLA + 1,824 m. At the Apollo 15 site it reads +234 m where
+      // LOLA and the LROC NAC stereo DTM — different instruments, different
+      // pipelines — agree on -1924 m to within one metre. It is the right
+      // terrain in the wrong place vertically, so it is a view, never a
+      // measurement.
+      $('pv-shape').textContent =
+        'view only · +1.8 km vs LOLA · do not measure from this';
+    }
   } else {
     const b = state.basemaps.find((x) => x.key === state.basemap);
     const bm = b?.title || 'LROC WAC Global Mosaic';
@@ -1530,6 +1595,520 @@ function setLoading(msg) {
 function hideLoading() {
   $('loading').classList.add('gone');
   setTimeout(() => { $('loading').style.display = 'none'; }, 450);
+}
+
+/* ── Traverse planning ──────────────────────────────────────────────────
+ *
+ * The engine behind this panel was tested long before it had a UI. What the
+ * panel adds is the two things a user cannot supply through an API: a region
+ * chosen by looking at the Moon, and endpoints chosen by pointing at it.
+ */
+
+function planBounds() {
+  const n = parseFloat($('aoi-n').value);
+  const s = parseFloat($('aoi-s').value);
+  const w = parseFloat($('aoi-w').value);
+  const e = parseFloat($('aoi-e').value);
+  if ([n, s, w, e].some(Number.isNaN)) return null;
+  const b = { south: Math.min(s, n), north: Math.max(s, n), west: w, east: e };
+  // Empty means "best local data". Resolution is decided by what covers the
+  // region, not demanded up front — asking for detail the data cannot supply
+  // is not an error, it is just a coarser answer.
+  //
+  // 'survey' asks for something deliberately coarser; anything else names a
+  // source directly, which is how the streamed 30 m product is chosen without
+  // it becoming the default and making every analysis a hundred times slower.
+  const t = $('aoi-tier').value;
+  if (t === 'survey') b.tier = t;
+  else if (t) b.source = t;
+  return b;
+}
+
+/**
+ * Open the selected region in its own tab.
+ *
+ * The region travels in the URL rather than in memory, so the tab is a
+ * reloadable, shareable reference to a specific piece of the Moon instead of a
+ * view that dies with this session. It also means the globe keeps its own
+ * state: choosing a region and reading one are different tasks, and the panel
+ * here is too small to be the place a region is read carefully.
+ */
+function openRegionTab() {
+  const b = planBounds();
+  if (!b) { say('Set a region first.'); return; }
+  const p = new URLSearchParams({
+    south: b.south, north: b.north, west: b.west, east: b.east,
+    rover: $('p-rover').value, soil: $('p-soil').value,
+  });
+  if (b.source) p.set('source', b.source);
+  window.open(`region.html?${p}`, '_blank', 'noopener');
+}
+
+
+/**
+ * Offer the places where topography finer than any global product exists.
+ *
+ * The Cesium globe cannot be re-textured from a local DEM — its surface is a
+ * baked 3D Tileset — so the globe's role is to say *where* the detail is. The
+ * footprints are small: the Apollo 15 strip is 28.6 x 5.1 km, which at full
+ * zoom is a sliver, and nobody would find it by panning.
+ */
+async function buildHiResMenu() {
+  const sel = $('aoi-hires');
+  try {
+    const { sites } = await api.coverage();
+    if (!sites.length) { sel.style.display = 'none'; return; }
+    sel.innerHTML = '<option value="">Jump to high-resolution data…</option>'
+      + sites.map((s, i) =>
+          `<option value="${i}">${s.cell_m} m · ${s.product_id.replace(/_/g, ' ')}`
+          + `${s.supports_traverse ? ' — certifies a traverse' : ''}</option>`).join('');
+    sel.addEventListener('change', () => {
+      const s = sites[sel.value];
+      if (!s) return;
+      const b = s.bounds;
+      // Land inside the footprint rather than on its edge: a box snapped to the
+      // exact bounds has its border cells outside the data on every side.
+      const padLat = (b.north - b.south) * 0.25;
+      const padLon = (b.east - b.west) * 0.15;
+      $('aoi-n').value = (b.north - padLat).toFixed(4);
+      $('aoi-s').value = (b.south + padLat).toFixed(4);
+      $('aoi-w').value = (b.west + padLon).toFixed(4);
+      $('aoi-e').value = (b.east - padLon).toFixed(4);
+      refreshAOIPreview();
+      globe.flyTo?.(s.centre.lat, s.centre.lon);
+      say(`${s.product_id} — ${s.cell_m} m. Open the region to see it.`);
+    });
+  } catch {
+    sel.style.display = 'none';
+  }
+}
+
+
+/**
+ * Switch the Terrain view between relief and resolution.
+ *
+ * Only meaningful on Cesium: the Classic globe already draws our basemap over
+ * LOLA relief and has nothing to trade. The button therefore appears only when
+ * Cesium is live, rather than sitting inert on the other renderer.
+ */
+async function toggleSurface() {
+  if (state.renderer !== 'cesium' || !cesium) return;
+  const next = cesium.surfaceMode === 'imagery' ? 'relief' : 'imagery';
+  const b = state.basemaps.find((x) => x.key === state.basemap);
+  if (next === 'imagery') {
+    await cesium.setBasemap(state.basemap, b?.max_zoom ?? 8);
+  }
+  await cesium.setSurface(next);
+  syncSurfaceButton();
+  say(next === 'imagery'
+    ? `${b?.title || state.basemap} at ${b?.served_m_px ?? '?'} m/px — sphere, no relief.`
+    : '3D Tiles relief — 83 m imagery baked in.');
+  updateProvenance?.();
+}
+
+function syncSurfaceButton() {
+  const btn = $('btn-surface');
+  if (!btn) return;
+  const on = state.renderer === 'cesium';
+  btn.hidden = !on;
+  if (!on) return;
+  const imagery = cesium?.surfaceMode === 'imagery';
+  btn.textContent = imagery ? 'Imagery' : 'Relief';
+  btn.classList.toggle('on', imagery);
+}
+
+/** Ask what the region can support, and show it before anything is computed. */
+async function refreshAOIPreview() {
+  const b = planBounds();
+  const el = $('aoi-preview');
+  $('btn-aoi-open').disabled = true;
+  if (!b) { el.textContent = 'Enter four bounds.'; return; }
+
+  globe.setAOIBox(b);
+  try {
+    const p = await api.aoiPreview(b);
+    if (!p.ok) {
+      // Not an error: a region that cannot support the tier is a normal
+      // answer, and the reason carries the fix.
+      el.innerHTML = `<span style="color:#e9c46a">${p.reason}</span>`;
+      return;
+    }
+    $('btn-aoi-open').disabled = false;
+    const a = p.aoi, c = a.capability;
+    el.innerHTML =
+      `<b>${a.shape[0]} × ${a.shape[1]}</b> cells at <b>${a.cell_m} m</b> ` +
+      `(${fmtInt(a.cells)} total) from ${a.source.product_id}<br>` +
+      `Craters measurable from <b>${c.crater_measure_floor_m} m</b> · ` +
+      `${c.supports_traverse ? 'can certify a traverse'
+                             : 'corridor only — too coarse to certify a drive'}` +
+      // Warnings only. Finer sources arrive as `alternatives`, and the
+      // resolution menu directly above already lists them — repeating that in
+      // alarm colour on every single region is how a reader learns to ignore
+      // the notices that do matter.
+      a.warnings.map((w) => `<br><span style="color:#e9c46a">${w}</span>`).join('');
+  } catch (err) {
+    el.textContent = err.message;
+  }
+}
+
+function schedulePreview() {
+  clearTimeout(plan.previewTimer);
+  plan.previewTimer = setTimeout(refreshAOIPreview, 250);
+}
+
+function setPin(which, lat, lon) {
+  plan[which] = { lat, lon };
+  $(which === 'start' ? 's-lat' : 'g-lat').value = lat.toFixed(4);
+  $(which === 'start' ? 's-lon' : 'g-lon').value = lon.toFixed(4);
+  globe.setPins(plan.start, plan.goal);
+}
+
+function readPinInputs() {
+  const rd = (a, b) => {
+    const la = parseFloat($(a).value), lo = parseFloat($(b).value);
+    return (Number.isNaN(la) || Number.isNaN(lo)) ? null : { lat: la, lon: lo };
+  };
+  plan.start = rd('s-lat', 's-lon');
+  plan.goal = rd('g-lat', 'g-lon');
+  globe.setPins(plan.start, plan.goal);
+}
+
+/**
+ * Drag a rectangle on the globe to define the region.
+ *
+ * Written once against `pickLatLon` / `setInteractive` rather than twice per
+ * renderer. Both expose the same two methods, so this works on the Classic
+ * globe and the Cesium terrain without knowing which is live — and a region
+ * drawn in one view is still there after switching to the other.
+ *
+ * The camera is suspended for the duration: dragging a box and orbiting are
+ * the same gesture, and without this the Moon turns under the pointer and the
+ * box lands somewhere nobody chose.
+ */
+function armRegionDrag() {
+  plan.dragging = !plan.dragging;
+  $('btn-aoi-drag').classList.toggle('armed', plan.dragging);
+
+  if (!plan.dragging) {
+    detachRegionDrag();
+    say('Region drawing cancelled.');
+    return;
+  }
+
+  // Placing a pin and drawing a region are different intents; arming one must
+  // disarm the other or the next click means two things at once.
+  if (plan.picking) armPicker(plan.picking);
+
+  globe.setInteractive(false);
+  const el = globe.inputElement;
+  let anchor = null;
+
+  const finish = (ok) => {
+    detachRegionDrag();
+    plan.dragging = false;
+    $('btn-aoi-drag').classList.remove('armed');
+    say(ok ? 'Region selected.' : 'Region drawing cancelled.');
+  };
+
+  const onDown = (ev) => {
+    const c = globe.pickLatLon(ev);
+    if (!c) { say('Start the drag on the lit surface, not off the limb.'); return; }
+    anchor = c;
+    ev.preventDefault();
+  };
+
+  const onMove = (ev) => {
+    if (!anchor) return;
+    const c = globe.pickLatLon(ev);
+    if (!c) return;
+    applyDraggedBounds(anchor, c, false);
+  };
+
+  const onUp = (ev) => {
+    if (!anchor) { finish(false); return; }
+    const c = globe.pickLatLon(ev) || anchor;
+    applyDraggedBounds(anchor, c, true);
+    anchor = null;
+    finish(true);
+  };
+
+  const onKey = (ev) => { if (ev.key === 'Escape') { anchor = null; finish(false); } };
+
+  plan.dragHandlers = { el, onDown, onMove, onUp, onKey };
+  el.addEventListener('pointerdown', onDown);
+  el.addEventListener('pointermove', onMove);
+  el.addEventListener('pointerup', onUp);
+  window.addEventListener('keydown', onKey);
+  el.style.cursor = 'crosshair';
+  say('Drag a rectangle on the Moon. Esc to cancel.');
+}
+
+function detachRegionDrag() {
+  const h = plan.dragHandlers;
+  if (!h) return;
+  h.el.removeEventListener('pointerdown', h.onDown);
+  h.el.removeEventListener('pointermove', h.onMove);
+  h.el.removeEventListener('pointerup', h.onUp);
+  window.removeEventListener('keydown', h.onKey);
+  h.el.style.cursor = '';
+  plan.dragHandlers = null;
+  globe.setInteractive(true);
+}
+
+/**
+ * Turn two dragged corners into bounds.
+ *
+ * Longitude takes the *short way round*: two points 10 degrees apart must give
+ * a 10 degree region, not the 350 degree one that sorting the raw values would
+ * produce whenever the drag happens to straddle the 0/360 seam.
+ */
+function applyDraggedBounds(a, b, commit) {
+  const south = Math.min(a.lat, b.lat);
+  const north = Math.max(a.lat, b.lat);
+  let west = a.lon, east = b.lon;
+  const forward = ((east - west) % 360 + 360) % 360;
+  if (forward > 180) { const t = west; west = east; east = t; }
+
+  $('aoi-s').value = south.toFixed(3);
+  $('aoi-n').value = north.toFixed(3);
+  $('aoi-w').value = west.toFixed(3);
+  $('aoi-e').value = east.toFixed(3);
+
+  // While dragging, only redraw the box — the preview is a network call and
+  // firing one per pointer-move would flood the server for no benefit.
+  globe.setAOIBox({ south, north, west, east });
+  if (commit) refreshAOIPreview();
+}
+
+function armPicker(which) {
+  // Drawing a region and placing a pin both consume the next click on the
+  // globe, so arming either has to disarm the other.
+  if (plan.dragging) armRegionDrag();
+
+  plan.picking = plan.picking === which ? null : which;
+  $('btn-pick-start').classList.toggle('armed', plan.picking === 'start');
+  $('btn-pick-goal').classList.toggle('armed', plan.picking === 'goal');
+  say(plan.picking
+    ? `Click the Moon to place the ${plan.picking}.`
+    : 'Picking cancelled.');
+}
+
+async function runPlan() {
+  const b = planBounds();
+  if (!b) { say('Set the region bounds first.'); return; }
+  readPinInputs();
+  if (!plan.start || !plan.goal) { say('Set both a start and a goal.'); return; }
+
+  const choice = $('p-algos').value;
+  const algorithms =
+    choice === 'fast' ? plan.options.fast_algorithms
+    : choice === 'all' ? plan.options.algorithms.map((a) => a.key)
+    : plan.options.default_algorithms;
+
+  const body = {
+    ...b,
+    start_lat: plan.start.lat, start_lon: plan.start.lon,
+    goal_lat: plan.goal.lat, goal_lon: plan.goal.lon,
+    rover: $('p-rover').value,
+    soil: $('p-soil').value,
+    risk_aversion: parseFloat($('p-gamma').value),
+    algorithms,
+  };
+
+  const btn = $('btn-plan');
+  btn.disabled = true;
+  $('plan-out').hidden = true;
+  $('plan-status').textContent = 'Submitting…';
+
+  try {
+    const sub = await api.submitPlan(body);
+    const job = await api.awaitJob(sub.job.id, {
+      onProgress: (j) => {
+        $('plan-status').textContent =
+          `${j.message} — ${Math.round(j.progress * 100)}% (${j.elapsed_s}s)`;
+      },
+    });
+    plan.result = job.result;
+    renderPlan(job.result);
+    $('plan-status').textContent = `Done in ${job.elapsed_s}s.`;
+  } catch (err) {
+    $('plan-status').innerHTML = `<span style="color:#e07a5a">${err.message}</span>`;
+    say(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderPlan(r) {
+  $('plan-out').hidden = false;
+
+  const traverse = r.certification === 'traverse';
+  const cert = $('plan-cert');
+  cert.className = `cert ${traverse ? 'traverse' : 'corridor'}`;
+  cert.textContent = traverse ? 'Rover traverse' : 'Regional corridor only';
+
+  $('plan-rec').innerHTML =
+    `<b>${r.recommended.algorithm}</b> — ${r.recommended.why}` +
+    (traverse ? '' : `<br><br>${r.certification_note}`);
+
+  // Draw before the numbers: the map is what the eye checks first.
+  const latlon = r.route.lat.map((la, i) => [la, r.route.lon[i]]);
+  globe.setRoute(latlon, r.route.profile.risk);
+  globe.setPins(
+    { lat: r.endpoints.start.used.lat, lon: r.endpoints.start.used.lon },
+    { lat: r.endpoints.goal.used.lat, lon: r.endpoints.goal.used.lon },
+  );
+
+  const best = r.algorithms.find((a) => a.key === r.recommended.key);
+  const m = best?.metrics || {};
+  const prof = r.route.profile;
+  const km = prof.distance_m[prof.distance_m.length - 1] / 1000;
+  const moved = r.endpoints.start.moved_m + r.endpoints.goal.moved_m;
+
+  const rows = [
+    ['Distance', `${km.toFixed(2)} km`],
+    ['Waypoints', `${r.route.waypoints} (${r.route.samples} samples)`],
+    ['Max slope', `${Math.max(...prof.slope_deg).toFixed(1)}°`],
+    ['Peak risk', Math.max(...prof.risk).toFixed(3)],
+    ['Peak slip', `${(Math.max(...prof.slip) * 100).toFixed(1)}%`],
+    ['Rover / soil', `${r.rover} · ${r.soil.split('(')[0].trim()}`],
+  ];
+  if (m.safety) rows.push(['Safety score', `${m.safety.score} — ${m.safety.limiting_factor}`]);
+  if (m.time_s) rows.push(['Traverse time', `${(m.time_s / 3600).toFixed(1)} h`]);
+  if (moved > 0) {
+    rows.push(['Endpoints moved', `${moved.toFixed(0)} m onto passable ground`]);
+  }
+  $('plan-summary').innerHTML = rows
+    .map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
+
+  const t = $('plan-table');
+  t.innerHTML =
+    '<tr><th>Algorithm</th><th>Cost s</th><th>×opt</th><th>ms</th><th>Nodes</th></tr>'
+    + r.algorithms.map((a) => `
+      <tr class="${a.key === r.recommended.key ? 'rec' : ''}">
+        <td>${a.algorithm}</td>
+        <td>${a.found ? a.cost_s.toFixed(0) : '—'}</td>
+        <td>${a.cost_ratio ?? '—'}</td>
+        <td>${a.runtime_ms.toFixed(0)}</td>
+        <td>${fmtInt(a.nodes_expanded)}</td>
+      </tr>`).join('');
+
+  drawProfile(prof);
+  say(`Route planned: ${km.toFixed(2)} km, ${r.certification}.`);
+}
+
+/**
+ * Elevation and slope against distance (FR-4.5 / 4.6).
+ *
+ * Plotted against ground distance rather than sample index: any-angle routes
+ * have unevenly spaced waypoints, and indexing them would stretch the sparse
+ * stretches and compress the dense ones — exactly where the terrain matters.
+ */
+function drawProfile(p) {
+  const cv = $('plan-profile');
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth || 300, H = 150;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+
+  const d = p.distance_m, e = p.elevation_m, s = p.slope_deg;
+  if (!d || d.length < 2) return;
+  const pad = { l: 34, r: 30, t: 8, b: 18 };
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+  const dmax = d[d.length - 1] || 1;
+  const emin = Math.min(...e), emax = Math.max(...e);
+  const espan = (emax - emin) || 1;
+  const smax = Math.max(10, Math.max(...s));
+
+  const X = (v) => pad.l + (v / dmax) * iw;
+  const Ye = (v) => pad.t + ih - ((v - emin) / espan) * ih;
+  const Ys = (v) => pad.t + ih - (v / smax) * ih;
+
+  g.strokeStyle = 'rgba(255,255,255,.08)';
+  g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ih * i) / 4;
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(W - pad.r, y); g.stroke();
+  }
+
+  // Elevation as a filled band — the shape of the ground.
+  g.beginPath();
+  g.moveTo(X(d[0]), pad.t + ih);
+  for (let i = 0; i < d.length; i++) g.lineTo(X(d[i]), Ye(e[i]));
+  g.lineTo(X(d[d.length - 1]), pad.t + ih);
+  g.closePath();
+  g.fillStyle = 'rgba(125,192,255,.16)';
+  g.fill();
+  g.beginPath();
+  for (let i = 0; i < d.length; i++) {
+    (i ? g.lineTo : g.moveTo).call(g, X(d[i]), Ye(e[i]));
+  }
+  g.strokeStyle = '#7dc0ff'; g.lineWidth = 1.4; g.stroke();
+
+  // Slope on its own scale, so a gentle climb and a scarp are distinguishable.
+  g.beginPath();
+  for (let i = 0; i < d.length; i++) {
+    (i ? g.lineTo : g.moveTo).call(g, X(d[i]), Ys(s[i]));
+  }
+  g.strokeStyle = '#e9c46a'; g.lineWidth = 1.1; g.stroke();
+
+  g.fillStyle = '#8a93a3';
+  g.font = '9px ui-monospace, monospace';
+  g.fillText(`${emax.toFixed(0)} m`, 2, pad.t + 7);
+  g.fillText(`${emin.toFixed(0)} m`, 2, pad.t + ih);
+  g.fillText(`${smax.toFixed(0)}°`, W - pad.r + 3, pad.t + 7);
+  g.fillText('0°', W - pad.r + 3, pad.t + ih);
+  g.fillText(`${(dmax / 1000).toFixed(1)} km`, W - pad.r - 26, H - 5);
+  g.fillText('0', pad.l, H - 5);
+
+  $('profile-legend').innerHTML =
+    '<span style="color:#7dc0ff">— elevation</span> &nbsp; ' +
+    '<span style="color:#e9c46a">— slope</span> &nbsp; ' +
+    `sampled every ${(dmax / (d.length - 1)).toFixed(0)} m along the ground`;
+}
+
+function buildPlanPanel(opts) {
+  plan.options = opts;
+
+  $('p-rover').innerHTML = opts.rovers
+    .map((r) => `<option value="${r.key}">${r.name}</option>`).join('');
+  $('p-rover').value = 'viper';
+  $('p-soil').innerHTML = opts.soils
+    .map((s) => `<option value="${s.key}">${s.label}</option>`).join('');
+  $('p-gamma').value = opts.risk_aversion_default;
+  $('out-gamma').textContent = Number(opts.risk_aversion_default).toFixed(1);
+
+  for (const id of ['aoi-n', 'aoi-s', 'aoi-w', 'aoi-e']) {
+    $(id).addEventListener('input', schedulePreview);
+  }
+  $('aoi-tier').addEventListener('change', refreshAOIPreview);
+  $('btn-aoi-view').addEventListener('click', () => {
+    const v = globe.visibleRegion();
+    if (!v) { say('Zoom in until a region is in view.'); return; }
+    $('aoi-n').value = v.north.toFixed(3);
+    $('aoi-s').value = v.south.toFixed(3);
+    $('aoi-w').value = v.west.toFixed(3);
+    $('aoi-e').value = v.east.toFixed(3);
+    refreshAOIPreview();
+  });
+
+  $('btn-aoi-open').addEventListener('click', openRegionTab);
+  $('btn-surface')?.addEventListener('click', toggleSurface);
+  buildHiResMenu();
+  $('btn-aoi-drag').addEventListener('click', armRegionDrag);
+  $('btn-pick-start').addEventListener('click', () => armPicker('start'));
+  $('btn-pick-goal').addEventListener('click', () => armPicker('goal'));
+  for (const id of ['s-lat', 's-lon', 'g-lat', 'g-lon']) {
+    $(id).addEventListener('change', readPinInputs);
+  }
+  $('p-gamma').addEventListener('input', (ev) => {
+    $('out-gamma').textContent = Number(ev.target.value).toFixed(1);
+  });
+  $('btn-plan').addEventListener('click', runPlan);
+
+  refreshAOIPreview();
 }
 
 boot();

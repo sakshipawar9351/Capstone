@@ -906,3 +906,90 @@ input[type="range"]::-webkit-slider-thumb {
   #layers { display: none; }
   .goto label { display: none; }
 }
+
+/* ── Traverse planning panel ─────────────────────────────────────────────
+   Reuses the existing .grp / .row / .credit rhythm; only the controls that
+   had no precedent are defined here. */
+
+.bounds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.bounds label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--fg-faint);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.bounds input, .pinrow input {
+  flex: 1; min-width: 0;
+  background: #12161d; color: var(--fg);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 6px; font: inherit; font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.bounds input:focus, .pinrow input:focus {
+  outline: none; border-color: var(--accent-dk);
+}
+
+.row2 { display: flex; gap: 6px; margin-top: 8px; }
+.row2 > * { flex: 1; min-width: 0; }
+.row2 select, .row select {
+  background: #12161d; color: var(--fg);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 6px; font: inherit; font-size: 11px;
+}
+
+.pinrow { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.pinrow .dot {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  border: 1px solid rgba(255,255,255,.55);
+}
+.pinrow .dot.start { background: #35c48a; }
+.pinrow .dot.goal  { background: #e0503a; }
+
+/* An armed picker has to look armed, or the next click on the globe is a
+   surprise rather than an instruction. */
+button.pick.armed {
+  background: var(--accent-dk); border-color: var(--accent-dk); color: #fff;
+}
+
+#btn-plan { width: calc(100% - 28px); margin: 12px 14px 4px; }
+
+/* Full-width, because it leaves this panel entirely rather than acting inside
+   it. Disabled until a region resolves: offering to open an analysis of a
+   region that has no data would send the reader to a page of error messages. */
+button.wide { width: 100%; margin-top: 8px; }
+button.wide:disabled { opacity: .4; cursor: not-allowed; }
+
+/* What the route certifies is not decoration — a corridor and a traverse
+   verdict must never read the same. */
+.cert {
+  font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+  font-weight: 600; padding: 5px 8px; border-radius: 4px; margin-bottom: 8px;
+}
+.cert.traverse { background: rgba(53,196,138,.16); color: #6fd39b; }
+.cert.corridor { background: rgba(233,196,106,.16); color: #e9c46a; }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 11px; }
+.kv .k { color: var(--fg-faint); }
+.kv .v { font-variant-numeric: tabular-nums; text-align: right; }
+
+.tablewrap { overflow-x: auto; }
+#plan-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+#plan-table th {
+  text-align: left; color: var(--fg-faint); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; font-size: 9px;
+  padding: 4px 5px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+#plan-table td {
+  padding: 4px 5px; border-bottom: 1px solid rgba(255,255,255,.05);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+#plan-table tr.rec td { background: rgba(125,192,255,.10); color: var(--fg); }
+#plan-table tr.rec td:first-child::before { content: '★ '; color: #7dc0ff; }
+
+#plan-profile {
+  width: 100%; height: 150px; display: block;
+  background: #10141b; border: 1px solid var(--border); border-radius: 4px;
+}

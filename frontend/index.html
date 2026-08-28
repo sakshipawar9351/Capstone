@@ -49,6 +49,8 @@
         <button id="rnd-cesium" class="seg"
                 title="Cesium Moon Terrain — 3D Tiles, finer surface detail">Terrain</button>
       </div>
+      <button id="btn-surface" class="toggle" hidden
+              title="Terrain view: 3D Tiles relief (83 m) or our basemap (20.8 m) on a sphere">Relief</button>
       <button id="btn-names" class="toggle on" title="Show or hide feature names">Names</button>
       <button id="btn-spin" class="toggle" title="Toggle auto-rotation">Auto-rotate</button>
       <button id="btn-grid" class="toggle on" title="Toggle graticule">Graticule</button>
@@ -60,9 +62,95 @@
   <aside id="layers">
     <div class="ptabs" role="tablist">
       <button class="ptab on" data-tab="tab-layers" role="tab">Layers</button>
+      <button class="ptab" data-tab="tab-plan" role="tab">Plan</button>
       <button class="ptab" data-tab="tab-discover" role="tab">Places</button>
       <button class="ptab" data-tab="tab-missions" role="tab">Missions</button>
       <button class="ptab" data-tab="tab-science" role="tab">Science</button>
+    </div>
+
+    <!-- ── Traverse planning ────────────────────────────────────────── -->
+    <div id="tab-plan" class="ptabpane" hidden>
+
+      <section class="grp">
+        <h3>Region</h3>
+        <div class="bounds">
+          <label>N<input type="number" id="aoi-n" step="0.01" value="-89.42"></label>
+          <label>S<input type="number" id="aoi-s" step="0.01" value="-89.50"></label>
+          <label>W<input type="number" id="aoi-w" step="0.01" value="218"></label>
+          <label>E<input type="number" id="aoi-e" step="0.01" value="226"></label>
+        </div>
+        <div class="row2">
+          <button id="btn-aoi-drag" class="pick">Draw on globe</button>
+          <button id="btn-aoi-view">Use current view</button>
+        </div>
+        <div class="row2">
+          <select id="aoi-tier">
+            <option value="">Best local data (fast)</option>
+            <option value="ldem_1024">30 m streamed — 16× finer, minutes per region</option>
+            <option value="survey">Coarser &amp; faster</option>
+          </select>
+        </div>
+        <div id="aoi-preview" class="credit">Set a region to see what it can support.</div>
+        <div class="row2">
+          <select id="aoi-hires"><option value="">Jump to high-resolution data…</option></select>
+        </div>
+        <button id="btn-aoi-open" class="wide" disabled>Open region analysis ↗</button>
+      </section>
+
+      <section class="grp">
+        <h3>Endpoints</h3>
+        <div class="row2">
+          <button id="btn-pick-start" class="pick">Set start</button>
+          <button id="btn-pick-goal" class="pick">Set goal</button>
+        </div>
+        <div class="pinrow"><span class="dot start"></span>
+          <input type="number" id="s-lat" step="0.001" placeholder="lat">
+          <input type="number" id="s-lon" step="0.001" placeholder="lon"></div>
+        <div class="pinrow"><span class="dot goal"></span>
+          <input type="number" id="g-lat" step="0.001" placeholder="lat">
+          <input type="number" id="g-lon" step="0.001" placeholder="lon"></div>
+        <div class="credit">
+          Endpoints come from mission intent — a landing site, a PSR entrance,
+          a science target. If either lands on impassable ground it is moved to
+          the nearest drivable cell and the distance is reported.
+        </div>
+      </section>
+
+      <section class="grp">
+        <h3>Vehicle &amp; terrain</h3>
+        <label class="row"><span>Rover</span><select id="p-rover"></select></label>
+        <label class="row"><span>Regolith</span><select id="p-soil"></select></label>
+        <label class="row"><span>Risk aversion γ</span>
+          <output id="out-gamma">2.0</output></label>
+        <input type="range" id="p-gamma" min="0" max="8" step="0.5" value="2">
+        <label class="row"><span>Algorithms</span>
+          <select id="p-algos">
+            <option value="default">Comparison set (4)</option>
+            <option value="fast">Fast — Weighted A* only</option>
+            <option value="all">All seven</option>
+          </select></label>
+      </section>
+
+      <button id="btn-plan" class="primary">Plan traverse</button>
+      <div id="plan-status" class="credit"></div>
+
+      <div id="plan-out" hidden>
+        <section class="grp">
+          <h3>Result</h3>
+          <div id="plan-cert" class="cert"></div>
+          <div id="plan-rec" class="note"></div>
+          <div id="plan-summary" class="kv"></div>
+        </section>
+        <section class="grp">
+          <h3>Algorithms compared</h3>
+          <div class="tablewrap"><table id="plan-table"></table></div>
+        </section>
+        <section class="grp">
+          <h3>Profile along the route</h3>
+          <canvas id="plan-profile" width="300" height="150"></canvas>
+          <div id="profile-legend" class="credit"></div>
+        </section>
+      </div>
     </div>
 
     <!-- ── Discoveries ──────────────────────────────────────────────── -->

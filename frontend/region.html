@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Region analysis — LunarSerpent</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/region.css">
+<!-- Same pinned versions as the globe. Two pages drawing lunar terrain with
+     two different Three.js builds is a difference nobody would look for. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="regionpage">
+
+<header id="rtop">
+  <div class="brand">
+    <span class="mark"></span>
+    <div>
+      <h1>Region analysis</h1>
+      <p id="r-bounds">reading the region…</p>
+    </div>
+  </div>
+  <div class="rtools">
+    <label>Rover <select id="r-rover"></select></label>
+    <label>Regolith <select id="r-soil"></select></label>
+    <button id="r-reload">Re-analyse</button>
+    <a id="r-back" href="index.html">← Globe</a>
+  </div>
+</header>
+
+<main id="rmain">
+
+  <!-- What this region can and cannot support, before any map is read. -->
+  <section class="rcard" id="r-capability">
+    <h2>What this region supports</h2>
+    <div id="cap-body" class="kv">loading…</div>
+    <div id="cap-notes"></div>
+  </section>
+
+  <section class="rcard">
+    <h2>Terrain statistics</h2>
+    <div id="r-stats" class="statgrid">loading…</div>
+  </section>
+
+  <!-- Before the overhead maps, because overhead is the view that hides
+       whether the ground goes up — and that is what a traverse is about. -->
+  <section class="rcard">
+    <h2>The region as a surface</h2>
+    <div id="r3d-wrap">
+      <canvas id="r3d"></canvas>
+      <div id="r3d-status">building the surface…</div>
+      <div id="r3d-vx">1&times;</div>
+    </div>
+    <div class="r3d-bar">
+      <label>Drape
+        <select id="r3d-drape"></select>
+      </label>
+      <label>Vertical exaggeration
+        <input type="range" id="r3d-exag" min="1" max="60" step="1" value="1">
+      </label>
+      <button id="r3d-true">True scale (1&times;)</button>
+      <button id="r3d-reset">Recentre</button>
+    </div>
+    <p class="note" id="r3d-cap"></p>
+  </section>
+
+  <section class="rcard">
+    <h2>Maps</h2>
+    <p class="note">
+      Every panel is the same ground at the same posting. Colour ramps are keyed
+      to the rover's own limits rather than to each layer's data range, so a
+      gentle region reads as gentle instead of being stretched to full scale.
+    </p>
+    <div id="r-layers" class="layergrid"></div>
+  </section>
+
+  <section class="rcard">
+    <h2>Hazard classes</h2>
+    <div id="r-legend" class="legendrow"></div>
+  </section>
+
+  <section class="rcard">
+    <h2>Plan a traverse here</h2>
+    <p class="note">
+      Endpoints come from mission intent — a landing site, a PSR entrance, a
+      science target. Enter them as coordinates inside this region.
+    </p>
+    <div class="planrow">
+      <label><span class="dot start"></span>Start
+        <input type="number" id="r-slat" step="0.001" placeholder="lat">
+        <input type="number" id="r-slon" step="0.001" placeholder="lon"></label>
+      <label><span class="dot goal"></span>Goal
+        <input type="number" id="r-glat" step="0.001" placeholder="lat">
+        <input type="number" id="r-glon" step="0.001" placeholder="lon"></label>
+      <button id="r-plan" class="primary">Plan</button>
+    </div>
+    <div id="r-planstatus" class="note"></div>
+    <div id="r-planout" hidden>
+      <div id="r-cert" class="cert"></div>
+      <div id="r-rec" class="note"></div>
+      <div class="tablewrap"><table id="r-table"></table></div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="js/region.js"></script>
+</body>
+</html>
