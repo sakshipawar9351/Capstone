@@ -14,6 +14,39 @@ producing a plausible-looking value.
 
 ---
 
+## Run it
+
+```powershell
+python run.py
+```
+
+That is the whole thing. It checks the environment, reports which datasets
+resolved and from where, starts the API, and opens the interface at
+**http://127.0.0.1:8765/**. On Windows `run` works too.
+
+First time only:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+| Command | What it does |
+|---|---|
+| `python run.py` | Preflight, then serve and open a browser |
+| `python run.py --check` | Preflight only — verify the environment and datasets, start nothing |
+| `python run.py --test` | Run the full test suite first; refuse to serve if it fails |
+| `python run.py --docs` | Rebuild `docs/html/` before serving |
+| `python run.py --port 9000` | Serve on another port |
+| `python run.py --no-browser` | Do not open a browser |
+
+The preflight is worth reading rather than skipping: it prints which of the
+candidate data roots each dataset resolved from, so a missing DEM is reported
+as a missing DEM instead of surfacing later as an error inside a memmap.
+
+Ctrl+C stops it.
+
+---
+
 ## Documentation
 
 | Document | Contents |
@@ -21,9 +54,10 @@ producing a plausible-looking value.
 | [PRD](docs/PRD.md) | Product requirements — goals, features, acceptance criteria, explicit limitations |
 | [SRD](docs/SRD.md) | System requirements — architecture, components, API, data models, verification |
 | [FORMULAS](docs/FORMULAS.md) | **Every equation** with derivation, rejected alternatives, and DOI citation |
+| [CONTRIBUTIONS](docs/CONTRIBUTIONS.md) | What is inherited, what is adapted, what is original — every method classified |
 | [DATASETS](docs/DATASETS.md) | Data sources, access methods, provenance, licensing |
 | [TECHNOLOGY](docs/TECHNOLOGY.md) | Stack selection per project part, with justification |
-| [ALGORITHMS](docs/ALGORITHMS.md) | Path planner survey, comparison matrix, selection rationale |
+| [ALGORITHMS](docs/ALGORITHMS.md) | Path planner survey, comparison matrix, selection rationale, measured benchmark |
 | [SCIENCE_BACKGROUND](docs/SCIENCE_BACKGROUND.md) | Lunar surface science and flown-mission exploration insights |
 
 **Readable HTML version:**

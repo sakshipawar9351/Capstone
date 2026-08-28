@@ -166,7 +166,8 @@ td code{white-space:nowrap}
 <li><a href="DATASETS.html" class="active"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
 <li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
 <li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
-<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li>
+<li><a href="CONTRIBUTIONS.html"><span class="nt">Contributions</span><span class="nd">What is inherited, what is adapted, what is new</span></a></li></ul>
   </nav>
   <div class="main">
     <div class="content">
@@ -405,6 +406,41 @@ latitude bands, and there may be edge artifacts at this boundary."</em> Above 64
 <code>surface</code> interpolation (tension 0.5) fills gaps between ground tracks. Therefore
 <strong>apparent fine-scale roughness in interpolated regions is not real topography</strong> and must
 not be treated as a hazard signal — handled explicitly in <code>FORMULAS.md</code> §3.5.</p>
+<p><strong>Verified finding — the label's <code>MINIMUM</code>/<code>MAXIMUM</code> bound the <em>source</em> grid, not this
+file.</strong> ✅ Measured directly during implementation on 2026-08-04:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Label declares</th>
+<th>Actual array</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MINIMUM</code></td>
+<td>−18150 DN (−9075.0 m)</td>
+<td>−17963 DN (−8981.5 m)</td>
+<td>+187 DN</td>
+</tr>
+<tr>
+<td><code>MAXIMUM</code></td>
+<td>+21580 DN (+10790.0 m)</td>
+<td>+21371 DN (+10685.5 m)</td>
+<td>−209 DN</td>
+</tr>
+</tbody>
+</table></div>
+<p>The file is exactly 33 177 600 bytes — the full declared array, not truncated. The
+discrepancy is explained by the label's own <code>DESCRIPTION</code>: <em>"This label describes an IMG
+file in the form of a binary </em><em>resampling</em><em> to pixel registration."</em> Interpolation
+necessarily contracts extremes; it cannot extend them.</p>
+<p><strong>Consequence for verification.</strong> Asserting equality against the label's <code>MINIMUM</code>/<code>MAXIMUM</code>
+is wrong and will always fail. The correct assertion is <strong>containment</strong>: observed values
+must lie <em>within</em> the declared bounds. Observed values <em>outside</em> them would indicate a
+genuine fault — wrong NumPy dtype, wrong byte order, or a corrupt file. This is how the
+system's raster test is written.</p>
 <blockquote>
 <p>Smith, D. E. et al. (2010), <em>The Lunar Orbiter Laser Altimeter Investigation on the LRO
 Mission</em>, Space Sci. Rev. 150, 209–241.
@@ -431,36 +467,60 @@ DOI: <a href="https://doi.org/10.1007/s11214-009-9512-y">10.1007/s11214-009-9512
 <thead>
 <tr>
 <th>Property</th>
-<th>Value</th>
+<th>Published (paper)</th>
+<th><strong>Measured in this file</strong> ✅</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Total craters</td>
 <td>2 033 574</td>
+<td><strong>1 296 796</strong></td>
 </tr>
 <tr>
 <td>Craters D ≥ 1 km</td>
-<td><strong>1 296 879</strong></td>
+<td>1 296 879</td>
+<td>1 296 796</td>
 </tr>
 <tr>
 <td>Craters D ≥ 5 km</td>
 <td>≈ 83 000</td>
+<td><strong>83 061</strong></td>
 </tr>
 <tr>
 <td>Craters D ≥ 20 km</td>
 <td>6 972</td>
+<td><strong>6 973</strong></td>
+</tr>
+<tr>
+<td>Minimum diameter</td>
+<td>—</td>
+<td><strong>1.000 km</strong></td>
 </tr>
 <tr>
 <td>Stated completeness</td>
-<td><strong>complete for D ≥ 1 km</strong></td>
+<td>complete for D ≥ 1 km</td>
+<td>—</td>
 </tr>
 <tr>
 <td>Method</td>
-<td><strong>Manual</strong> identification on LROC WAC, LOLA, Kaguya TC, and a merged LOLA+TC DTM</td>
+<td><strong>Manual</strong> identification on LROC WAC, LOLA, Kaguya TC and a merged LOLA+TC DTM</td>
+<td>—</td>
 </tr>
 </tbody>
 </table></div>
+<blockquote>
+<p><strong>Important correction, verified 2026-08-04.</strong> The paper reports 2 033 574 craters, but
+the <strong>PDS release contains only the D ≥ 1 km subset</strong> — 1 296 796 rows, with a measured
+minimum diameter of exactly 1.000 km. The sub-kilometre population was measured but <strong>not
+released</strong>. Any statement that this file contains 2 million craters is wrong.</p>
+<p>This is not a defect; it is the boundary of the authoritative record, and it is precisely
+why LunarSerpent's own detector operates <strong>below</strong> 1 km (§5.1 rationale). The system's
+class histogram confirms it independently: the <code>micro</code> (&lt; 100 m) and <code>very_small</code>
+(100 m – 1 km) classes are both <strong>empty</strong>.</p>
+<p>Measured class distribution: <code>small</code> 1 285 214 · <code>medium</code> 10 020 · <code>large</code> 1 501 ·
+<code>giant</code> 28 · <code>basin</code> 33.</p>
+</blockquote>
 <p><strong>Why manual matters.</strong> Every crater was human-verified. No automated detector — including
 this project's — matches that reliability. LunarSerpent therefore uses Robbins as <strong>ground
 truth for D ≥ 1 km</strong>, and applies its own computer vision only <em>below</em> the catalogue's

@@ -166,7 +166,8 @@ td code{white-space:nowrap}
 <li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
 <li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
 <li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
-<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li>
+<li><a href="CONTRIBUTIONS.html"><span class="nt">Contributions</span><span class="nd">What is inherited, what is adapted, what is new</span></a></li></ul>
   </nav>
   <div class="main">
     <div class="content">
@@ -176,6 +177,7 @@ td code{white-space:nowrap}
       </div>
       <div class="toc"><div class="toc-title">Contents</div><div class="toc">
 <ul>
+<li><a href="#run-it">Run it</a></li>
 <li><a href="#documentation">Documentation</a></li>
 <li><a href="#scientific-approach-in-brief">Scientific approach in brief</a></li>
 <li><a href="#deliberate-scientific-limitations">Deliberate scientific limitations</a></li>
@@ -202,6 +204,54 @@ documented formula with a peer-reviewed source. Where a quantity cannot be deter
 justified confidence, the system states its uncertainty or declines to report it — rather than
 producing a plausible-looking value.</p>
 <hr />
+<h2 id="run-it">Run it</h2>
+<pre><code class="language-powershell">python run.py
+</code></pre>
+<p>That is the whole thing. It checks the environment, reports which datasets
+resolved and from where, starts the API, and opens the interface at
+<strong>http://127.0.0.1:8765/</strong>. On Windows <code>run</code> works too.</p>
+<p>First time only:</p>
+<pre><code class="language-powershell">python -m pip install -r requirements.txt
+</code></pre>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python run.py</code></td>
+<td>Preflight, then serve and open a browser</td>
+</tr>
+<tr>
+<td><code>python run.py --check</code></td>
+<td>Preflight only — verify the environment and datasets, start nothing</td>
+</tr>
+<tr>
+<td><code>python run.py --test</code></td>
+<td>Run the full test suite first; refuse to serve if it fails</td>
+</tr>
+<tr>
+<td><code>python run.py --docs</code></td>
+<td>Rebuild <code>docs/html/</code> before serving</td>
+</tr>
+<tr>
+<td><code>python run.py --port 9000</code></td>
+<td>Serve on another port</td>
+</tr>
+<tr>
+<td><code>python run.py --no-browser</code></td>
+<td>Do not open a browser</td>
+</tr>
+</tbody>
+</table></div>
+<p>The preflight is worth reading rather than skipping: it prints which of the
+candidate data roots each dataset resolved from, so a missing DEM is reported
+as a missing DEM instead of surfacing later as an error inside a memmap.</p>
+<p>Ctrl+C stops it.</p>
+<hr />
 <h2 id="documentation">Documentation</h2>
 <div class="tablewrap"><table>
 <thead>
@@ -224,6 +274,10 @@ producing a plausible-looking value.</p>
 <td><strong>Every equation</strong> with derivation, rejected alternatives, and DOI citation</td>
 </tr>
 <tr>
+<td><a href="docs/CONTRIBUTIONS.md">CONTRIBUTIONS</a></td>
+<td>What is inherited, what is adapted, what is original — every method classified</td>
+</tr>
+<tr>
 <td><a href="docs/DATASETS.md">DATASETS</a></td>
 <td>Data sources, access methods, provenance, licensing</td>
 </tr>
@@ -233,7 +287,7 @@ producing a plausible-looking value.</p>
 </tr>
 <tr>
 <td><a href="docs/ALGORITHMS.md">ALGORITHMS</a></td>
-<td>Path planner survey, comparison matrix, selection rationale</td>
+<td>Path planner survey, comparison matrix, selection rationale, measured benchmark</td>
 </tr>
 <tr>
 <td><a href="docs/SCIENCE_BACKGROUND.md">SCIENCE_BACKGROUND</a></td>

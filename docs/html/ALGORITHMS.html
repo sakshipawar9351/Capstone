@@ -166,7 +166,8 @@ td code{white-space:nowrap}
 <li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
 <li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
 <li><a href="ALGORITHMS.html" class="active"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
-<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li></ul>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li>
+<li><a href="CONTRIBUTIONS.html"><span class="nt">Contributions</span><span class="nd">What is inherited, what is adapted, what is new</span></a></li></ul>
   </nav>
   <div class="main">
     <div class="content">
@@ -194,7 +195,11 @@ td code{white-space:nowrap}
 </ul>
 </li>
 <li><a href="#5-why-all-algorithms-are-still-computed-and-displayed">5. Why all algorithms are still computed and displayed</a></li>
-<li><a href="#6-benchmark-protocol">6. Benchmark protocol</a></li>
+<li><a href="#6-benchmark-protocol">6. Benchmark protocol</a><ul>
+<li><a href="#61-measured-results-five-scenarios-full-protocol">6.1 Measured results — five scenarios, full protocol</a></li>
+<li><a href="#62-outstanding">6.2 Outstanding</a></li>
+</ul>
+</li>
 <li><a href="#7-complexity-summary">7. Complexity summary</a></li>
 <li><a href="#8-references">8. References</a></li>
 <li><a href="#9-revision-history">9. Revision history</a></li>
@@ -458,17 +463,39 @@ rather than replanning from scratch.
 <h3 id="41-the-decision">4.1 The decision</h3>
 <p><strong>Primary planner: A*.</strong> With a great-circle/<span class="math-inline">\(v_{\max}\)</span> heuristic proved admissible <em>and</em>
 consistent in <code>FORMULAS.md</code> §9.1.</p>
-<p><strong>Post-process: cost-validated shortcut smoothing.</strong> Candidate shortcuts between non-adjacent
-waypoints are accepted <strong>only if the actual line-integrated cost along the shortcut is lower
-than the original sub-path.</strong> This recovers most of the any-angle benefit <em>without</em> Theta*'s
-false homogeneity assumption.</p>
+<p><strong>Post-process: cost-validated shortcut smoothing</strong> (<code>planners.smooth_path</code>). Candidate
+shortcuts between non-adjacent waypoints are accepted <strong>only if the actual line-integrated
+cost along the shortcut is lower than the original sub-path.</strong> Because every accepted step
+strictly lowers the total, the smoothed route can never cost more than the input — A*'s
+optimality guarantee survives the post-process. Theta*'s line-of-sight test asks only whether
+a chord is <em>passable</em>; asking whether it is <em>cheaper</em> is what makes this safe on a weighted
+surface.</p>
+<blockquote>
+<p><strong>Measured (§6.1).</strong> This was claimed to recover "most of the any-angle benefit". It
+recovers <strong>28 %</strong> of it — 0.55 percentage points of a 1.97 % gap. What it does deliver, and
+what the original claim did not anticipate, is route <em>compactness</em>: <strong>25 waypoints against
+A*'s 471 and Theta*'s 52</strong>, computed in 222 ms against Theta*'s 5 636 ms. The case for the
+post-process is that it is fast, halves the any-angle planner's waypoint count, and keeps
+the optimality bound — not that it closes the cost gap.</p>
+</blockquote>
 <p><strong>Replanning: D* Lite</strong>, for the operational case of newly-discovered hazards.</p>
 <h3 id="42-why-a-five-reasons-mapped-to-the-problems-structure">4.2 Why A* — five reasons, mapped to the problem's structure</h3>
-<p><strong>1. The cost field is weighted, not binary.</strong> This is the decisive point that eliminates the
-any-angle family as primary. Theta*'s line-of-sight shortcut is optimal only when the terrain
-between two points is uniform. Here cost varies <em>continuously</em> with slope, roughness and
-crater proximity, so a straight shortcut can silently cross a hazard. A* evaluates <strong>every
-cell it traverses</strong>, so the reported cost is the cost actually incurred.</p>
+<p><strong>1. The cost field is weighted, not binary.</strong> Theta*'s line-of-sight shortcut is optimal only
+when the terrain between two points is uniform. Here cost varies <em>continuously</em> with slope,
+roughness and crater proximity, so a straight shortcut can cross ground the grid path avoided.
+A* evaluates <strong>every cell it traverses</strong>, so the reported cost is the cost actually incurred.</p>
+<blockquote>
+<p><strong>Revised after measurement (§6.1).</strong> This was stated as "the decisive point that
+eliminates the any-angle family as primary". Measurement does not support that
+strength. The implementation integrates cost cell-by-cell along every
+line-of-sight segment, in the search <em>and</em> in the reported total, so a Theta*
+shortcut is charged for exactly the ground it crosses — the failure mode this
+argument anticipated is prevented by accounting rather than by algorithm choice.
+Measured, Theta* returned a route <strong>2.0 % cheaper</strong> than the grid optimum with
+52 waypoints instead of 471. The remaining case for A* as primary is optimality
+<em>guarantee</em> (reason 2), not cost fidelity. Any-angle search is correspondingly
+promoted from "comparison" to a live candidate pending scenarios 1–4.</p>
+</blockquote>
 <p><strong>2. Optimality is proved, not assumed.</strong> With an admissible and consistent heuristic, A*
 returns a provably minimum-cost path on the discretisation and never re-expands a node. For a
 mission-safety deliverable, "provably optimal" and "empirically good" are not
@@ -485,12 +512,16 @@ accept stochasticity and suboptimality to solve a problem that does not exist.</
 implementation produces the optimality reference — guaranteeing the comparison is
 apples-to-apples rather than confounded by differing cost accounting.</p>
 <h3 id="43-honest-statement-of-as-limitation">4.3 Honest statement of A*'s limitation</h3>
-<p>A* on an 8-connected grid inherits the discretisation penalty of up to <strong>+8.24 %</strong> in path
-length (<code>FORMULAS.md</code> §9.2). This is real and is <strong>not concealed</strong>: the benchmark reports A*'s
-path length both before and after smoothing, and against Theta* and Field D* references. The
-selection rests on the argument that a <em>correctly-costed</em> path 8 % longer is preferable to a
-<em>shorter path whose cost is unverified</em> — and that smoothing recovers most of the difference
-anyway.</p>
+<p>A* on an 8-connected grid inherits a discretisation penalty of up to <strong>+8.24 %</strong> in path
+length (<code>FORMULAS.md</code> §9.2) — the worst case, attained on a route that wants a heading the
+grid cannot express.</p>
+<p><strong>Measured on real terrain that penalty is +2.0 %, not +8.24 %</strong> (§6.1). A hazard-avoiding
+route is nowhere near a straight line, so it rarely asks for the heading the worst case
+assumes. The original framing — that a correctly-costed path 8 % longer beats a shorter path
+whose cost is unverified — no longer describes the trade being made, because both routes are
+now costed the same way. What A* actually buys over Theta* here is the optimality
+<em>guarantee</em>: 2.0 % of cost, in exchange for a bound that holds by construction rather than
+by measurement on one site.</p>
 <hr />
 <h2 id="5-why-all-algorithms-are-still-computed-and-displayed">5. Why all algorithms are still computed and displayed</h2>
 <p>The brief requires outputs from the other algorithms, not only the selected one. This is good
@@ -528,17 +559,18 @@ scientific practice and each serves a distinct purpose:</p>
 <td>Run-to-run variance — showing directly why stochastic methods were rejected</td>
 </tr>
 <tr>
-<td><strong>Potential fields</strong></td>
-<td>The local-minimum trap inside a crater — a concrete failure case</td>
-</tr>
-<tr>
 <td><strong>D* Lite</strong></td>
 <td>Repair cost when a new hazard appears mid-traverse</td>
 </tr>
+<tr>
+<td><em>Potential fields</em></td>
+<td><em>Not implemented</em> — the local-minimum trap is argued in §2.6, not demonstrated</td>
+</tr>
 </tbody>
 </table></div>
-<p>Showing A* alone would be an assertion. Showing all eight makes the selection an
-<strong>empirical result</strong>.</p>
+<p>Showing A* alone would be an assertion. Showing all seven makes the selection an
+<strong>empirical result</strong> — and, as §6.1 records, measurement has already forced two of the
+selection's stated reasons to be revised.</p>
 <hr />
 <h2 id="6-benchmark-protocol">6. Benchmark protocol</h2>
 <p>To make the comparison fair and reproducible, every algorithm is run under identical
@@ -615,6 +647,267 @@ same machine.</p>
 is reported (path is identical by construction). Stochastic algorithms (RRT, RRT*, PRM) are
 run <strong>30×</strong> with mean ± standard deviation on every metric — the variance is itself a
 reported result supporting §4.2 reason 3.</p>
+<h3 id="61-measured-results-five-scenarios-full-protocol">6.1 Measured results — five scenarios, full protocol</h3>
+<p>All five scenarios of §6 have now been run: wall-clock as the <strong>median of five</strong>,
+RRT* over <strong>thirty seeded runs</strong> per site. Rover VIPER-class, Apollo-nominal
+regolith, γ = 2.0. Cost ratios are against the best guaranteed-optimal result.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Grid</th>
+<th>Cost spread</th>
+<th>Dijkstra exp.</th>
+<th>A* exp.</th>
+<th><strong>A* saving</strong></th>
+<th>Theta*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 Open mare (Serenitatis)</td>
+<td>38×35 @ 474 m</td>
+<td>2.9×</td>
+<td>1 272</td>
+<td>769</td>
+<td><strong>40 %</strong></td>
+<td>0.980×</td>
+</tr>
+<tr>
+<td>2 Crater field (Tycho highlands)</td>
+<td>38×27 @ 474 m</td>
+<td>2.1×</td>
+<td>987</td>
+<td>381</td>
+<td><strong>61 %</strong></td>
+<td>0.963×</td>
+</tr>
+<tr>
+<td>3 Highland, sustained slope</td>
+<td>38×38 @ 474 m</td>
+<td>2.7×</td>
+<td>1 375</td>
+<td>772</td>
+<td><strong>44 %</strong></td>
+<td>1.000×</td>
+</tr>
+<tr>
+<td>4 Crater-rim crossing</td>
+<td>38×28 @ 474 m</td>
+<td>5.8×</td>
+<td>959</td>
+<td>838</td>
+<td><strong>13 %</strong></td>
+<td>0.982×</td>
+</tr>
+<tr>
+<td>5 Polar site (Connecting Ridge)</td>
+<td>246×245 @ 10 m</td>
+<td>7.8×</td>
+<td>58 132</td>
+<td>43 150</td>
+<td><strong>26 %</strong></td>
+<td>0.977×</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Expansions, not seconds.</strong> Two runs of this benchmark on the same machine gave
+identical costs and identical expansion counts while wall-clock speed-ups
+differed by a factor of two. Node expansions are a property of the search;
+seconds are a property of the machine's load at the time. Timings below are
+indicative only.</p>
+<h4 id="what-holds-across-all-five">What holds across all five</h4>
+<p><strong>A* is exactly optimal everywhere</strong> — it matched Dijkstra's cost to
+floating-point equality at every site, as did D* Lite. <strong>BFS is the control</strong>
+and pays for ignoring the cost surface: 1.11× on open mare, <strong>1.37× on the rim
+crossing</strong>, where the terrain it refuses to look at is precisely what matters.</p>
+<p><strong>The A* advantage is terrain-dependent, between 61 % and 13 %</strong> — never near
+the 97 % of a uniform grid. It is <em>not</em> a simple function of cost spread: the
+rim crossing (5.8×) saves less than the polar site (7.8×). Spread sets how loose
+the admissible bound is; spatial coherence sets whether cheap cells form usable
+corridors.</p>
+<p><strong>Theta* is at or below the grid optimum at every real site</strong> — between 0 and
+3.7 % cheaper — and above it only on a synthetic random grid. Five sites make
+that a result rather than a coincidence.</p>
+<h4 id="weighted-a-the-speedoptimality-curve">Weighted A*: the speed/optimality curve</h4>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ε</th>
+<th>Cost ratio</th>
+<th>Expansions</th>
+<th>Fewer expansions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.00</td>
+<td>1.0000×</td>
+<td>43 150</td>
+<td>1×</td>
+</tr>
+<tr>
+<td>1.25</td>
+<td>1.0067×</td>
+<td>31 685</td>
+<td>1.4×</td>
+</tr>
+<tr>
+<td>1.50</td>
+<td>1.0190×</td>
+<td>9 374</td>
+<td>4.6×</td>
+</tr>
+<tr>
+<td>2.00</td>
+<td>1.0391×</td>
+<td>464</td>
+<td><strong>93×</strong></td>
+</tr>
+<tr>
+<td>2.50</td>
+<td>1.0589×</td>
+<td>186</td>
+<td><strong>232×</strong></td>
+</tr>
+<tr>
+<td>4.00</td>
+<td>1.0593×</td>
+<td>186</td>
+<td>232×</td>
+</tr>
+<tr>
+<td>8.00</td>
+<td>1.0593×</td>
+<td>186</td>
+<td>232×</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>ε = 2.0 costs 3.9 % for 93× fewer expansions.</strong> And the dial <strong>saturates</strong>
+past ε ≈ 2.5 — identical cost and identical expansions at 2.5, 4 and 8. Realised
+suboptimality is far inside the guarantee: 5.9 % actual against a permitted
+150 % at ε = 2.5.</p>
+<h4 id="rrt-thirty-runs-per-site">RRT*: thirty runs per site</h4>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Site</th>
+<th>Mean</th>
+<th>Best</th>
+<th>Worst</th>
+<th>σ</th>
+<th>Found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open mare</td>
+<td>1.081×</td>
+<td>0.965×</td>
+<td><strong>1.320×</strong></td>
+<td>0.108</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Crater field</td>
+<td>1.008×</td>
+<td>0.962×</td>
+<td>1.177×</td>
+<td>0.049</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Highland</td>
+<td>1.036×</td>
+<td>0.998×</td>
+<td>1.213×</td>
+<td>0.052</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Rim crossing</td>
+<td>1.023×</td>
+<td>0.968×</td>
+<td>1.232×</td>
+<td>0.065</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Polar site</td>
+<td>1.049×</td>
+<td>1.001×</td>
+<td>1.123×</td>
+<td>0.034</td>
+<td>30/30</td>
+</tr>
+</tbody>
+</table></div>
+<p>It found a route <strong>150 times out of 150</strong> — completeness is not the objection.
+<em>Which</em> route depends on the seed: on open mare the same request returns between
+3.5 % better than the grid optimum and <strong>32 % worse</strong>, with nothing in the
+output to tell the good run from the bad. Variance is largest on the <em>easiest</em>
+terrain, where many near-equivalent routes exist and nothing chooses between
+them.</p>
+<h4 id="smoothing">Smoothing</h4>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Waypoints</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 Open mare</td>
+<td>33 → 7</td>
+<td>0.985×</td>
+</tr>
+<tr>
+<td>2 Crater field</td>
+<td>30 → 2</td>
+<td>0.963×</td>
+</tr>
+<tr>
+<td>3 Highland</td>
+<td>30 → 2</td>
+<td>1.000×</td>
+</tr>
+<tr>
+<td>4 Rim crossing</td>
+<td>33 → 5</td>
+<td>0.987×</td>
+</tr>
+<tr>
+<td>5 Polar site</td>
+<td><strong>201 → 9</strong></td>
+<td>0.997×</td>
+</tr>
+</tbody>
+</table></div>
+<p>Never more expensive — accepted only where the integrated chord is cheaper, so
+A*'s optimality bound survives — and it collapses the waypoint count by 4× to
+22×. That compactness, not the cost, is what it buys.</p>
+<h4 id="what-this-changes">What this changes</h4>
+<p>The §4 selection stands: <strong>A* with cost-validated smoothing</strong>, optimal at every
+site with a route a rover can execute in a handful of headings.</p>
+<p>But <strong>Weighted A* at ε = 1.5–2.0 deserves promotion to a first-class option</strong>
+rather than a "trade-off study". At 1.9–3.9 % cost for 4.6–93× fewer expansions
+it is the right default for interactive replanning, and §5's framing of it as a
+curiosity understates it.</p>
+<h3 id="62-outstanding">6.2 Outstanding</h3>
+<p>Everything §6.2 previously listed has been run: all five scenarios, the ε sweep,
+RRT* over thirty runs per site, and wall-clock as a median of five.</p>
+<p>What remains is not benchmark work:</p>
+<ul>
+<li><strong>Field D* and Lazy Theta*</strong> are surveyed in §2 but not implemented, so the
+  any-angle family is represented by Theta* alone.</li>
+<li><strong>Potential fields</strong> is argued against in §2.6 rather than demonstrated
+  failing, which is weaker than the rest of this comparison.</li>
+<li>Every site is LOLA-derived. A benchmark on one instrument's products cannot
+  separate a property of the terrain from a property of the gridding.</li>
+</ul>
 <hr />
 <h2 id="7-complexity-summary">7. Complexity summary</h2>
 <p>With <span class="math-inline">\(V\)</span> cells, <span class="math-inline">\(E \approx 8V\)</span> for an 8-connected grid, <span class="math-inline">\(b\)</span> the branching factor, <span class="math-inline">\(d\)</span> the
@@ -714,6 +1007,16 @@ rather than assumes.</p>
 <td>1.0</td>
 <td>2026-08-04</td>
 <td>Baseline. Eleven algorithms surveyed; A* selected with cost-validated smoothing; benchmark protocol defined. Benchmark <em>results</em> will be appended once the engine is implemented.</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>2026-08-11</td>
+<td>Full benchmark protocol executed: all five scenarios, epsilon sweep, RRT* over thirty seeded runs per site, wall-clock as a median of five. §6.1 replaced with measured results; §6.2 closed out. Three findings: the A* advantage ranges 61 % to 13 % and is not a function of cost spread alone; Weighted A* saturates past epsilon 2.5 and is promoted from trade-off study to a first-class option at 1.5-2.0; RRT* found a route 150/150 times but returned anything from 0.965x to 1.320x optimal, with the <em>widest</em> spread on the <em>easiest</em> terrain. Timings are now reported as expansions rather than seconds — two runs on this machine gave identical expansions and wall-clock differing by 2x.</td>
+</tr>
+<tr>
+<td>1.1</td>
+<td>2026-08-10</td>
+<td>Seven algorithms implemented and benchmarked on real terrain (§6.1, Connecting Ridge, 10 m LOLA). Cost-validated smoothing implemented as <code>planners.smooth_path</code>. <strong>Three claims in §4 revised because measurement contradicted them:</strong> the weighted-cost argument no longer "eliminates the any-angle family" (§4.2 reason 1), the discretisation penalty is +2.0 % measured against +8.24 % theoretical (§4.3), and smoothing recovers 28 % of the any-angle gap rather than "most" of it (§4.1). §5 corrected from eight algorithms to seven — potential fields is argued, not implemented. §6.2 lists what remains before the selection can be called final.</td>
 </tr>
 </tbody>
 </table></div>

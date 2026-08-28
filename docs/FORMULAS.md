@@ -18,6 +18,13 @@ without support:
 | **Why this one** | What alternatives exist and why this was chosen over them |
 | **Source** | Peer-reviewed citation with DOI |
 
+Established equations are used **as published**, with citation — a system that
+reinvented Bekker's pressure–sinkage law or Horn's slope operator would be
+wrong, not original. What is new here is the application, the integration, and
+the analysis. **`CONTRIBUTIONS.md` classifies every method below as inherited,
+adapted or original**, so that boundary is stated explicitly rather than left
+for a reader to reconstruct.
+
 **Notation used throughout:**
 
 | Symbol | Meaning | Units |

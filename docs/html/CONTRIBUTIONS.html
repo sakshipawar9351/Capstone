@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LunarSerpent — LunarSerpent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+:root{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-code:#1c2128;
+  --fg:#e6edf3; --fg-dim:#9198a1; --fg-faint:#6e7681;
+  --accent:#58a6ff; --accent-dim:#1f6feb; --border:#30363d;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --sidebar:290px;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+  --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+  --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+  --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#ffffff; --bg-alt:#f6f8fa; --bg-code:#f6f8fa;
+    --fg:#1f2328; --fg-dim:#59636e; --fg-faint:#818b98;
+    --accent:#0969da; --accent-dim:#0550ae; --border:#d1d9e0;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:var(--sidebar); flex:0 0 var(--sidebar); background:var(--bg-alt);
+  border-right:1px solid var(--border); padding:24px 0; position:sticky; top:0;
+  height:100vh; overflow-y:auto;
+}
+.brand{padding:0 24px 20px; border-bottom:1px solid var(--border); margin-bottom:16px}
+.brand h1{margin:0; font-size:19px; letter-spacing:-.02em}
+.brand .sub{color:var(--fg-faint); font-size:12px; margin-top:4px; letter-spacing:.02em}
+.navlist{list-style:none; margin:0; padding:0 12px}
+.navlist a{
+  display:block; padding:9px 12px; border-radius:6px; color:var(--fg-dim);
+  font-size:14px; line-height:1.35;
+}
+.navlist a:hover{background:var(--bg); color:var(--fg); text-decoration:none}
+.navlist a.active{background:var(--accent-dim); color:#fff}
+.navlist a.active .nd{color:rgba(255,255,255,.75)}
+.navlist .nt{font-weight:600; display:block}
+.navlist .nd{color:var(--fg-faint); font-size:11.5px; display:block; margin-top:2px}
+
+.main{flex:1; min-width:0; display:flex; justify-content:center; padding:0 32px}
+.content{max-width:900px; width:100%; padding:40px 0 120px}
+
+/* ---------- typography ---------- */
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.015em; scroll-margin-top:24px}
+h1{font-size:34px; margin:0 0 24px; padding-bottom:14px; border-bottom:1px solid var(--border)}
+h2{font-size:24px; margin:44px 0 16px; padding-bottom:8px; border-bottom:1px solid var(--border)}
+h3{font-size:19px; margin:32px 0 12px}
+h4{font-size:16px; margin:24px 0 10px; color:var(--fg-dim)}
+p{margin:0 0 16px}
+ul,ol{margin:0 0 16px; padding-left:26px}
+li{margin:5px 0}
+hr{border:0; border-top:1px solid var(--border); margin:36px 0}
+strong{font-weight:650}
+
+blockquote{
+  margin:20px 0; padding:12px 18px; border-left:3px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0; color:var(--fg-dim);
+}
+blockquote p:last-child{margin-bottom:0}
+
+code{
+  background:var(--bg-code); padding:.15em .4em; border-radius:5px;
+  font:.87em/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;
+  border:1px solid var(--border);
+}
+pre{
+  background:var(--bg-code); border:1px solid var(--border); border-radius:8px;
+  padding:16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13px; line-height:1.55}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--border); border-radius:8px}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--border);
+      vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- math ---------- */
+.math-block{margin:20px 0; overflow-x:auto; overflow-y:hidden; padding:4px 0}
+.katex{font-size:1.04em}
+.katex-display{margin:0 !important}
+
+/* ---------- TOC ---------- */
+.toc{
+  background:var(--bg-alt); border:1px solid var(--border); border-radius:8px;
+  padding:16px 20px; margin:0 0 32px;
+}
+.toc-title{font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+           color:var(--fg-faint); font-weight:700; margin-bottom:10px}
+.toc ul{list-style:none; padding-left:0; margin:0}
+.toc ul ul{padding-left:16px}
+.toc li{margin:3px 0}
+.toc a{color:var(--fg-dim); font-size:13.5px}
+.toc a:hover{color:var(--accent)}
+
+/* ---------- chrome ---------- */
+.topbar{display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:28px; gap:16px; flex-wrap:wrap}
+.crumb{color:var(--fg-faint); font-size:13px}
+.themebtn{
+  background:var(--bg-alt); color:var(--fg-dim); border:1px solid var(--border);
+  border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px;
+}
+.themebtn:hover{color:var(--fg); border-color:var(--accent)}
+.footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--border);
+        color:var(--fg-faint); font-size:13px}
+
+/* ---------- index cards ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+       gap:16px; margin:24px 0}
+.card{background:var(--bg-alt); border:1px solid var(--border); border-radius:10px;
+      padding:18px 20px; transition:border-color .15s, transform .15s}
+.card:hover{border-color:var(--accent); transform:translateY(-2px)}
+.card a{font-size:16px; font-weight:650}
+.card p{color:var(--fg-dim); font-size:13.5px; margin:6px 0 0}
+
+@media (max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%; flex:none; height:auto; position:static; border-right:0;
+           border-bottom:1px solid var(--border)}
+  .main{padding:0 18px}
+}
+@media print{
+  .sidebar,.themebtn,.topbar{display:none}
+  body{background:#fff; color:#000}
+  .main{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>LunarSerpent</h1>
+      <div class="sub">Lunar Analysis &amp; Traverse Planning</div>
+    </div>
+    <ul class="navlist"><li><a href="README.html"><span class="nt">Overview</span><span class="nd">What LunarSerpent is and how to run it</span></a></li>
+<li><a href="PRD.html"><span class="nt">PRD</span><span class="nd">Product requirements — goals, features, acceptance</span></a></li>
+<li><a href="SRD.html"><span class="nt">SRD</span><span class="nd">System requirements — architecture and interfaces</span></a></li>
+<li><a href="FORMULAS.html"><span class="nt">Formulas</span><span class="nd">Every equation with proof and citation</span></a></li>
+<li><a href="DATASETS.html"><span class="nt">Datasets</span><span class="nd">Data sources, access methods and provenance</span></a></li>
+<li><a href="TECHNOLOGY.html"><span class="nt">Technology</span><span class="nd">Stack selection and justification</span></a></li>
+<li><a href="ALGORITHMS.html"><span class="nt">Algorithms</span><span class="nd">Path planner survey, comparison, selection</span></a></li>
+<li><a href="SCIENCE_BACKGROUND.html"><span class="nt">Lunar Science</span><span class="nd">Surface science and exploration insights</span></a></li>
+<li><a href="CONTRIBUTIONS.html" class="active"><span class="nt">Contributions</span><span class="nd">What is inherited, what is adapted, what is new</span></a></li></ul>
+  </nav>
+  <div class="main">
+    <div class="content">
+      <div class="topbar">
+        <span class="crumb">docs / CONTRIBUTIONS.md</span>
+        <button class="themebtn" onclick="toggleTheme()">Toggle theme</button>
+      </div>
+      <div class="toc"><div class="toc-title">Contents</div><div class="toc">
+<ul>
+<li><a href="#1-why-this-document-exists">1. Why this document exists</a></li>
+<li><a href="#2-method-inventory">2. Method inventory</a><ul>
+<li><a href="#21-coordinates-and-geodesy-coreselenographicpy-corepolarpy">2.1 Coordinates and geodesy — core/selenographic.py, core/polar.py</a></li>
+<li><a href="#22-terrain-derivatives-analysisterrainpy">2.2 Terrain derivatives — analysis/terrain.py</a></li>
+<li><a href="#23-crater-morphometry-analysismorphometrypy">2.3 Crater morphometry — analysis/morphometry.py</a></li>
+<li><a href="#24-terramechanics-analysisterramechanicspy">2.4 Terramechanics — analysis/terramechanics.py</a></li>
+<li><a href="#25-traversability-analysishazardpy">2.5 Traversability — analysis/hazard.py</a></li>
+<li><a href="#26-path-planning-planningplannerspy">2.6 Path planning — planning/planners.py</a></li>
+<li><a href="#27-path-evaluation-planningmetricspy">2.7 Path evaluation — planning/metrics.py</a></li>
+</ul>
+</li>
+<li><a href="#3-original-contributions-in-full">3. Original contributions, in full</a><ul>
+<li><a href="#31-undetrended-roughness-restates-slope">3.1 Undetrended roughness restates slope</a></li>
+<li><a href="#32-which-constraint-binds-traction-or-geometry-depends-on-the-soil">3.2 Which constraint binds — traction or geometry — depends on the soil</a></li>
+<li><a href="#33-hazard-risk-and-cost-must-be-three-quantities">3.3 Hazard, risk and cost must be three quantities</a></li>
+<li><a href="#34-as-efficiency-advantage-does-not-survive-strongly-weighted-terrain">3.4 A*'s efficiency advantage does not survive strongly-weighted terrain</a></li>
+<li><a href="#35-any-angle-planning-pays-on-real-terrain-and-costs-on-synthetic-terrain">3.5 Any-angle planning pays on real terrain and costs on synthetic terrain</a></li>
+<li><a href="#36-bounded-suboptimal-search-buys-three-orders-of-magnitude-for-a-few-per-cent">3.6 Bounded-suboptimal search buys three orders of magnitude for a few per cent</a></li>
+<li><a href="#37-a-stochastic-planners-spread-is-the-argument-against-it">3.7 A stochastic planner's spread is the argument against it</a></li>
+<li><a href="#38-resolutionhazard-mismatch-quantified">3.8 Resolution–hazard mismatch, quantified</a></li>
+<li><a href="#39-simple-cylindrical-grids-are-degenerate-at-the-poles">3.9 Simple-cylindrical grids are degenerate at the poles</a></li>
+<li><a href="#310-shadow-based-boulder-metrology-fails-at-the-poles-in-principle">3.10 Shadow-based boulder metrology fails at the poles in principle</a></li>
+<li><a href="#311-defects-found-by-testing-claims-rather-than-code">3.11 Defects found by testing claims rather than code</a></li>
+</ul>
+</li>
+<li><a href="#4-datasets">4. Datasets</a></li>
+<li><a href="#5-how-this-work-should-be-cited">5. How this work should be cited</a></li>
+<li><a href="#6-revision-history">6. Revision history</a></li>
+</ul>
+</div>
+</div>
+      <h1 id="lunarserpent-provenance-and-contributions">LunarSerpent — Provenance and Contributions</h1>
+<p><strong>Document ID:</strong> LS-DOC-009 · <strong>Version:</strong> 1.0 · <strong>Status:</strong> Baseline
+<strong>Date:</strong> 2026-08-09</p>
+<hr />
+<h2 id="1-why-this-document-exists">1. Why this document exists</h2>
+<p>A scientific system is built almost entirely from other people's work. That is
+correct practice, not a weakness: a terramechanics model that invented its own
+pressure–sinkage law would be wrong, not original. But it makes one question
+unavoidable — <strong>what, precisely, is new here?</strong></p>
+<p>This document answers it explicitly, method by method, so the boundary between
+inherited and original is drawn deliberately rather than reconstructed
+afterwards. It exists to be checked.</p>
+<p>Every method in the system falls into one of three categories:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th style="text-align: center;">Mark</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>I</strong></td>
+<td><strong>Inherited</strong> — used as published, cited at the point of use. No claim of novelty.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>A</strong></td>
+<td><strong>Adapted</strong> — published method, modified for lunar or polar conditions, or for a constraint of this system. The modification is stated.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>O</strong></td>
+<td><strong>Original</strong> — developed here. The reasoning is given so it can be disputed.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The codebase currently carries <strong>53 distinct citations, 23 DOIs and 20 typeset
+formulas across 7 modules.</strong> The overwhelming majority is inherited. That
+proportion is expected and healthy.</p>
+<p>Section 3 states <strong>ten original findings</strong>, each with the command that
+reproduces it. Where a finding was reached by first getting something wrong,
+that is recorded too — a result whose failure mode is documented is easier to
+trust than one that arrived clean.</p>
+<hr />
+<h2 id="2-method-inventory">2. Method inventory</h2>
+<h3 id="21-coordinates-and-geodesy-coreselenographicpy-corepolarpy">2.1 Coordinates and geodesy — <code>core/selenographic.py</code>, <code>core/polar.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reference frame: IAU Mean Earth / Polar Axis, DE421, R = 1737.4 km</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Archinal et al. (2018), doi:10.1007/s10569-017-9805-5</td>
+</tr>
+<tr>
+<td>Simple-cylindrical pixel ↔ lat/lon</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>PDS3 map-projection standard; parameters read from each product's own label</td>
+</tr>
+<tr>
+<td>Haversine great-circle distance</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Standard formulation</td>
+</tr>
+<tr>
+<td><em>Observation:</em> on an equal-axis sphere the great circle <strong>is</strong> the exact geodesic, so no ellipsoidal iteration is needed</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>Follows from <code>A = B = C = 1737.4 km</code> in the LOLA label. Trivial once noticed, and it removes a whole class of approximation error other systems carry.</td>
+</tr>
+<tr>
+<td>Polar stereographic forward/inverse</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Snyder (1987), USGS Prof. Paper 1395 §21</td>
+</tr>
+<tr>
+<td>Stereographic point-scale factor sec²(c/2)</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Snyder (1987)</td>
+</tr>
+<tr>
+<td>Verifying projection parameters by inverting the grid edge and comparing to the label's declared <code>MAXIMUM_LATITUDE</code></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>A self-check that the implemented projection is the one that produced the grid. Recovered −87.4994° against a declared −87.5°.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="22-terrain-derivatives-analysisterrainpy">2.2 Terrain derivatives — <code>analysis/terrain.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slope and aspect, 3×3 third-order finite difference</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Horn (1981), doi:10.1109/PROC.1981.11918</td>
+</tr>
+<tr>
+<td>Profile and plan curvature</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Zevenbergen &amp; Thorne (1987), doi:10.1002/esp.3290120107</td>
+</tr>
+<tr>
+<td>Terrain Ruggedness Index</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Riley, DeGloria &amp; Elliot (1999)</td>
+</tr>
+<tr>
+<td>Per-row <code>dx = 2πR cos(φ)/W</code> applied inside the slope operator</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Horn assumes a uniform grid. On a simple-cylindrical planetary grid the east–west cell shrinks as cos(φ), and applying a constant <code>dx</code> inflates east–west gradients by 2× at 60° latitude.</td>
+</tr>
+<tr>
+<td><strong>Detrended roughness</strong>: RMS residual about the best-fit plane, in closed form</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Plane-fit residual is the standard geomorphological definition; the contribution is the closed-form σ²ᵣ = var − (a²+b²)⟨x²⟩ evaluated by separable filters (O(n) in window size), <strong>and the demonstration that the naive form is wrong here</strong> — see §3.1.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="23-crater-morphometry-analysismorphometrypy">2.3 Crater morphometry — <code>analysis/morphometry.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Depth–diameter scaling, simple and complex regimes</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Pike (1974) doi:10.1029/GL001i007p00291; Pike (1977)</td>
+</tr>
+<tr>
+<td>Rim-height scaling</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Pike (1977)</td>
+</tr>
+<tr>
+<td>Simple→complex transition at D ≈ 15 km</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Pike (1977); Melosh (1989)</td>
+</tr>
+<tr>
+<td>Radial elevation profiling rather than window min/max</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>The approach used for LOLA-derived catalogues (Head et al. 2010; Wang et al. 2021). Specific choices here — rim as the highest ring-mean within 0.70–1.25 R, floor as the 10th percentile inside 0.35 R, datum as the median of the 1.2–1.5 R annulus — are ours, chosen so the datum sits outside the continuous ejecta blanket.</td>
+</tr>
+<tr>
+<td><strong>Resolution-adequacy verdict</strong> (<code>good</code> ≥ 30 cells, <code>marginal</code> ≥ 10, else refuse)</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.8</td>
+</tr>
+<tr>
+<td><strong>Depth-ratio interpretation bands</strong> (fresh / degraded / infilled)</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>Thresholds on measured ÷ Pike-predicted depth, with the ±30 % scatter of Pike's own fit as the "fresh" band.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="24-terramechanics-analysisterramechanicspy">2.4 Terramechanics — <code>analysis/terramechanics.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pressure–sinkage <code>p = (k_c/b + k_φ)zⁿ</code></td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Bekker (1969)</td>
+</tr>
+<tr>
+<td>Mohr–Coulomb shear strength</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Classical soil mechanics</td>
+</tr>
+<tr>
+<td>Shear-displacement law <code>τ(j) = τ_max(1 − e^(−j/K))</code></td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Janosi &amp; Hanamoto (1961)</td>
+</tr>
+<tr>
+<td>Drawbar-pull integral over the contact patch</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Wong &amp; Reece (1967), J. Terramechanics 4(1), 81–98</td>
+</tr>
+<tr>
+<td>Compaction (motion) resistance</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Bekker (1969)</td>
+</tr>
+<tr>
+<td>Regolith parameters c = 520 Pa, φ = 42°, K = 1.8 cm</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Carrier, Olhoeft &amp; Mendell (1991), <em>Lunar Sourcebook</em> ch. 9</td>
+</tr>
+<tr>
+<td>Slip regime bands (20 % / 40 % / 60 %)</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>MER and MSL flight-operations practice, not a soil property — labelled as such in code</td>
+</tr>
+<tr>
+<td>Iterative sinkage solution (pressure → sinkage → contact area → pressure)</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Bekker's relation is implicit once contact geometry depends on sinkage. Three fixed-point passes converge well inside the spread of the soil parameters themselves.</td>
+</tr>
+<tr>
+<td><strong>Conservative soil selection</strong> — weak case uses φ = 25° from the Chang'e-4 range 21.5–42°</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.2</td>
+</tr>
+<tr>
+<td><strong><code>max_slope_by_slip</code>: traction gradeability distinct from geometric, and which one binds</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.2</td>
+</tr>
+<tr>
+<td><strong>Slip tabulated over slope and interpolated</strong> (<code>SlipTable</code>)</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>The force balance is Bekker/Janosi–Hanamoto; the contribution is noting that slip depends only on slope once rover, soil and wheel count are fixed, so a 0.1° table is exact to the sampling and turns a per-cell bisection into an O(1) lookup — 640 000 cells in 24 ms.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="25-traversability-analysishazardpy">2.5 Traversability — <code>analysis/hazard.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Power-limited speed <code>v = P / [mg(sinθ + μcosθ)]</code></td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Elementary mechanics</td>
+</tr>
+<tr>
+<td>Slope limits for wheeled planetary vehicles</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Wilcox et al. (2007), J. Field Robotics 24, 421–434</td>
+</tr>
+<tr>
+<td><strong>Hazard / risk / cost as three separate quantities</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.3</td>
+</tr>
+<tr>
+<td><strong>Risk as <code>1 − (1 − r_grade)(1 − r_rough)</code></strong></td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Standard probability of at least one of two independent events; the contribution is treating grade and roughness as <em>independent failure modes</em> rather than averaging them, and squaring the stability term because consequence grows faster than angle.</td>
+</tr>
+<tr>
+<td><strong><code>r_grade = max(r_stability, r_traction)</code></strong> — two reductions, deliberately different</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>Slip is a function of slope, so combining a slip term with a slope term probabilistically would count the same gradient twice — the error corrected in §3.1 and §3.3. Correlated terms are reduced by <code>max</code> (the binding constraint governs); only genuinely independent terms are multiplied.</td>
+</tr>
+<tr>
+<td><strong>Traction risk measured from the 20 % routine-slip threshold, not from zero</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>About 1 % slip occurs on flat ground from motion resistance alone; measuring from zero would score level terrain as hazardous.</td>
+</tr>
+<tr>
+<td><strong>Hazard = worse of geometric and traction verdicts, with the binding one reported</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.2. A traction limit can be relaxed by choosing firmer ground; a stability limit cannot. An operator needs to know which they face.</td>
+</tr>
+<tr>
+<td>Hazard classes as fractions of a specific vehicle's limits</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>Lets one scheme serve a 26 kg Pragyan and a 700 kg LRV without rewriting thresholds.</td>
+</tr>
+<tr>
+<td><strong>Cost <code>C = (d/v)(1 + γR)</code> with exposed risk-aversion γ</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>γ is a mission decision, not a physical constant, so it is a parameter rather than a tuned value.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="26-path-planning-planningplannerspy">2.6 Path planning — <code>planning/planners.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Breadth-first search</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Standard</td>
+</tr>
+<tr>
+<td>Dijkstra</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Dijkstra (1959)</td>
+</tr>
+<tr>
+<td>A*</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Hart, Nilsson &amp; Raphael (1968)</td>
+</tr>
+<tr>
+<td>Weighted A*</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Pohl (1970)</td>
+</tr>
+<tr>
+<td>Theta*</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Daniel et al. (2010), JAIR 39, 533–579</td>
+</tr>
+<tr>
+<td>D* Lite</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Koenig &amp; Likhachev (2005)</td>
+</tr>
+<tr>
+<td>RRT*</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Karaman &amp; Frazzoli (2011)</td>
+</tr>
+<tr>
+<td>Corner-cutting prohibition on diagonals</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Standard grid-planning practice</td>
+</tr>
+<tr>
+<td>Symmetric edge cost — mean of the two cell costs × step length</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Makes <code>c(a,b) = c(b,a)</code>, which Dijkstra and A* both assume and which keeps a route's cost independent of travel direction. Destination-cost-only, the common shortcut, breaks both.</td>
+</tr>
+<tr>
+<td>Admissible heuristic <code>h = ‖n − goal‖ · min(C)</code></td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Standard construction; the contribution is the explicit statement that this bound is <em>loose by design</em> and the measurement of what that costs — §3.4.</td>
+</tr>
+<tr>
+<td>Lazy-deletion priority queue in D* Lite</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td><code>UpdateVertex</code> must remove an arbitrary node, which a binary heap cannot do; scanning for it costs O(n) per call, eight times per expansion. Recording each node's current key and discarding non-matching entries on pop is the standard remedy — it cut a 500×500 plan from 368 s to 42 s with an identical result.</td>
+</tr>
+<tr>
+<td><strong>Finding: A*'s advantage is terrain-dependent, not a constant</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.4</td>
+</tr>
+<tr>
+<td><strong>Finding: any-angle planning pays on coherent terrain, costs on noise</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.5, five sites</td>
+</tr>
+<tr>
+<td><strong>Finding: Weighted A* saturates — past e ~ 2.5 the dial does nothing</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.6</td>
+</tr>
+<tr>
+<td><strong>Finding: RRT*'s spread is widest on the easiest terrain</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.7, 150 seeded runs</td>
+</tr>
+<tr>
+<td><strong>Any-angle path costs integrated along the chord, not across its endpoints</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.5, accounting note. Endpoint averaging under-prices exactly the shortcuts an any-angle planner exists to take.</td>
+</tr>
+<tr>
+<td>Shortcut smoothing as a post-process</td>
+<td style="text-align: center;"><strong>A</strong></td>
+<td>Shortcutting a grid path is standard practice. The contribution is the acceptance test: a chord is taken only where its <em>integrated</em> cost is lower, not merely where it is passable. Every accepted step strictly lowers the total, so the search's optimality bound survives — which the usual length-only test does not preserve on a weighted surface. Measured: 471 → 25 waypoints for −0.55 % cost in 222 ms.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="27-path-evaluation-planningmetricspy">2.7 Path evaluation — <code>planning/metrics.py</code></h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th style="text-align: center;"></th>
+<th>Source / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Three-dimensional path length</td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Trivial geometry, stated because map distance understates both time and energy</td>
+</tr>
+<tr>
+<td>Energy <code>E = mgh + μmgd</code></td>
+<td style="text-align: center;"><strong>I</strong></td>
+<td>Elementary mechanics; descent uncredited since a rover cannot regenerate</td>
+</tr>
+<tr>
+<td><strong>Safety score <code>S = 100(1 − r_max)(1 − f_hazard)</code></strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.3</td>
+</tr>
+<tr>
+<td><strong>Worst-cell dominance</strong> — peak risk governs, mean reported but excluded</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>§3.3</td>
+</tr>
+<tr>
+<td><strong>Named limiting factor</strong></td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>A score without a cause tells an operator nothing about what to change.</td>
+</tr>
+<tr>
+<td>Recommended speed = route minimum, not mean</td>
+<td style="text-align: center;"><strong>O</strong></td>
+<td>Commanding the mean exceeds the limit at the hardest point.</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3-original-contributions-in-full">3. Original contributions, in full</h2>
+<p>These are the claims this work would defend. Each is reproducible from the
+repository.</p>
+<h3 id="31-undetrended-roughness-restates-slope">3.1 Undetrended roughness restates slope</h3>
+<p>Local elevation standard deviation is widely used as a roughness proxy. On
+sloping ground it is not one: a perfectly smooth plane has large elevation
+variance purely because it is tilted.</p>
+<p><strong>Measured on a constant 9.5° ramp: undetrended 1.361 m, detrended 0.000 m.</strong></p>
+<p>The consequence is not cosmetic. Any hazard model combining "roughness" with
+slope then counts the same gradient twice. In this system that error scored a
+gentle, entirely safe ramp at 21.6/100 against the 92.7/100 it now receives —
+a factor of four, on terrain a rover can drive without difficulty.</p>
+<p><em>Reproduce:</em> <code>python -m backend.analysis.terrain</code> for the 1.361 m / 0.000 m
+pair. The 21.6 figure is a development measurement: the defective code has been
+removed, so only the corrected score re-runs (<code>python tests/test_planners.py</code>).</p>
+<h3 id="32-which-constraint-binds-traction-or-geometry-depends-on-the-soil">3.2 Which constraint binds — traction or geometry — depends on the soil</h3>
+<p>Rover slope limits are conventionally quoted as geometric: a tip-over angle or
+a sustained-gradeability figure. Solving the Bekker–Janosi–Hanamoto system for
+the slip at which a vehicle can no longer generate the required drawbar pull
+gives a second, independent limit. Which of the two binds is not fixed — it
+depends on the regolith.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Rover</th>
+<th>Tip-over (geometric)</th>
+<th>Traction, nominal soil</th>
+<th>Traction, weak soil</th>
+<th>Binds on nominal</th>
+<th>Binds on weak</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pragyan-class</td>
+<td>30.0°</td>
+<td>30.9°</td>
+<td>16.1°</td>
+<td>stability</td>
+<td><strong>traction</strong></td>
+</tr>
+<tr>
+<td>Yutu-2-class</td>
+<td>33.0°</td>
+<td>39.7°</td>
+<td>18.4°</td>
+<td>stability</td>
+<td><strong>traction</strong></td>
+</tr>
+<tr>
+<td>VIPER-class</td>
+<td>35.0°</td>
+<td>46.5°</td>
+<td>21.1°</td>
+<td>stability</td>
+<td><strong>traction</strong></td>
+</tr>
+<tr>
+<td>Apollo LRV-class</td>
+<td>45.0°</td>
+<td>50.8°</td>
+<td>23.5°</td>
+<td>stability</td>
+<td><strong>traction</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>On Apollo-nominal regolith (c = 520 Pa, φ = 42°) traction gradeability exceeds
+every vehicle's tip-over angle, so the conventional geometric limit is the
+correct one and nothing is gained by modelling slip.</p>
+<p>On the low-friction Chang'e-4 bound (c = 250 Pa, φ = 25°) that reverses for
+every vehicle tested. <strong>The geometric limit then over-certifies by 1.66× to
+1.91×</strong> — it approves slopes at which the wheels turn without advancing. This
+is the failure mode that immobilised <em>Spirit</em>: not a grade beyond capability,
+but soil that could not supply the thrust.</p>
+<p>The contribution is not "slip matters" but the sign and size of the effect, and
+that the answer is soil-dependent rather than a property of the vehicle. A
+system quoting one gradeability number for a rover is quoting an answer to an
+under-specified question.</p>
+<p><strong>On real terrain.</strong> At Connecting Ridge (89.45° S, 222° E — an Artemis III
+candidate region), over a 5 km square of 10 m LOLA polar data:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Nominal soil</th>
+<th>Weak soil</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Passable area</td>
+<td>99.9 %</td>
+<td>90.9 %</td>
+</tr>
+<tr>
+<td>Cells where traction binds</td>
+<td>0.0 %</td>
+<td><strong>9.1 %</strong></td>
+</tr>
+<tr>
+<td>Optimal route length</td>
+<td>6.18 km</td>
+<td>7.60 km</td>
+</tr>
+<tr>
+<td>Traverse time</td>
+<td>10.3 h</td>
+<td>13.6 h</td>
+</tr>
+<tr>
+<td>Peak slope on route</td>
+<td>27.0°</td>
+<td>20.6°</td>
+</tr>
+<tr>
+<td>Cell overlap between the two routes</td>
+<td>—</td>
+<td><strong>2.3 %</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The soil model does not merely re-price the same route: at 2.3 % shared cells
+the two traverses are essentially different paths. A planner given only slope
+would have returned the 6.18 km route in both cases and certified 9 % of the
+map that the weak-soil vehicle cannot cross.</p>
+<p><em>Reproduce:</em> <code>python -m backend.analysis.terramechanics</code>,
+<code>python tests/test_traverse_polar.py</code></p>
+<p><strong>Re-measured 2026-08-11.</strong> These figures moved slightly — traction-bound
+cells 9.0 → 9.1 %, the weak-soil route 7.68 → 7.60 km — after a boundary
+defect was fixed in the slope operator (§3.11a). The conclusion is unchanged and
+the shift is smaller than the spread of the soil parameters themselves, but a
+published number that has changed is worth saying so about.</p>
+<p><strong>A note on how this was found.</strong> The first implementation bisected for the
+traction limit over <code>[0°, 45°]</code> and returned 45.0° for VIPER, LRV and every
+other rover whose limit lay above the bound — a search ceiling presented as a
+measurement. It survived because 45° is a plausible-looking number. The tell
+was two different vehicles reporting it identically. The suite now asserts that
+four rovers produce four distinct limits, which fails immediately if the bound
+is ever reintroduced.</p>
+<h3 id="33-hazard-risk-and-cost-must-be-three-quantities">3.3 Hazard, risk and cost must be three quantities</h3>
+<p>Collapsing traversability into one number leaves a planner unable to
+distinguish <em>illegal</em> from <em>merely unpleasant</em>. This system keeps:</p>
+<ul>
+<li><strong>hazard</strong> — a hard constraint; impassable cells carry infinite cost and are
+  excluded structurally, so no planner can be tuned into crossing one;</li>
+<li><strong>risk</strong> — a soft preference between legal routes, combined as independent
+  failure modes rather than averaged;</li>
+<li><strong>cost</strong> — the objective actually minimised.</li>
+</ul>
+<p>Safety scoring follows the same discipline: <strong>the peak cell governs, the mean
+is reported but excluded.</strong> A route that is gentle for 5 km and crosses one
+scarp is not safe, and averaging conceals precisely the cell that stops the
+vehicle. Terms multiply rather than sum, so each can veto the score alone —
+which is how a physical limit behaves.</p>
+<p>A first implementation multiplied by a slope-margin term <em>and</em> by risk, which
+already contains a slope component. Removing that double-count moved the same
+gentle ramp from 67.6 to its present 92.7 (development measurement; the
+current score is verified by <code>tests/test_planners.py</code>).</p>
+<p>The same ramp therefore read 21.6, then 67.6, then 92.7 as two independent
+double-counts were removed — from the roughness definition (§3.1) and from the
+score itself. Neither bug was visible as an error; each simply produced a
+pessimistic number that looked reasonable. That is the argument for stating
+what each term means before combining terms.</p>
+<h3 id="34-as-efficiency-advantage-does-not-survive-strongly-weighted-terrain">3.4 A*'s efficiency advantage does not survive strongly-weighted terrain</h3>
+<p>An admissible heuristic must assume the cheapest cost found anywhere on the
+map. Where cell costs span a wide range — as they do on any real hazard
+surface, because risk <em>multiplies</em> cost — that bound becomes loose and guides
+the search poorly.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Terrain</th>
+<th>Cost spread</th>
+<th>Dijkstra</th>
+<th>A*</th>
+<th>Saving</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uniform cost</td>
+<td>1×</td>
+<td>880</td>
+<td>26</td>
+<td><strong>97 %</strong></td>
+</tr>
+<tr>
+<td>Random weighted</td>
+<td>12×</td>
+<td>1 508</td>
+<td>1 496</td>
+<td><strong>1 %</strong></td>
+</tr>
+<tr>
+<td>Crater field (Tycho highlands)</td>
+<td>2.1×</td>
+<td>987</td>
+<td>381</td>
+<td><strong>61 %</strong></td>
+</tr>
+<tr>
+<td>Open mare (Serenitatis)</td>
+<td>2.9×</td>
+<td>1 272</td>
+<td>769</td>
+<td><strong>40 %</strong></td>
+</tr>
+<tr>
+<td>Highland, sustained slope</td>
+<td>2.7×</td>
+<td>1 375</td>
+<td>772</td>
+<td><strong>44 %</strong></td>
+</tr>
+<tr>
+<td>Connecting Ridge, 10 m LOLA</td>
+<td>7.8×</td>
+<td>58 132</td>
+<td>43 150</td>
+<td><strong>26 %</strong></td>
+</tr>
+<tr>
+<td>Crater-rim crossing</td>
+<td>5.8×</td>
+<td>959</td>
+<td>838</td>
+<td><strong>13 %</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Five real sites now, not one. The saving ranges from <strong>61 % to 13 %</strong> and never
+approaches the 97 % of a uniform grid.</p>
+<p>The saving is not a simple function of spread — the random grid has the <em>wider</em>
+spread and the <em>smaller</em> saving, and among the real sites the rim crossing
+(5.8×) saves less than the polar ridge (7.8×). Two things matter, and only one
+is usually discussed:</p>
+<ul>
+<li><strong>spread</strong>, which sets how loose the admissible bound is; and</li>
+<li><strong>spatial coherence</strong>, which sets whether cheap cells form usable corridors.
+  Real terrain has coherent low-cost ground following ridges and crater floors,
+  so the heuristic still points somewhere useful. Uncorrelated noise has cheap
+  cells scattered everywhere and nowhere, and the heuristic degenerates.</li>
+</ul>
+<p>The familiar claim that A* greatly outperforms Dijkstra derives from uniform
+or lightly-weighted grids. On real planetary hazard terrain the advantage is
+real but roughly a third of the textbook figure, and on synthetic random
+weights it nearly vanishes. Benchmarks on random grids are therefore not a
+guide to planetary performance in either direction.</p>
+<p><em>Reproduce:</em> <code>python tests/test_planners.py</code>,
+<code>python tests/test_traverse_polar.py</code></p>
+<h3 id="35-any-angle-planning-pays-on-real-terrain-and-costs-on-synthetic-terrain">3.5 Any-angle planning pays on real terrain and costs on synthetic terrain</h3>
+<p>Theta* is not confined to 45° headings, so it searches a strictly larger set of
+routes than a grid planner and its cost is not bounded below by the grid
+optimum. Whether it actually wins turns out to depend on how the terrain is
+structured, and the two cases point opposite ways:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Terrain</th>
+<th>Theta* vs grid optimum</th>
+<th>Cost spread</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Random weighted grid</td>
+<td><strong>+8.6 %</strong> (worse)</td>
+<td>12×</td>
+</tr>
+<tr>
+<td>Crater field (Tycho highlands)</td>
+<td><strong>−3.7 %</strong></td>
+<td>2.1×</td>
+</tr>
+<tr>
+<td>Open mare (Serenitatis)</td>
+<td><strong>−2.0 %</strong></td>
+<td>2.9×</td>
+</tr>
+<tr>
+<td>Crater-rim crossing</td>
+<td><strong>−1.8 %</strong></td>
+<td>5.8×</td>
+</tr>
+<tr>
+<td>Connecting Ridge, 10 m LOLA</td>
+<td><strong>−2.3 %</strong></td>
+<td>7.8×</td>
+</tr>
+<tr>
+<td>Highland, sustained slope</td>
+<td><strong>0.0 %</strong> (tie)</td>
+<td>2.7×</td>
+</tr>
+</tbody>
+</table></div>
+<p>Across five real sites Theta* is at or below the grid optimum every time,
+between 0 and 3.7 % cheaper. Only the synthetic random grid puts it <em>above</em>.
+That is one measurement repeated, not a coincidence.</p>
+<p>A straight chord across coherent terrain — a ridge crest, a crater floor —
+tends to stay on ground of the same character, so the shortcut is real. A chord
+across uncorrelated noise samples the cost distribution afresh and reverts to
+the mean, losing the grid path's ability to thread between expensive cells.</p>
+<p>The practical consequence is the 471 → 52 waypoint reduction at no cost
+penalty. A route a rover must actually execute as a sequence of commanded
+headings is nine times cheaper to represent, and each waypoint is a place the
+vehicle stops turning and starts driving.</p>
+<p><em>Reproduce:</em> <code>python tests/test_traverse_polar.py</code></p>
+<p><strong>Accounting note.</strong> This comparison is only meaningful if both routes are
+priced on the same terrain. Summing edge costs between consecutive waypoints —
+correct for a grid path, where they are adjacent — silently under-prices an
+any-angle path, because a chord spanning 200 cells averaged from its two
+endpoints ignores 198 of them. Segment costs are therefore integrated cell by
+cell along the chord. Without that correction Theta* appeared to beat the grid
+optimum partly by not being charged for the ground it crossed.</p>
+<h3 id="36-bounded-suboptimal-search-buys-three-orders-of-magnitude-for-a-few-per-cent">3.6 Bounded-suboptimal search buys three orders of magnitude for a few per cent</h3>
+<p>Weighted A* multiplies its heuristic by ε, trading a guaranteed optimality
+bound of ε for speed. The bound is usually quoted; the <em>curve</em> rarely is. On the
+Connecting Ridge cost surface:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>ε</th>
+<th>Cost vs optimal</th>
+<th>Expansions</th>
+<th>Fewer expansions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.00</td>
+<td>1.0000×</td>
+<td>43 150</td>
+<td>1×</td>
+</tr>
+<tr>
+<td>1.25</td>
+<td>1.0067×</td>
+<td>31 685</td>
+<td>1.4×</td>
+</tr>
+<tr>
+<td>1.50</td>
+<td>1.0190×</td>
+<td>9 374</td>
+<td><strong>4.6×</strong></td>
+</tr>
+<tr>
+<td>2.00</td>
+<td>1.0391×</td>
+<td>464</td>
+<td><strong>93×</strong></td>
+</tr>
+<tr>
+<td>2.50</td>
+<td>1.0589×</td>
+<td>186</td>
+<td><strong>232×</strong></td>
+</tr>
+<tr>
+<td>4.00</td>
+<td>1.0593×</td>
+<td>186</td>
+<td>232×</td>
+</tr>
+<tr>
+<td>8.00</td>
+<td>1.0593×</td>
+<td>186</td>
+<td>232×</td>
+</tr>
+</tbody>
+</table></div>
+<p>Three things fall out that a single ε could not show.</p>
+<p><strong>The trade is wildly asymmetric.</strong> At ε = 2.0 the route costs <strong>3.9 % more for
+93× fewer expansions</strong>. For a planner a human is waiting on, that is not a close
+call.</p>
+<p><strong>It saturates.</strong> Past ε ≈ 2.5 the search stops changing: identical cost and
+identical 186 expansions at ε = 2.5, 4 and 8. The heuristic is already dominant
+enough to drive straight at the goal, and raising ε further buys nothing. Any
+implementation offering ε as a free dial is offering a range that mostly does
+not exist.</p>
+<p><strong>Report expansions, not wall-clock.</strong> Two runs of this sweep on the same
+machine gave <em>identical</em> cost ratios and <em>identical</em> expansion counts, while
+the wall-clock speed-up at ε = 2.5 came out 456× once and 232× the other — a
+factor of two, from nothing but machine load. The earlier version of this table
+quoted the timing figures. Expansions are a property of the search; seconds are
+a property of the afternoon.</p>
+<p>The realised suboptimality is also far inside the guarantee — 5.9 % actual
+against a permitted 150 % at ε = 2.5. The bound is worst-case and, on this
+terrain, enormously pessimistic.</p>
+<h3 id="37-a-stochastic-planners-spread-is-the-argument-against-it">3.7 A stochastic planner's spread is the argument against it</h3>
+<p>RRT* was rejected in <code>ALGORITHMS.md</code> §4.2 on determinism grounds — a mission
+tool must give the same answer twice. That was an argument, not a measurement.
+Thirty seeded runs on each of five sites make it one:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Site</th>
+<th>Mean cost</th>
+<th>Best</th>
+<th>Worst</th>
+<th>σ</th>
+<th>Found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open mare</td>
+<td>1.081×</td>
+<td>0.965×</td>
+<td><strong>1.320×</strong></td>
+<td>0.108</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Crater field</td>
+<td>1.008×</td>
+<td>0.962×</td>
+<td>1.177×</td>
+<td>0.049</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Highland</td>
+<td>1.036×</td>
+<td>0.998×</td>
+<td>1.213×</td>
+<td>0.052</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Rim crossing</td>
+<td>1.023×</td>
+<td>0.968×</td>
+<td>1.232×</td>
+<td>0.065</td>
+<td>30/30</td>
+</tr>
+<tr>
+<td>Polar site, 10 m</td>
+<td>1.049×</td>
+<td>1.001×</td>
+<td>1.123×</td>
+<td>0.034</td>
+<td>30/30</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Completeness is not the problem</strong> — it found a route 150 times out of 150.
+The problem is that <em>which</em> route depends on the seed. On the open mare the
+same request returns anything from 3.5 % better than the grid optimum to <strong>32 %
+worse</strong>, and nothing in the output distinguishes the good run from the bad one.</p>
+<p>The variance is also largest where the terrain is <em>easiest</em> (open mare, σ =
+0.108) and smallest on the hardest site (polar, σ = 0.034). Gentle ground gives
+the sampler many nearly-equivalent routes and no gradient to prefer between
+them; constrained ground funnels every sample toward the same corridor. So the
+one regime where a planner could most afford to be sloppy is the one where a
+sampling method is least repeatable.</p>
+<p>Quoting a single run — as this project did before these thirty — would have
+reported any number between 0.965 and 1.320 as <em>the</em> result.</p>
+<h3 id="38-resolutionhazard-mismatch-quantified">3.8 Resolution–hazard mismatch, quantified</h3>
+<p>Rover-scale hazards are sub-pixel in every globally available product.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Hazard</th>
+<th>Size</th>
+<th>At 474 m/px</th>
+<th>At 10 m/px</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chassis-stopping boulder</td>
+<td>0.25 m</td>
+<td>0.00053 px</td>
+<td>0.025 px</td>
+</tr>
+<tr>
+<td>Wheel step limit</td>
+<td>0.25 m</td>
+<td>0.00053 px</td>
+<td>0.025 px</td>
+</tr>
+<tr>
+<td>Rover footprint</td>
+<td>2 m</td>
+<td>0.0042 px</td>
+<td>0.2 px</td>
+</tr>
+<tr>
+<td>Traverse decision</td>
+<td>10 m</td>
+<td>0.021 px</td>
+<td>1.0 px</td>
+</tr>
+</tbody>
+</table></div>
+<p>The system therefore refuses analysis below its resolution floor rather than
+returning a plausible number — a 0.4 km crater is declined with <em>"spans only
+0.8 cells at 474 m/px"</em>.</p>
+<h3 id="39-simple-cylindrical-grids-are-degenerate-at-the-poles">3.9 Simple-cylindrical grids are degenerate at the poles</h3>
+<p>East–west cell width scales with cos(φ) and collapses as meridians converge.
+Slope is rise ÷ run, so a vanishing run inflates gradient without bound.</p>
+<p><strong>At 89.65° S the LDEM_64 east–west cell is 2.8 m against 474 m at the
+equator, and the slope operator returns 89.6° on ground the 10 m polar
+stereographic product measures at 73.3°.</strong></p>
+<p>Polar slope computed on an equirectangular grid is an artefact of the
+projection. This is why the LOLA team publishes separate polar products, and
+why this system uses a distinct reader for them rather than a special case.</p>
+<p><em>Reproduce:</em> <code>python tests/test_hazard_real.py</code></p>
+<h3 id="310-shadow-based-boulder-metrology-fails-at-the-poles-in-principle">3.10 Shadow-based boulder metrology fails at the poles in principle</h3>
+<p>Boulder height from shadow length, <code>h = L·tan(90° − i)</code>, is standard. At polar
+incidence angles it becomes unusable — not through poor data, but because the
+sun never rises far enough.</p>
+<p>The two NAC scenes held here are both near-grazing — M101980409LC at
+i = 89.79° (sun 0.21° up) and M1410768185LC at i = 89.67° (sun 0.33° up), at
+0.51 m/px:</p>
+<ul>
+<li>a 1 m boulder casts a <strong>273 m</strong> shadow in the first scene and <strong>174 m</strong> in
+  the second, overlapping every other shadow in the frame, so a dark patch
+  cannot be attributed to a single rock;</li>
+<li>±2 px of shadow-length error → <strong>0.4 cm</strong> of height error — negligible, which
+  is the surprise: the measurement one would expect to dominate does not;</li>
+<li><strong>±0.1° of incidence error → 0.48 m of height error, 48 % of a 1 m boulder.</strong></li>
+</ul>
+<p>The entire error budget sits in the illumination geometry, not in the image.
+Sharper pixels cannot fix this; only a higher sun can.</p>
+<p>Boulder <em>width</em>, measured from the sunlit face, carries no such sensitivity.
+Height by shadow requires 50–80° incidence, which does not occur at the poles.</p>
+<hr />
+<h3 id="311-defects-found-by-testing-claims-rather-than-code">3.11 Defects found by testing claims rather than code</h3>
+<p>Every finding above was reached by measurement, which means a defect in the
+measuring apparatus is a defect in the finding. Two were found this way and are
+recorded because the numbers in §3 moved when they were fixed.</p>
+<p><strong>3.11a — slope was halved around every window edge.</strong></p>
+<p>A 3×3 finite-difference operator at the boundary of an array has no neighbour
+outside it. With <code>mode="nearest"</code> the edge row is duplicated, the difference
+across it is taken over half the true distance, and the reported gradient is
+<strong>half the real one</strong>.</p>
+<p>Measured on a constant 5.7106° ramp: interior <strong>5.7106°</strong>, first and last
+column <strong>2.8624°</strong>. On real polar terrain the border read <strong>0.90× the interior
+mean</strong>, across 1.62 % of cells.</p>
+<p>The fix is to read one cell of margin, differentiate, then trim — so every cell
+in the region of interest is computed with neighbours on all four sides. The
+margin now lives inside <code>analyse_traversability</code> rather than in its callers,
+because two of the three callers had forgotten it, and those two were the ones
+producing published numbers.</p>
+<p><em>Reproduce:</em> <code>python tests/test_plan_service.py</code> — asserts a haloed ramp is
+uniform to its edge, <strong>and</strong> that the untrimmed version would be wrong.</p>
+<p><strong>3.11b — the projection-distortion guard inverted past the antipode.</strong></p>
+<p>Azimuthal equidistant stretches tangentially as <code>c / sin(c)</code>. Past the antipode
+(<code>c &gt; π</code>) that expression turns <strong>negative</strong>, so a guard using it to reject
+over-large regions reported a 10,818 km region as <em>less</em> distorted than a
+700 km one and admitted it — while correctly refusing a smaller 7,221 km one.</p>
+<p>The failure is silent and inverted: the check passes exactly the cases it
+exists to stop. It now returns infinity beyond the antipode, and regions are
+capped at <strong>2,603 km across</strong>, where distortion reaches 10 %.</p>
+<p><em>Reproduce:</em> <code>python -m backend.core.projection</code>.</p>
+<hr />
+<h2 id="4-datasets">4. Datasets</h2>
+<p>All source data is public-domain NASA, USGS, PDS or ISRO material. No dataset
+in this repository is original; the catalogues, DEMs and imagery are cited in
+<code>DATASETS.md</code> with producer, instrument, resolution and reference frame.</p>
+<p>The <strong>derived indexes</strong> (Robbins → memory-mapped array; IAU gazetteer → JSON;
+Robbins ↔ IAU spatial join) are transformations of published data, reproducible
+from the scripts in <code>scripts/</code>.</p>
+<hr />
+<h2 id="5-how-this-work-should-be-cited">5. How this work should be cited</h2>
+<p>If any of §3 is used, cite the finding rather than the software, and state the
+version. The claims are reproducible from a tagged commit; the code is a means
+of reproducing them, not the contribution itself.</p>
+<p>Inherited methods must retain their original citations — Bekker, Janosi &amp;
+Hanamoto, Wong &amp; Reece, Horn, Pike, Snyder, Dijkstra, Hart et al., Carrier et
+al. A reader should be able to reach the primary source for every equation
+without passing through this project.</p>
+<hr />
+<h2 id="6-revision-history">6. Revision history</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-08-09</td>
+<td>Baseline. 53 citations and 20 formulas inventoried and classified; seven original findings stated with reproduction commands.</td>
+</tr>
+<tr>
+<td>1.1</td>
+<td>2026-08-10</td>
+<td>Slip folded into the hazard cost surface; all findings re-measured on real Connecting Ridge terrain. §3.2 corrected — the earlier 45.0° gradeability was a search bound, not a result, and the finding is now that <em>which</em> constraint binds is soil-dependent. §3.5 added (any-angle planning). §3.4 extended with the real-terrain case, which contradicts the spread-only explanation. Two implementation defects found and fixed: any-angle path costs were averaged across chord endpoints rather than integrated, and D* Lite's queue removal was O(n).</td>
+</tr>
+</tbody>
+</table></div>
+      <div class="footer">
+        LunarSerpent documentation · generated from <code>docs/CONTRIBUTIONS.md</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){
+  var r=document.documentElement;
+  var cur=r.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  var next=cur==='dark'?'light':'dark';
+  r.setAttribute('data-theme',next);
+  try{localStorage.setItem('ls-theme',next);}catch(e){}
+}
+(function(){
+  try{var s=localStorage.getItem('ls-theme');
+      if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+})();
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+</body>
+</html>

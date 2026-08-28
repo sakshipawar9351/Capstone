@@ -136,20 +136,40 @@ rather than replanning from scratch.
 **Primary planner: A\*.** With a great-circle/$v_{\max}$ heuristic proved admissible *and*
 consistent in `FORMULAS.md` §9.1.
 
-**Post-process: cost-validated shortcut smoothing.** Candidate shortcuts between non-adjacent
-waypoints are accepted **only if the actual line-integrated cost along the shortcut is lower
-than the original sub-path.** This recovers most of the any-angle benefit *without* Theta\*'s
-false homogeneity assumption.
+**Post-process: cost-validated shortcut smoothing** (`planners.smooth_path`). Candidate
+shortcuts between non-adjacent waypoints are accepted **only if the actual line-integrated
+cost along the shortcut is lower than the original sub-path.** Because every accepted step
+strictly lowers the total, the smoothed route can never cost more than the input — A\*'s
+optimality guarantee survives the post-process. Theta\*'s line-of-sight test asks only whether
+a chord is *passable*; asking whether it is *cheaper* is what makes this safe on a weighted
+surface.
+
+> **Measured (§6.1).** This was claimed to recover "most of the any-angle benefit". It
+> recovers **28 %** of it — 0.55 percentage points of a 1.97 % gap. What it does deliver, and
+> what the original claim did not anticipate, is route *compactness*: **25 waypoints against
+> A\*'s 471 and Theta\*'s 52**, computed in 222 ms against Theta\*'s 5 636 ms. The case for the
+> post-process is that it is fast, halves the any-angle planner's waypoint count, and keeps
+> the optimality bound — not that it closes the cost gap.
 
 **Replanning: D\* Lite**, for the operational case of newly-discovered hazards.
 
 ### 4.2 Why A\* — five reasons, mapped to the problem's structure
 
-**1. The cost field is weighted, not binary.** This is the decisive point that eliminates the
-any-angle family as primary. Theta\*'s line-of-sight shortcut is optimal only when the terrain
-between two points is uniform. Here cost varies *continuously* with slope, roughness and
-crater proximity, so a straight shortcut can silently cross a hazard. A\* evaluates **every
-cell it traverses**, so the reported cost is the cost actually incurred.
+**1. The cost field is weighted, not binary.** Theta\*'s line-of-sight shortcut is optimal only
+when the terrain between two points is uniform. Here cost varies *continuously* with slope,
+roughness and crater proximity, so a straight shortcut can cross ground the grid path avoided.
+A\* evaluates **every cell it traverses**, so the reported cost is the cost actually incurred.
+
+> **Revised after measurement (§6.1).** This was stated as "the decisive point that
+> eliminates the any-angle family as primary". Measurement does not support that
+> strength. The implementation integrates cost cell-by-cell along every
+> line-of-sight segment, in the search *and* in the reported total, so a Theta\*
+> shortcut is charged for exactly the ground it crosses — the failure mode this
+> argument anticipated is prevented by accounting rather than by algorithm choice.
+> Measured, Theta\* returned a route **2.0 % cheaper** than the grid optimum with
+> 52 waypoints instead of 471. The remaining case for A\* as primary is optimality
+> *guarantee* (reason 2), not cost fidelity. Any-angle search is correspondingly
+> promoted from "comparison" to a live candidate pending scenarios 1–4.
 
 **2. Optimality is proved, not assumed.** With an admissible and consistent heuristic, A\*
 returns a provably minimum-cost path on the discretisation and never re-expands a node. For a
@@ -172,12 +192,17 @@ apples-to-apples rather than confounded by differing cost accounting.
 
 ### 4.3 Honest statement of A\*'s limitation
 
-A\* on an 8-connected grid inherits the discretisation penalty of up to **+8.24 %** in path
-length (`FORMULAS.md` §9.2). This is real and is **not concealed**: the benchmark reports A\*'s
-path length both before and after smoothing, and against Theta\* and Field D\* references. The
-selection rests on the argument that a *correctly-costed* path 8 % longer is preferable to a
-*shorter path whose cost is unverified* — and that smoothing recovers most of the difference
-anyway.
+A\* on an 8-connected grid inherits a discretisation penalty of up to **+8.24 %** in path
+length (`FORMULAS.md` §9.2) — the worst case, attained on a route that wants a heading the
+grid cannot express.
+
+**Measured on real terrain that penalty is +2.0 %, not +8.24 %** (§6.1). A hazard-avoiding
+route is nowhere near a straight line, so it rarely asks for the heading the worst case
+assumes. The original framing — that a correctly-costed path 8 % longer beats a shorter path
+whose cost is unverified — no longer describes the trade being made, because both routes are
+now costed the same way. What A\* actually buys over Theta\* here is the optimality
+*guarantee*: 2.0 % of cost, in exchange for a bound that holds by construction rather than
+by measurement on one site.
 
 ---
 
@@ -194,11 +219,12 @@ scientific practice and each serves a distinct purpose:
 | **Weighted A\*** | The quantified speed-vs-optimality curve as $\varepsilon$ varies |
 | **Theta\*** | A geometrically shorter path, and whether its cost is genuinely lower once integrated |
 | **RRT\*** | Run-to-run variance — showing directly why stochastic methods were rejected |
-| **Potential fields** | The local-minimum trap inside a crater — a concrete failure case |
 | **D\* Lite** | Repair cost when a new hazard appears mid-traverse |
+| *Potential fields* | *Not implemented* — the local-minimum trap is argued in §2.6, not demonstrated |
 
-Showing A\* alone would be an assertion. Showing all eight makes the selection an
-**empirical result**.
+Showing A\* alone would be an assertion. Showing all seven makes the selection an
+**empirical result** — and, as §6.1 records, measurement has already forced two of the
+selection's stated reasons to be revised.
 
 ---
 
@@ -241,6 +267,115 @@ same machine.
 is reported (path is identical by construction). Stochastic algorithms (RRT, RRT\*, PRM) are
 run **30×** with mean ± standard deviation on every metric — the variance is itself a
 reported result supporting §4.2 reason 3.
+
+### 6.1 Measured results — five scenarios, full protocol
+
+All five scenarios of §6 have now been run: wall-clock as the **median of five**,
+RRT\* over **thirty seeded runs** per site. Rover VIPER-class, Apollo-nominal
+regolith, γ = 2.0. Cost ratios are against the best guaranteed-optimal result.
+
+| Scenario | Grid | Cost spread | Dijkstra exp. | A\* exp. | **A\* saving** | Theta\* |
+|---|---|---|---|---|---|---|
+| 1 Open mare (Serenitatis) | 38×35 @ 474 m | 2.9× | 1 272 | 769 | **40 %** | 0.980× |
+| 2 Crater field (Tycho highlands) | 38×27 @ 474 m | 2.1× | 987 | 381 | **61 %** | 0.963× |
+| 3 Highland, sustained slope | 38×38 @ 474 m | 2.7× | 1 375 | 772 | **44 %** | 1.000× |
+| 4 Crater-rim crossing | 38×28 @ 474 m | 5.8× | 959 | 838 | **13 %** | 0.982× |
+| 5 Polar site (Connecting Ridge) | 246×245 @ 10 m | 7.8× | 58 132 | 43 150 | **26 %** | 0.977× |
+
+**Expansions, not seconds.** Two runs of this benchmark on the same machine gave
+identical costs and identical expansion counts while wall-clock speed-ups
+differed by a factor of two. Node expansions are a property of the search;
+seconds are a property of the machine's load at the time. Timings below are
+indicative only.
+
+#### What holds across all five
+
+**A\* is exactly optimal everywhere** — it matched Dijkstra's cost to
+floating-point equality at every site, as did D\* Lite. **BFS is the control**
+and pays for ignoring the cost surface: 1.11× on open mare, **1.37× on the rim
+crossing**, where the terrain it refuses to look at is precisely what matters.
+
+**The A\* advantage is terrain-dependent, between 61 % and 13 %** — never near
+the 97 % of a uniform grid. It is *not* a simple function of cost spread: the
+rim crossing (5.8×) saves less than the polar site (7.8×). Spread sets how loose
+the admissible bound is; spatial coherence sets whether cheap cells form usable
+corridors.
+
+**Theta\* is at or below the grid optimum at every real site** — between 0 and
+3.7 % cheaper — and above it only on a synthetic random grid. Five sites make
+that a result rather than a coincidence.
+
+#### Weighted A\*: the speed/optimality curve
+
+| ε | Cost ratio | Expansions | Fewer expansions |
+|---|---|---|---|
+| 1.00 | 1.0000× | 43 150 | 1× |
+| 1.25 | 1.0067× | 31 685 | 1.4× |
+| 1.50 | 1.0190× | 9 374 | 4.6× |
+| 2.00 | 1.0391× | 464 | **93×** |
+| 2.50 | 1.0589× | 186 | **232×** |
+| 4.00 | 1.0593× | 186 | 232× |
+| 8.00 | 1.0593× | 186 | 232× |
+
+**ε = 2.0 costs 3.9 % for 93× fewer expansions.** And the dial **saturates**
+past ε ≈ 2.5 — identical cost and identical expansions at 2.5, 4 and 8. Realised
+suboptimality is far inside the guarantee: 5.9 % actual against a permitted
+150 % at ε = 2.5.
+
+#### RRT\*: thirty runs per site
+
+| Site | Mean | Best | Worst | σ | Found |
+|---|---|---|---|---|---|
+| Open mare | 1.081× | 0.965× | **1.320×** | 0.108 | 30/30 |
+| Crater field | 1.008× | 0.962× | 1.177× | 0.049 | 30/30 |
+| Highland | 1.036× | 0.998× | 1.213× | 0.052 | 30/30 |
+| Rim crossing | 1.023× | 0.968× | 1.232× | 0.065 | 30/30 |
+| Polar site | 1.049× | 1.001× | 1.123× | 0.034 | 30/30 |
+
+It found a route **150 times out of 150** — completeness is not the objection.
+*Which* route depends on the seed: on open mare the same request returns between
+3.5 % better than the grid optimum and **32 % worse**, with nothing in the
+output to tell the good run from the bad. Variance is largest on the *easiest*
+terrain, where many near-equivalent routes exist and nothing chooses between
+them.
+
+#### Smoothing
+
+| Scenario | Waypoints | Cost |
+|---|---|---|
+| 1 Open mare | 33 → 7 | 0.985× |
+| 2 Crater field | 30 → 2 | 0.963× |
+| 3 Highland | 30 → 2 | 1.000× |
+| 4 Rim crossing | 33 → 5 | 0.987× |
+| 5 Polar site | **201 → 9** | 0.997× |
+
+Never more expensive — accepted only where the integrated chord is cheaper, so
+A\*'s optimality bound survives — and it collapses the waypoint count by 4× to
+22×. That compactness, not the cost, is what it buys.
+
+#### What this changes
+
+The §4 selection stands: **A\* with cost-validated smoothing**, optimal at every
+site with a route a rover can execute in a handful of headings.
+
+But **Weighted A\* at ε = 1.5–2.0 deserves promotion to a first-class option**
+rather than a "trade-off study". At 1.9–3.9 % cost for 4.6–93× fewer expansions
+it is the right default for interactive replanning, and §5's framing of it as a
+curiosity understates it.
+
+### 6.2 Outstanding
+
+Everything §6.2 previously listed has been run: all five scenarios, the ε sweep,
+RRT\* over thirty runs per site, and wall-clock as a median of five.
+
+What remains is not benchmark work:
+
+- **Field D\* and Lazy Theta\*** are surveyed in §2 but not implemented, so the
+  any-angle family is represented by Theta\* alone.
+- **Potential fields** is argued against in §2.6 rather than demonstrated
+  failing, which is weaker than the rest of this comparison.
+- Every site is LOLA-derived. A benchmark on one instrument's products cannot
+  separate a property of the terrain from a property of the gridding.
 
 ---
 
@@ -299,3 +434,5 @@ rather than assumes.
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-08-04 | Baseline. Eleven algorithms surveyed; A\* selected with cost-validated smoothing; benchmark protocol defined. Benchmark *results* will be appended once the engine is implemented. |
+| 1.2 | 2026-08-11 | Full benchmark protocol executed: all five scenarios, epsilon sweep, RRT\* over thirty seeded runs per site, wall-clock as a median of five. §6.1 replaced with measured results; §6.2 closed out. Three findings: the A\* advantage ranges 61 % to 13 % and is not a function of cost spread alone; Weighted A\* saturates past epsilon 2.5 and is promoted from trade-off study to a first-class option at 1.5-2.0; RRT\* found a route 150/150 times but returned anything from 0.965x to 1.320x optimal, with the *widest* spread on the *easiest* terrain. Timings are now reported as expansions rather than seconds — two runs on this machine gave identical expansions and wall-clock differing by 2x. |
+| 1.1 | 2026-08-10 | Seven algorithms implemented and benchmarked on real terrain (§6.1, Connecting Ridge, 10 m LOLA). Cost-validated smoothing implemented as `planners.smooth_path`. **Three claims in §4 revised because measurement contradicted them:** the weighted-cost argument no longer "eliminates the any-angle family" (§4.2 reason 1), the discretisation penalty is +2.0 % measured against +8.24 % theoretical (§4.3), and smoothing recovers 28 % of the any-angle gap rather than "most" of it (§4.1). §5 corrected from eight algorithms to seven — potential fields is argued, not implemented. §6.2 lists what remains before the selection can be called final. |
