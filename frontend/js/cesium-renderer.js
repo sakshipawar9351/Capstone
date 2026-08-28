@@ -734,14 +734,66 @@ export class CesiumRenderer {
    * highland. A blend would need the tileset re-textured through a custom
    * shader, which is a different piece of work.
    */
+  /**
+   * Terrain built from this project's own DEMs, at the correct datum.
+   *
+   * `CustomHeightmapTerrainProvider` asks for a lattice of heights per tile
+   * and builds the mesh itself, so the surface can come from the same
+   * products every measurement in this project comes from. The server picks
+   * the finest local source per tile, which is why one globe carries 2 m over
+   * the Apollo 15 NAC strip, 10 m near the south pole and 473.8 m elsewhere
+   * with no seam handling here: every tile asks the same question.
+   *
+   * Coarser than the ion tileset almost everywhere, and correct. The tileset
+   * was measured at +1,789 m against LOLA; this is LOLA.
+   */
+  async _scienceTerrain() {
+    const C = this.C;
+    if (this._sciTerrain) return this._sciTerrain;
+    const tilingScheme = new C.GeographicTilingScheme({
+      ellipsoid: C.Ellipsoid.MOON,
+    });
+    this._sciTerrain = new C.CustomHeightmapTerrainProvider({
+      width: 65, height: 65,
+      tilingScheme,
+      ellipsoid: C.Ellipsoid.MOON,
+      callback: async (x, y, level) => {
+        try {
+          const r = await fetch(
+            `/api/v1/terrain/tile?x=${x}&y=${y}&level=${level}&width=65&height=65`);
+          // Returning undefined tells Cesium this tile has nothing and stops
+          // it refining further here, which is the honest answer where no
+          // product covers the ground.
+          if (!r.ok) return undefined;
+          return new Float32Array(await r.arrayBuffer());
+        } catch {
+          return undefined;
+        }
+      },
+    });
+    return this._sciTerrain;
+  }
+
   async setSurface(mode = 'relief') {
-    this.surfaceMode = mode === 'imagery' ? 'imagery' : 'relief';
+    const known = ['relief', 'imagery', 'science'];
+    this.surfaceMode = known.includes(mode) ? mode : 'relief';
     const scene = this.viewer?.scene;
     if (!scene) return;
-    const wantImagery = this.surfaceMode === 'imagery';
-    if (wantImagery && !this._imageryLayer) await this.setBasemap(this._basemapKey);
-    try { scene.globe.show = wantImagery; } catch { /* older builds */ }
-    if (this.tileset) this.tileset.show = !wantImagery;
+    const onGlobe = this.surfaceMode !== 'relief';
+    if (onGlobe && !this._imageryLayer) await this.setBasemap(this._basemapKey);
+
+    // Terrain is a property of the globe, so it only changes when the globe is
+    // what draws. Switching back to relief leaves the provider in place rather
+    // than tearing it down, so returning to science mode does not re-fetch
+    // every tile.
+    if (this.surfaceMode === 'science') {
+      this.viewer.terrainProvider = await this._scienceTerrain();
+    } else if (onGlobe) {
+      this.viewer.terrainProvider = new this.C.EllipsoidTerrainProvider();
+    }
+
+    try { scene.globe.show = onGlobe; } catch { /* older builds */ }
+    if (this.tileset) this.tileset.show = !onGlobe;
     scene.requestRender?.();
   }
 

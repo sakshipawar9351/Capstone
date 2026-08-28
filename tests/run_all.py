@@ -48,6 +48,7 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("region surface mesh",     ["tests/test_terrain3d_api.py"],      False),
     ("tile cache budget",       ["tests/test_tile_cache.py"],         False),
     ("Cesium datum vs LOLA",    ["tests/test_cesium_datum.py"],       False),
+    ("Cesium terrain tiles",    ["tests/test_terrain_tile.py"],       False),
     ("cross-product registration", ["tests/test_registration.py"],    False),
     ("polar DEM",               ["tests/test_polar_dem.py"],          False),
     ("hazard on real terrain",  ["tests/test_hazard_real.py"],        False),

@@ -419,9 +419,9 @@ check("it uses the Moon's tiling scheme, not Earth's",
 check("the imagery layer is capped at the product's own depth",
       "maximumLevel" in cesium_js,
       "past a layer's last level every tile 404s and the globe goes black")
-check("relief and imagery are exclusive, not stacked",
-      "this.tileset.show = !wantImagery" in cesium_js,
-      "a sphere and a relief mesh drawn together intersect")
+check("the tileset and the globe are exclusive, not stacked",
+      "this.tileset.show = !onGlobe" in cesium_js,
+      "two surfaces drawn together intersect at every basin and highland")
 check("the surface toggle is wired",
       "toggleSurface" in main and "btn-surface" in html)
 check("it only appears on the renderer where it means something",
@@ -429,6 +429,15 @@ check("it only appears on the renderer where it means something",
 check("the provenance card follows the surface actually drawn",
       "surfaceMode === 'imagery'" in main and "do not measure" in main,
       "citing the tileset while showing our basemap is the wrong source")
+check("a third surface draws terrain from our own DEMs",
+      "_scienceTerrain" in cesium_js
+      and "CustomHeightmapTerrainProvider" in cesium_js,
+      "the ion tileset is not the only way to draw topography")
+check("that mode declares a citable source, not 'not published'",
+      "citable" in main and "finest local per tile" in main)
+check("a tile with no product returns undefined rather than a fake height",
+      "return undefined" in cesium_js,
+      "Cesium then stops refining instead of inventing ground")
 check("and the tileset's measured datum error is on screen",
       "+1.8 km vs LOLA" in main,
       "240 samples put it 1,789 m above LOLA on average")

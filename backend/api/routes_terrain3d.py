@@ -178,3 +178,136 @@ def aoi_mesh(
 # slides off the terrain by up to one tile. Wrapping it would have meant
 # either passing that subtlety through a second time or hiding it, and hiding
 # it is how imagery ends up confidently misregistered.
+
+
+class _SpecOnly:
+    """The one attribute `_open_source` needs, without planning a region."""
+
+    def __init__(self, spec):
+        self.source = spec
+
+
+def _tile_source(south, north, west, east):
+    """Finest product on disk that covers this tile, or None.
+
+    Streamed sources are excluded: a camera pulls tiles continuously and a
+    45 s fetch per tile would stall the view rather than sharpen it.
+    """
+    from ..core.aoi import SOURCES, _covers
+
+    ok = [s for s in SOURCES.values()
+          if not s.streamed and s.validated and s.available
+          and _covers(s, south, north, west, east)]
+    return min(ok, key=lambda s: s.cell_m) if ok else None
+
+
+# ---------------------------------------------------------------------------
+# Terrain tiles for Cesium
+# ---------------------------------------------------------------------------
+
+@router.get("/terrain/tile")
+def terrain_tile(
+    x: int = Query(..., ge=0),
+    y: int = Query(..., ge=0),
+    level: int = Query(..., ge=0, le=18),
+    width: int = Query(65, ge=17, le=129),
+    height: int = Query(65, ge=17, le=129),
+) -> Response:
+    r"""One heightmap tile, from the finest local product covering it.
+
+    Cesium's ``CustomHeightmapTerrainProvider`` asks for a rectangular lattice
+    of heights per tile and builds the surface itself. That makes it possible
+    to give the Terrain globe topography this project can actually stand
+    behind, instead of the ion tileset — which was measured at +1,789 m against
+    LOLA over 240 samples, and reads +234 m at the Apollo 15 site where LOLA
+    and the LROC NAC stereo DTM agree on -1924 m to within a metre.
+
+    The trade is honest and worth stating: the ion mesh carries 83 m geometric
+    detail and is a kilometre and a half out; this is coarser almost
+    everywhere and correct. For a picture the first is prettier. For anything
+    with a number attached, only the second is usable.
+
+    Resolution is per tile rather than global. ``plan_aoi`` picks the finest
+    *local* product covering each rectangle, so the same globe draws 2 m over
+    the Apollo 15 NAC strip, 10 m near the south pole and 473.8 m across the
+    rest of the Moon — each region at the best topography actually held for it,
+    with no seams to manage because every tile is asked the same question.
+
+    Streamed sources are excluded deliberately. A camera demands tiles
+    continuously and a 45 s fetch would stall the view; ``finest`` stays off so
+    only what is on disk is eligible.
+    """
+    import numpy as np
+
+    from ..core.aoi_window import _bilinear, _open_source
+
+    # Cesium's GeographicTilingScheme: 2^(level+1) columns by 2^level rows over
+    # the whole sphere, x eastward from -180, y southward from +90.
+    cols, rows = 2 ** (level + 1), 2 ** level
+    if x >= cols or y >= rows:
+        raise HTTPException(422, f"tile {x}/{y} is outside level {level} "
+                                 f"({cols}x{rows})")
+    west = -180.0 + 360.0 * x / cols
+    east = -180.0 + 360.0 * (x + 1) / cols
+    north = 90.0 - 180.0 * y / rows
+    south = 90.0 - 180.0 * (y + 1) / rows
+
+    # Source selection only — deliberately not `plan_aoi`.
+    #
+    # A terrain tile is a lat/lon rectangle, and at low levels it is a whole
+    # hemisphere. `plan_aoi` would refuse that, correctly: it plans an analysis
+    # region on an azimuthal projection whose square-cell premise fails past
+    # about 1,300 km. None of that applies here, because nothing is being
+    # measured — the samples are read straight off the source's own grid.
+    spec = _tile_source(max(south, -89.999), min(north, 89.999),
+                        west % 360.0, east % 360.0)
+    if spec is None:
+        raise HTTPException(422, "no local product covers this tile")
+    try:
+        src = _open_source(_SpecOnly(spec))
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(422, str(e)) from e
+
+    lats = np.linspace(north, south, height, dtype=np.float64)
+    lons = np.linspace(west, east, width, dtype=np.float64)
+    glat, glon = np.meshgrid(lats, lons % 360.0, indexing="ij")
+
+    sr, sc = src.rowcol(glat, glon)
+    sr = np.asarray(sr, dtype=np.float64)
+    sc = np.asarray(sc, dtype=np.float64)
+
+    r0 = max(int(np.floor(np.nanmin(sr))) - 2, 0)
+    r1 = min(int(np.ceil(np.nanmax(sr))) + 3, src.height)
+    if getattr(src, "wraps", False):
+        # A tile spanning the seam has columns at both ends of the grid. Read
+        # the whole row span rather than two blocks: at these tile sizes it is
+        # a few thousand columns, and the alternative is seam-handling code
+        # that would be exercised on one tile in every 2^(level+1).
+        c0, c1 = 0, src.width
+    else:
+        c0 = max(int(np.floor(np.nanmin(sc))) - 2, 0)
+        c1 = min(int(np.ceil(np.nanmax(sc))) + 3, src.width)
+
+    block = src.read(r0, r1, c0, c1)
+    if block.size == 0:
+        raise HTTPException(422, "no data for this tile")
+
+    grid = _bilinear(block, sr - r0, sc - c0)
+    # Cesium cannot render NaN. Unmeasured ground becomes the reference sphere,
+    # which is flat and obviously featureless rather than a spike or a hole.
+    grid = np.nan_to_num(grid, nan=0.0, posinf=0.0, neginf=0.0)
+    out = np.ascontiguousarray(grid, dtype="<f4")
+
+    return Response(
+        content=out.tobytes(),
+        media_type="application/octet-stream",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "X-Width": str(width), "X-Height": str(height),
+            "X-Source": spec.product_id,
+            "X-Cell-M": f"{spec.cell_m:.2f}",
+            "X-Bounds": f"{south:.6f},{north:.6f},{west:.6f},{east:.6f}",
+            "Access-Control-Expose-Headers":
+                "X-Width,X-Height,X-Source,X-Cell-M,X-Bounds",
+        },
+    )

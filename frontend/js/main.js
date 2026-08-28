@@ -863,7 +863,13 @@ function updateProvenance() {
       ? (s.geometricError < 1000 ? `${s.geometricError.toFixed(0)} m`
                                  : `${(s.geometricError / 1000).toFixed(1)} km`)
       : 'streaming…';
-    if (cesium?.surfaceMode === 'imagery') {
+    if (cesium?.surfaceMode === 'science') {
+      const b = state.basemaps.find((x) => x.key === state.basemap);
+      $('pv-surface').textContent =
+        `${b?.title || state.basemap} · ${b?.served_m_px ?? '?'} m/px`;
+      $('pv-shape').textContent =
+        'LOLA terrain · finest local per tile · citable';
+    } else if (cesium?.surfaceMode === 'imagery') {
       const b = state.basemaps.find((x) => x.key === state.basemap);
       $('pv-surface').textContent =
         `${b?.title || state.basemap} · ${b?.served_m_px ?? '?'} m/px`;
@@ -1693,16 +1699,22 @@ async function buildHiResMenu() {
  */
 async function toggleSurface() {
   if (state.renderer !== 'cesium' || !cesium) return;
-  const next = cesium.surfaceMode === 'imagery' ? 'relief' : 'imagery';
+  // relief -> science -> imagery -> relief. Science sits next to relief on
+  // purpose: they are the two that draw topography, and the interesting
+  // comparison is between them.
+  const order = ['relief', 'science', 'imagery'];
+  const next = order[(order.indexOf(cesium.surfaceMode || 'relief') + 1) % 3];
   const b = state.basemaps.find((x) => x.key === state.basemap);
-  if (next === 'imagery') {
-    await cesium.setBasemap(state.basemap, b?.max_zoom ?? 8);
-  }
+  if (next !== 'relief') await cesium.setBasemap(state.basemap, b?.max_zoom ?? 8);
   await cesium.setSurface(next);
   syncSurfaceButton();
-  say(next === 'imagery'
-    ? `${b?.title || state.basemap} at ${b?.served_m_px ?? '?'} m/px — sphere, no relief.`
-    : '3D Tiles relief — 83 m imagery baked in.');
+  const bm = `${b?.title || state.basemap} at ${b?.served_m_px ?? '?'} m/px`;
+  say({
+    relief:  '3D Tiles relief — 83 m imagery, +1.8 km vs LOLA. View only.',
+    science: `LOLA terrain at the correct datum, ${bm}. 2 m at Apollo 15, `
+             + '10 m at the south pole, 473.8 m elsewhere.',
+    imagery: `${bm} — sphere, no relief.`,
+  }[next]);
   updateProvenance?.();
 }
 
@@ -1712,9 +1724,9 @@ function syncSurfaceButton() {
   const on = state.renderer === 'cesium';
   btn.hidden = !on;
   if (!on) return;
-  const imagery = cesium?.surfaceMode === 'imagery';
-  btn.textContent = imagery ? 'Imagery' : 'Relief';
-  btn.classList.toggle('on', imagery);
+  const m = cesium?.surfaceMode || 'relief';
+  btn.textContent = { relief: 'Relief', science: 'Science', imagery: 'Imagery' }[m];
+  btn.classList.toggle('on', m !== 'relief');
 }
 
 /** Ask what the region can support, and show it before anything is computed. */
