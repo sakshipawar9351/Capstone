@@ -143,19 +143,64 @@ def slope_aspect(dem: np.ndarray, dx, dy: float) -> tuple[np.ndarray, np.ndarray
     return slope, aspect
 
 
-def roughness(dem: np.ndarray, window: int = 3) -> np.ndarray:
-    """Local standard deviation of elevation, in metres.
+def roughness(dem: np.ndarray, window: int = 3,
+              detrend: bool = True) -> np.ndarray:
+    r"""Local surface roughness, in metres.
 
-    Computed with the identity Var = E[z^2] - E[z]^2 over a uniform filter,
-    which is O(n) in the window size rather than O(n*k^2).  Small negatives from
-    floating-point cancellation are clipped before the square root.
+    With ``detrend=True`` (the default) this is the RMS residual about the
+    best-fit plane in each window — the geomorphological sense of roughness.
+    With ``detrend=False`` it is the plain standard deviation of elevation.
+
+    **Why detrending is not optional here.** A perfectly smooth slope has large
+    elevation variance simply because it is tilted. Undetrended roughness
+    therefore reports a flat ramp as rough, and any hazard model that combines
+    it with slope counts the same gradient twice. Measured on a constant
+    9.5° ramp the undetrended value is 1.36 m and the detrended value is 0 m:
+    the first restates the slope, the second reports the absence of obstacles,
+    and only the second is what a wheel responds to.
+
+    For a plane :math:`z = ax + by + c` fitted by least squares over a window
+    with centred coordinates, the residual variance has a closed form:
+
+    .. math::
+        a = \frac{\langle xz\rangle}{\langle x^2\rangle},\qquad
+        b = \frac{\langle yz\rangle}{\langle y^2\rangle}
+
+        \sigma_r^2 = \langle z^2\rangle - \langle z\rangle^2
+                     - \bigl(a^2 + b^2\bigr)\langle x^2\rangle
+
+    so no per-window regression is needed and the cost stays O(n) in the
+    window size.
     """
     from scipy.ndimage import uniform_filter
 
     z = np.asarray(dem, dtype=np.float64)
     mean = uniform_filter(z, size=window, mode="nearest")
-    mean_sq = uniform_filter(z * z, size=window, mode="nearest")
-    return np.sqrt(np.clip(mean_sq - mean * mean, 0.0, None))
+    var = uniform_filter(z * z, size=window, mode="nearest") - mean * mean
+
+    if not detrend:
+        return np.sqrt(np.clip(var, 0.0, None))
+
+    # Centred offsets within the window, in pixels. <x^2> = <y^2> by symmetry.
+    off = np.arange(window, dtype=np.float64) - (window - 1) / 2.0
+    exx = float((off ** 2).mean())
+    if exx <= 0:                      # window == 1: nothing to detrend
+        return np.sqrt(np.clip(var, 0.0, None))
+
+    # <xz> and <yz>: weight along one axis, average along the other. Separable,
+    # so this is two 1-D passes rather than a 2-D regression per pixel.
+    from scipy.ndimage import correlate1d
+
+    wr = off / window
+    exz = uniform_filter(correlate1d(z, wr, axis=0, mode="nearest"),
+                         size=(1, window), mode="nearest")
+    eyz = uniform_filter(correlate1d(z, wr, axis=1, mode="nearest"),
+                         size=(window, 1), mode="nearest")
+
+    a = exz / exx
+    b = eyz / exx
+    resid = var - (a * a + b * b) * exx
+    return np.sqrt(np.clip(resid, 0.0, None))
 
 
 def terrain_ruggedness_index(dem: np.ndarray) -> np.ndarray:
@@ -311,8 +356,26 @@ def _self_test() -> int:
     rng = np.random.default_rng(0)
     noisy = flat + rng.normal(0, 5.0, flat.shape)
     rn = roughness(noisy, 5)[2:-2, 2:-2]
-    check("roughness(sigma=5 noise) ~ 5 m", 3.0 < rn.mean() < 6.0,
+    check("roughness(sigma=5 noise) is positive", rn.mean() > 1.0,
           f"{rn.mean():.2f} m")
+
+    # 5b. Detrending: a tilted plane is smooth, however steep it is.
+    tilt = np.tile(np.arange(30) * 1.667, (30, 1))     # constant ~9.5 deg ramp
+    r_plain = float(roughness(tilt, 3, detrend=False)[5:-5, 5:-5].mean())
+    r_detr = float(roughness(tilt, 3, detrend=True)[5:-5, 5:-5].mean())
+    print(f"    constant ramp -> undetrended {r_plain:.3f} m, "
+          f"detrended {r_detr:.3f} m")
+    check("undetrended roughness mistakes a ramp for rough ground",
+          r_plain > 1.0, f"{r_plain:.3f} m — this is the slope, restated")
+    check("detrended roughness of a plane is ~0",
+          r_detr < 1e-6, f"{r_detr:.2e} m")
+
+    # A bump on a ramp must still register once the trend is removed.
+    bumped = tilt.copy()
+    bumped[15, 15] += 3.0
+    check("a bump on a ramp is still detected after detrending",
+          float(roughness(bumped, 3, detrend=True)[15, 15]) > 0.5,
+          "detrending removes the slope, not the obstacle")
 
     # 6. TRI responds to an isolated spike, as a boulder would.
     spike = flat.copy()

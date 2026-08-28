@@ -6,6 +6,7 @@ What this module produces
 From an elevation window it derives four rasters:
 
 ``slope``        gradient magnitude in degrees, at the grid's own baseline
+``slip``         wheel slip demanded by that grade, from the terramechanics model
 ``hazard``       a categorical verdict per cell, from a rover's mobility limits
 ``risk``         a continuous 0-1 score combining slope, roughness and margin
 ``cost``         seconds to cross a cell, which is what a planner minimises
@@ -15,6 +16,21 @@ to a VIPER-class rover whatever else is true. Risk is a soft preference, letting
 a planner choose between two legal routes. Cost is the objective function.
 Collapsing them into one number would make the planner unable to distinguish
 "illegal" from "merely unpleasant".
+
+Traction and geometry are separate constraints
+----------------------------------------------
+A cell can be unsafe two ways: the vehicle tips over, or its wheels turn without
+advancing. These are different mechanisms with different limits, and which one
+binds depends on the regolith — on Apollo-nominal soil geometry binds, on the
+weak Chang'e-4 bound traction binds well below it (see ``CONTRIBUTIONS.md``
+§3.2). Both are therefore evaluated, and the worse verdict governs.
+
+They are *not* combined as independent probabilities. Slip is a function of
+slope, so multiplying a slip term by a slope term would count the same gradient
+twice — the error corrected in ``CONTRIBUTIONS.md`` §3.1 and §3.3. Instead the
+two slope-derived terms are reduced by ``max`` (the binding constraint governs)
+and only then combined with roughness, which after detrending is genuinely
+independent of slope.
 
 Scale
 -----
@@ -45,10 +61,13 @@ import numpy as np
 from ..config import G_MOON, ROVER_PROFILES, RoverProfile
 from .terrain import roughness as _roughness
 from .terrain import slope_aspect, terrain_ruggedness_index
+from .terramechanics import (LUNAR_REGOLITH, SLIP_ELEVATED, SLIP_NOMINAL,
+                             SLIP_SEVERE, SOIL_MODELS, SlipTable, SoilModel,
+                             slip_table)
 
 __all__ = [
     "HazardClass", "HAZARD_CLASSES", "TraversabilityMap",
-    "analyse_traversability",
+    "analyse_traversability", "classify_traction",
 ]
 
 
@@ -96,17 +115,41 @@ class TraversabilityMap:
     aspect_deg: np.ndarray
     roughness_m: np.ndarray
     tri_m: np.ndarray
-    hazard: np.ndarray            # int8, HazardClass.code
+    slip: np.ndarray              # float, 0-1, wheel slip demanded by the grade
+    hazard: np.ndarray            # int8, HazardClass.code — worse of the two
+    hazard_geometric: np.ndarray  # int8, from slope alone
+    hazard_traction: np.ndarray   # int8, from slip alone
     risk: np.ndarray              # float, 0-1
     cost_s: np.ndarray            # seconds to traverse one cell
-    speed_ms: np.ndarray          # achievable speed per cell
+    speed_ms: np.ndarray          # achievable speed per cell, after slip losses
 
     baseline_m: float
     rover: RoverProfile
+    soil: SoilModel
     risk_aversion: float
     valid: np.ndarray             # cells with usable elevation
 
     warnings: list[str] = field(default_factory=list)
+
+    # -- which constraint is doing the work ------------------------------
+
+    def binding_constraint(self) -> dict:
+        """How often traction, geometry or neither is the limiting effect.
+
+        Reported because it is the difference between a route that can be
+        improved by choosing firmer ground and one that cannot.
+        """
+        v = self.valid
+        tot = int(v.sum())
+        if tot == 0:
+            return {"traction": 0.0, "geometry": 0.0, "neither": 0.0}
+        trac = (self.hazard_traction > self.hazard_geometric) & v
+        geom = (self.hazard_geometric > self.hazard_traction) & v
+        return {
+            "traction": round(float(trac.sum()) / tot, 5),
+            "geometry": round(float(geom.sum()) / tot, 5),
+            "neither": round(float(tot - trac.sum() - geom.sum()) / tot, 5),
+        }
 
     # -- summaries -------------------------------------------------------
 
@@ -124,9 +167,11 @@ class TraversabilityMap:
         s = self.slope_deg[self.valid]
         r = self.risk[self.valid]
         passable = self.hazard < HAZARD_CLASSES[-1].code
+        sl = self.slip[self.valid]
         return {
             "baseline_m": round(self.baseline_m, 3),
             "rover": self.rover.key,
+            "soil": self.soil.name,
             "risk_aversion": self.risk_aversion,
             "cells": int(self.valid.size),
             "valid_cells": int(self.valid.sum()),
@@ -137,6 +182,11 @@ class TraversabilityMap:
                 "p99": round(float(np.percentile(s, 99)), 3),
                 "max": round(float(s.max()), 3),
             },
+            "slip": {
+                "mean": round(float(sl.mean()), 4),
+                "p90": round(float(np.percentile(sl, 90)), 4),
+                "max": round(float(sl.max()), 4),
+            },
             "risk": {
                 "mean": round(float(r.mean()), 4),
                 "p90": round(float(np.percentile(r, 90)), 4),
@@ -144,6 +194,7 @@ class TraversabilityMap:
             "passable_fraction": round(
                 float((passable & self.valid).sum() / max(self.valid.sum(), 1)), 5),
             "classes": self.class_fractions(),
+            "binding_constraint": self.binding_constraint(),
             "warnings": self.warnings,
         }
 
@@ -194,7 +245,7 @@ def achievable_speed(slope_deg, rover: RoverProfile) -> np.ndarray:
 
 
 def classify_hazard(slope_deg, valid, rover: RoverProfile) -> np.ndarray:
-    """Assign each cell a hazard class from the rover's own limits."""
+    """Geometric hazard class, from the rover's own slope limits."""
     s = np.asarray(slope_deg, dtype=np.float64)
     lim = rover.max_slope_deg
     tip = rover.tip_over_slope_deg
@@ -208,29 +259,69 @@ def classify_hazard(slope_deg, valid, rover: RoverProfile) -> np.ndarray:
     return out
 
 
-def compute_risk(slope_deg, roughness_m, valid, rover: RoverProfile) -> np.ndarray:
+def classify_traction(slip, valid) -> np.ndarray:
+    """Hazard class from wheel slip alone, on the same 0-4 scale.
+
+    The boundaries are the operational slip regimes rather than fractions of a
+    vehicle limit, because slip is already normalised: 20 % is routine on any
+    rover, and 60 % is an abort on any rover. That is why these thresholds are
+    absolute where the geometric ones are relative.
+    """
+    i = np.asarray(slip, dtype=np.float64)
+    out = np.full(i.shape, HAZARD_CLASSES[0].code, dtype=np.int8)
+    out[i >= SLIP_NOMINAL] = 1                              # caution
+    out[i >= 0.5 * (SLIP_NOMINAL + SLIP_ELEVATED)] = 2      # marginal, 30 %
+    out[i >= SLIP_ELEVATED] = 3                             # hazard
+    out[i >= SLIP_SEVERE] = 4                               # impassable
+    out[~valid] = 4
+    return out
+
+
+def compute_risk(slope_deg, roughness_m, valid, rover: RoverProfile,
+                 slip=None) -> np.ndarray:
     r"""Continuous 0-1 hazard likelihood.
 
     .. math::
-        R = 1 - (1 - r_\text{slope})(1 - r_\text{rough})
+        r_\text{grade} = \max(r_\text{stability},\; r_\text{traction})
+        \qquad
+        R = 1 - (1 - r_\text{grade})(1 - r_\text{rough})
 
-    Combining the terms this way — rather than averaging — treats them as
-    independent ways to get stuck: a cell that is safe on slope but rough is
-    still risky, and averaging would dilute that. The form is the standard
-    probability of at least one of two independent events.
+    Two reductions, deliberately different, because the terms are not alike.
 
-    The slope term is squared because consequence grows faster than angle:
-    twice the grade is much more than twice the hazard once wheels begin to
-    slip. The roughness term is scaled by ground clearance, since a boulder
-    field matters relative to what the chassis can straddle.
+    **Stability and traction are reduced by max.** Both are driven by slope, so
+    they are strongly correlated; combining them probabilistically would count
+    the same gradient twice. Taking the worse of the two states the binding
+    constraint, which is what an operator needs — and it matches the
+    worst-cell rule used in path scoring.
+
+    **Grade and roughness are combined probabilistically**, as the chance of at
+    least one of two independent events. Independence holds here only because
+    roughness is *detrended*: raw elevation variance on sloping ground is
+    largely the slope restated, and multiplying that by a slope term would
+    reintroduce the double-count this form exists to avoid.
+
+    The stability term is squared because consequence grows faster than angle.
+    The traction term is measured from the routine-slip threshold rather than
+    from zero, since about 1 % slip occurs on flat ground and calling that a
+    risk would make level terrain look hazardous. The roughness term is scaled
+    by ground clearance, since a boulder field matters relative to what the
+    chassis can straddle.
     """
     s = np.asarray(slope_deg, dtype=np.float64)
     g = np.asarray(roughness_m, dtype=np.float64)
 
-    r_slope = np.clip(s / max(rover.tip_over_slope_deg, 1e-6), 0.0, 1.0) ** 2
+    r_stab = np.clip(s / max(rover.tip_over_slope_deg, 1e-6), 0.0, 1.0) ** 2
+    if slip is None:
+        r_grade = r_stab
+    else:
+        span = max(SLIP_SEVERE - SLIP_NOMINAL, 1e-6)
+        r_trac = np.clip((np.asarray(slip, dtype=np.float64) - SLIP_NOMINAL) / span,
+                         0.0, 1.0)
+        r_grade = np.maximum(r_stab, r_trac)
+
     r_rough = np.clip(g / max(rover.ground_clearance_m * 8.0, 1e-6), 0.0, 1.0)
 
-    risk = 1.0 - (1.0 - r_slope) * (1.0 - r_rough)
+    risk = 1.0 - (1.0 - r_grade) * (1.0 - r_rough)
     risk[~valid] = 1.0
     return np.clip(risk, 0.0, 1.0)
 
@@ -241,8 +332,10 @@ def compute_risk(slope_deg, roughness_m, valid, rover: RoverProfile) -> np.ndarr
 
 def analyse_traversability(elevation: np.ndarray, cell_m: float, *,
                            rover: str | RoverProfile = "viper",
+                           soil: str | SoilModel = LUNAR_REGOLITH,
                            risk_aversion: float = 2.0,
-                           roughness_window: int = 3) -> TraversabilityMap:
+                           roughness_window: int = 3,
+                           halo: int = 0) -> TraversabilityMap:
     """Full traversability analysis of an elevation window.
 
     ``cell_m`` is the ground spacing. For the polar stereographic grids this is
@@ -257,8 +350,26 @@ def analyse_traversability(elevation: np.ndarray, cell_m: float, *,
     At gamma = 0 the planner minimises time and will drive anywhere legal. As
     gamma grows it trades time for margin. It is exposed rather than fixed
     because the right value is a mission decision, not a physical constant.
+
+    ``soil`` selects the regolith model — ``"nominal"`` for Apollo-derived
+    properties, ``"weak"`` for the low-friction Chang'e-4 bound. It is a
+    parameter and not a constant because it changes which constraint binds, and
+    a route certified only on strong soil is not a certified route.
+
+    ``halo`` says how many cells of the supplied elevation are margin. The 3x3
+    operators here have no neighbour outside the array and fall back to
+    duplicating the edge, which reports roughly *half* the true gradient all
+    the way round — 5.71 deg of ramp measured as 2.86 deg. Pass elevation that
+    extends ``halo`` cells beyond the region of interest and every returned
+    raster is trimmed back to it, differentiated with real neighbours on all
+    four sides.
+
+    It lives here rather than in the caller so that every path gets it. Two
+    callers trimming their own margins is two chances to forget, and the ones
+    that forgot were the ones producing published numbers.
     """
     prof = ROVER_PROFILES[rover] if isinstance(rover, str) else rover
+    soil_model = SOIL_MODELS[soil] if isinstance(soil, str) else soil
     z = np.asarray(elevation, dtype=np.float64)
     warnings: list[str] = []
 
@@ -280,9 +391,21 @@ def analyse_traversability(elevation: np.ndarray, cell_m: float, *,
     rough = _roughness(zf, roughness_window)
     tri = terrain_ruggedness_index(zf)
 
-    hazard = classify_hazard(slope, valid, prof)
-    risk = compute_risk(slope, rough, valid, prof)
-    speed = achievable_speed(slope, prof)
+    # Slip from the terramechanics model, tabulated once and interpolated —
+    # solving the force balance per cell would take minutes on a full window.
+    table: SlipTable = slip_table(prof, soil_model)
+    slip = table(slope)
+
+    haz_geom = classify_hazard(slope, valid, prof)
+    haz_trac = classify_traction(slip, valid)
+    hazard = np.maximum(haz_geom, haz_trac)     # the worse constraint governs
+
+    risk = compute_risk(slope, rough, valid, prof, slip=slip)
+
+    # Commanded speed from the power budget, then the slip loss: a rover at
+    # 40 % slip advances at 0.6x what its odometry reports.
+    speed = achievable_speed(slope, prof) * (1.0 - np.clip(slip, 0.0, 1.0))
+    speed = np.maximum(speed, 1e-4)
 
     # Cost is time, inflated by risk. Impassable cells get infinity so a
     # planner excludes them structurally rather than merely disliking them.
@@ -295,11 +418,26 @@ def analyse_traversability(elevation: np.ndarray, cell_m: float, *,
             "cannot represent what a rover wheel meets; these results describe "
             "regional shape, not traverse safety.")
 
+    trac_frac = float(((haz_trac > haz_geom) & valid).sum()) / max(int(valid.sum()), 1)
+    if trac_frac > 0.01:
+        warnings.append(
+            f"Traction, not geometry, is the binding constraint on "
+            f"{trac_frac * 100:.1f}% of cells under the "
+            f"'{soil_model.name}' model. Slope alone would over-certify them.")
+
+    if halo:
+        k = slice(halo, -halo)
+        slope, aspect, rough, tri = (a[k, k] for a in (slope, aspect, rough, tri))
+        slip, risk, cost, speed = (a[k, k] for a in (slip, risk, cost, speed))
+        hazard, haz_geom, haz_trac = (a[k, k] for a in (hazard, haz_geom, haz_trac))
+        valid = valid[k, k]
+
     return TraversabilityMap(
         slope_deg=slope, aspect_deg=aspect, roughness_m=rough, tri_m=tri,
-        hazard=hazard, risk=risk, cost_s=cost, speed_ms=speed,
-        baseline_m=float(cell_m), rover=prof, risk_aversion=float(risk_aversion),
-        valid=valid, warnings=warnings,
+        slip=slip, hazard=hazard, hazard_geometric=haz_geom,
+        hazard_traction=haz_trac, risk=risk, cost_s=cost, speed_ms=speed,
+        baseline_m=float(cell_m), rover=prof, soil=soil_model,
+        risk_aversion=float(risk_aversion), valid=valid, warnings=warnings,
     )
 
 
@@ -390,6 +528,65 @@ def _self_test() -> int:
     check("passable cells have finite positive cost",
           np.all(np.isfinite(tm.cost_s[tm.hazard < 4])) and
           np.all(tm.cost_s[tm.hazard < 4] > 0))
+
+    print("\nTraction folded into the cost surface\n")
+    # A fan of grades from 0 to 30 deg, wide enough that weak soil binds part
+    # way up and nominal soil never does.
+    m = 60
+    yy2, xx2 = np.mgrid[0:m, 0:m].astype(float)
+    grade = np.tan(np.radians(np.linspace(0.0, 30.0, m)))
+    z2 = np.cumsum(grade[None, :] * 10.0 * np.ones((m, 1)), axis=1)
+
+    nom = analyse_traversability(z2, 10.0, rover="viper", soil="nominal")
+    wk = analyse_traversability(z2, 10.0, rover="viper", soil="weak")
+
+    print(f"    {'soil':<10}{'max slip':>10}{'passable':>11}{'mean cost':>12}"
+          f"{'traction-bound':>16}")
+    for name, tm2 in (("nominal", nom), ("weak", wk)):
+        st2 = tm2.stats()
+        fin = tm2.cost_s[np.isfinite(tm2.cost_s)]
+        print(f"    {name:<10}{st2['slip']['max']:>10.3f}"
+              f"{st2['passable_fraction'] * 100:>10.1f}%{fin.mean():>12.1f}s"
+              f"{st2['binding_constraint']['traction'] * 100:>15.1f}%")
+
+    check("weak soil demands more slip on the same terrain",
+          wk.slip.max() > nom.slip.max(),
+          f"{wk.slip.max():.3f} vs {nom.slip.max():.3f}")
+    check("weak soil closes terrain that nominal soil allows",
+          wk.stats()["passable_fraction"] < nom.stats()["passable_fraction"],
+          f"{wk.stats()['passable_fraction']:.3f} vs "
+          f"{nom.stats()['passable_fraction']:.3f}")
+    check("weak soil costs more to cross",
+          np.nanmean(wk.cost_s[np.isfinite(wk.cost_s)]) >
+          np.nanmean(nom.cost_s[np.isfinite(nom.cost_s)]))
+    check("traction is the binding constraint somewhere on weak soil",
+          wk.binding_constraint()["traction"] > 0.0,
+          f"{wk.binding_constraint()['traction'] * 100:.1f}% of cells")
+    check("traction never binds on nominal soil here",
+          nom.binding_constraint()["traction"] == 0.0,
+          "geometry governs throughout, as the gradeability table predicts")
+    check("a traction-bound surface says so in its warnings",
+          any("Traction" in w for w in wk.warnings),
+          wk.warnings[-1][:64] + "…" if wk.warnings else "none")
+
+    print("\nSlip must not be double-counted with slope\n")
+    # Risk with slip supplied must equal risk without it wherever traction is
+    # the weaker of the two constraints — otherwise the terms are compounding.
+    ok1 = np.ones((1, 1), dtype=bool)
+    r_no = float(compute_risk(np.array([[20.0]]), np.array([[0.0]]), ok1, v)[0, 0])
+    r_lo = float(compute_risk(np.array([[20.0]]), np.array([[0.0]]), ok1, v,
+                              slip=np.array([[0.10]]))[0, 0])
+    r_hi = float(compute_risk(np.array([[20.0]]), np.array([[0.0]]), ok1, v,
+                              slip=np.array([[0.55]]))[0, 0])
+    print(f"    no slip {r_no:.3f}   slip 0.10 {r_lo:.3f}   slip 0.55 {r_hi:.3f}")
+    check("routine slip leaves risk unchanged", abs(r_lo - r_no) < 1e-12,
+          "max() reduction, not a product — the gradient is counted once")
+    check("near-abort slip raises risk above the geometric value", r_hi > r_no,
+          f"{r_hi:.3f} vs {r_no:.3f}")
+    check("flat ground stays zero risk despite non-zero rolling slip",
+          float(compute_risk(np.array([[0.0]]), np.array([[0.0]]), ok1, v,
+                             slip=np.array([[0.009]]))[0, 0]) < 1e-12,
+          "traction risk is measured from the 20 % routine threshold, not zero")
 
     print("\nBaseline honesty\n")
     coarse = analyse_traversability(z, 474.0, rover="viper")
