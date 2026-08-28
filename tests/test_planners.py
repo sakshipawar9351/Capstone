@@ -18,7 +18,7 @@ import numpy as np  # noqa: E402
 
 from backend.planning.planners import (  # noqa: E402
     ALGORITHMS, Grid, astar, bfs, dijkstra, dstar_lite, plan, rrt_star,
-    theta_star, weighted_astar,
+    smooth_path, theta_star, weighted_astar,
 )
 
 npass = nfail = 0
@@ -153,6 +153,56 @@ check("RRT* repeats when seeded", r1.path == r2.path,
 r3 = rrt_star(grid, S, G, seed=2)
 check("RRT* differs on a different seed", r3.path != r1.path,
       "confirming the seed is what makes it reproducible")
+
+# ---------------------------------------------------------------------------
+print("\nCost-validated shortcut smoothing\n")
+
+# The post-process named in ALGORITHMS.md 4.1: recover the any-angle benefit
+# after an optimal search, without giving up the optimality guarantee.
+sm_rng = np.random.default_rng(11)
+sm_cost_field = sm_rng.uniform(1.0, 9.0, size=(40, 40))
+sm_cost_field[sm_rng.random((40, 40)) < 0.08] = np.inf
+sm_cost_field[0, 0] = sm_cost_field[39, 39] = 1.0
+sm_grid = Grid(sm_cost_field, 1.0)
+base = plan(sm_grid, (0, 0), (39, 39), algorithm="astar")
+sm_path, sm_cost, sm_before = smooth_path(sm_grid, base.path)
+
+print(f"    A*        cost {sm_before:8.2f}   waypoints {len(base.path):>4}")
+print(f"    smoothed  cost {sm_cost:8.2f}   waypoints {len(sm_path):>4}   "
+      f"({sm_cost / sm_before:.4f}x)")
+
+check("smoothing never costs more than the path it was given",
+      sm_cost <= sm_before + 1e-9,
+      "accepted only where the integrated chord is cheaper — so A*'s "
+      "optimality survives the post-process")
+check("smoothing reduces the waypoint count",
+      len(sm_path) < len(base.path), f"{len(sm_path)} vs {len(base.path)}")
+check("smoothing preserves the endpoints",
+      sm_path[0] == base.path[0] and sm_path[-1] == base.path[-1])
+check("every smoothed segment has clear line of sight",
+      all(sm_grid.line_of_sight(a, b)[0] for a, b in zip(sm_path, sm_path[1:])),
+      "a shortcut through impassable ground would be accepted by a "
+      "length-only test")
+
+# On an open uniform grid the optimal staircase and the straight diagonal cost
+# the same, so there is nothing to recover and the guarantee must still hold.
+open_grid = Grid(np.ones((30, 30)), 1.0)
+ob = plan(open_grid, (0, 0), (29, 29), algorithm="astar")
+op, oc, obefore = smooth_path(open_grid, ob.path)
+check("smoothing is a no-op where there is nothing to gain",
+      oc <= obefore + 1e-9, f"{oc:.4f} vs {obefore:.4f}")
+
+# A route around a wall: the sub-paths either side are straight, so smoothing
+# should collapse them without ever cutting through the wall.
+wall = np.ones((40, 40))
+wall[10:30, 20] = np.inf
+wg = Grid(wall, 1.0)
+wb = plan(wg, (20, 5), (20, 35), algorithm="astar")
+wp, wc, wbefore = smooth_path(wg, wb.path)
+check("smoothing routes around an obstacle rather than through it",
+      all(np.isfinite(wall[r, c]) for r, c in wp) and
+      all(wg.line_of_sight(a, b)[0] for a, b in zip(wp, wp[1:])),
+      f"{len(wp)} waypoints, cost {wc:.2f} vs {wbefore:.2f}")
 
 # ---------------------------------------------------------------------------
 print("\nRefusals and edge cases\n")

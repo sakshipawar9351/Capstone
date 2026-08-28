@@ -15,6 +15,7 @@ EXPECTED_DOCS = [
     ("TECHNOLOGY.md", DOCS, "Technology rationale"),
     ("ALGORITHMS.md", DOCS, "Planner comparison"),
     ("SCIENCE_BACKGROUND.md", DOCS, "Lunar science"),
+    ("CONTRIBUTIONS.md", DOCS, "Provenance: inherited / adapted / original"),
 ]
 
 ok = lambda b: "PASS" if b else "FAIL"

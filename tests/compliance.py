@@ -63,6 +63,17 @@ ok_hazard = has_endpoint("hazard/map", {"lat": -89, "lon": 0})
 ok_boulder = has_endpoint("boulders/detect", {"lat": -89, "lon": 0})
 ok_export = has_endpoint("export/path")
 
+# Which derived quantities are actually renderable as maps, asked of the server
+# rather than asserted here. A layer that exists only in an analysis module is
+# not a layer a user can see.
+_SITE = {"south": -89.50, "north": -89.46, "west": 220.0, "east": 224.0}
+rendered = set()
+if server_up:
+    _ok, _r = live("aoi/layers")
+    if _ok:
+        rendered = {x["key"] for x in _r.json()["layers"]}
+ok_layer_png = has_endpoint("aoi/layer", {**_SITE, "layer": "hazard"})
+
 ROOT = Path(__file__).resolve().parents[1]
 src = lambda p: (ROOT / p).exists()  # noqa: E731
 
@@ -87,11 +98,20 @@ REQS = [
     ("FR-1.11", "Legible when zoomed out", DONE,
      "screen-space collision culling, priority by class"),
     ("FR-1.12", "Layers panel", DONE, "Layers/Places/Missions/Science"),
+    # Five of the six render as PNG map layers over any region; the sixth needs
+    # imagery this project does not have. Partial rather than done, because a
+    # user looking for boulders still finds nothing.
     ("FR-1.13", "Six derived layers (hazard, risk, crater, boulder, slope, cost)",
-     PART, "crater layer live; hazard/risk/slope/cost computed in "
-           "backend but NOT exposed as map layers; boulder not built"),
+     PART,
+     f"{len({'hazard', 'risk', 'slope', 'cost'} & rendered)}/4 of the derived "
+     f"surfaces render as map layers "
+     f"({'PNG endpoint live' if ok_layer_png else 'endpoint down'}); "
+     f"crater layer live; boulder still absent — it needs sub-metre imagery, "
+     f"as a 1 m rock is 1 % of one 10 m cell"),
     ("FR-1.14", "Elevation, roughness, curvature, aspect, geology layers",
-     OPEN, "computed in analysis modules, no rendering path"),
+     PART, "elevation, roughness and hillshade (Horn slope+aspect) render; "
+           "curvature computed but not rendered; geology needs a source "
+           "this project does not have"),
     ("FR-1.15", "Graticule", DONE, "adaptive 30 deg to 0.1 deg"),
     ("FR-1.16", "Offline fallback basemap", PART,
      "moon_texture.jpg present on disk; not wired as a fallback"),
@@ -127,12 +147,17 @@ REQS = [
     ("FR-4.2", "Click any point -> terrain science", PART,
      "elevation, radius, resolution, enclosing craters returned; "
      "slope/aspect/curvature/roughness NOT in the point response"),
-    ("FR-4.3", "Inspect any point along a planned path", OPEN,
-     "no paths exist"),
+    ("FR-4.3", "Inspect any point along a planned path", PART,
+     "every sample carries elevation, slope, risk and slip in the route "
+     "profile; clicking a point on the drawn route is not yet wired"),
     ("FR-4.4", "Units and measurement baseline on every value", DONE,
      "baseline is a required field; adequacy stated"),
-    ("FR-4.5", "Elevation profile along a path/transect", OPEN, ""),
-    ("FR-4.6", "Slope profile with rover limit marked", OPEN, ""),
+    ("FR-4.5", "Elevation profile along a path/transect", DONE,
+     "plotted against ground distance, densified to grid resolution so it "
+     "follows the terrain rather than the waypoints"),
+    ("FR-4.6", "Slope profile with rover limit marked", PART,
+     "slope is plotted on its own axis; the rover's limit is not yet drawn "
+     "as a reference line"),
 
     # ── FR-5 Formulas ────────────────────────────────────────────────────
     ("FR-5.1", "Separate formula document", DONE,
@@ -144,23 +169,37 @@ REQS = [
      "selenographic, terrain, morphometry, polar, hazard all self-test"),
 
     # ── FR-6 Path planning ───────────────────────────────────────────────
-    ("FR-6.1", "Select start/end by lat/lon", OPEN, ""),
-    ("FR-6.2", "Safest path avoiding hazards", OPEN,
-     "cost surface exists (hazard.py); no planner"),
-    ("FR-6.3", "Compare >= 6 algorithms", OPEN, ""),
-    ("FR-6.4", "State selected algorithm and why", PART,
-     "ALGORITHMS.md written; no empirical results to support it"),
-    ("FR-6.5", "Show other algorithms' paths", OPEN, ""),
-    ("FR-6.6", "Highlight recommended path", OPEN, ""),
-    ("FR-6.7", "Explain why it is recommended", OPEN, ""),
+    ("FR-6.1", "Select start/end by lat/lon", DONE,
+     "typed in the Plan panel or placed by clicking the globe; an endpoint on "
+     "impassable ground is snapped and the distance moved is reported"),
+    ("FR-6.2", "Safest path avoiding hazards", DONE,
+     "planned on the slip-aware cost surface; impassable cells are infinite so "
+     "no planner can be tuned across one (tests/test_traverse_polar.py)"),
+    ("FR-6.3", "Compare >= 6 algorithms", DONE,
+     "seven on one grid: BFS, Dijkstra, A*, Weighted A*, Theta*, D* Lite, RRT*"),
+    ("FR-6.4", "State selected algorithm and why", DONE,
+     "ALGORITHMS.md 6.1 carries measured results; three claims in 4 were "
+     "revised because measurement contradicted them"),
+    ("FR-6.5", "Show other algorithms' paths", PART,
+     "every algorithm's cost, ratio, runtime and expansions are tabled; only "
+     "the recommended route is drawn on the globe"),
+    ("FR-6.6", "Highlight recommended path", DONE,
+     "starred in the comparison table and drawn coloured by per-sample risk"),
+    ("FR-6.7", "Explain why it is recommended", DONE,
+     "reasoning is computed per run from what was measured, not fixed text"),
     ("FR-6.8", "Per-path metrics (distance, time, speed, cost, slope, "
-               "risk, safety, craters avoided)", OPEN, ""),
-    ("FR-6.9", "Start/end pin markers", OPEN, ""),
-    ("FR-6.10", "Selectable rover profile", PART,
-     "4 profiles in config and used by hazard engine; no UI"),
-    ("FR-6.11", "Risk-aversion parameter exposed", PART,
-     "implemented in hazard.py; no UI"),
-    ("FR-6.12", "Replanning on new hazard (D* Lite)", OPEN, ""),
+               "risk, safety, craters avoided)", DONE,
+     "planning/metrics.py; 3-D distance, energy, safety score with its "
+     "limiting factor named"),
+    ("FR-6.9", "Start/end pin markers", DONE,
+     "on both renderers, labelled START/GOAL"),
+    ("FR-6.10", "Selectable rover profile", DONE,
+     "4 profiles selectable in the Plan panel and honoured end to end"),
+    ("FR-6.11", "Risk-aversion parameter exposed", DONE,
+     "gamma slider in the Plan panel, passed through to the cost surface"),
+    ("FR-6.12", "Replanning on new hazard (D* Lite)", PART,
+     "D* Lite implemented and optimal; its incremental repair path is not yet "
+     "driven by a hazard appearing mid-traverse"),
 
     # ── FR-7 Interface ───────────────────────────────────────────────────
     ("FR-7.1", "Professional scientific design", DONE, ""),
@@ -220,11 +259,33 @@ def main() -> int:
           f"   ({tot[DONE] / n * 100:.0f}% complete)")
     print("=" * 78)
 
-    blocked = [r for r in REQS if r[0].startswith("FR-6") and r[2] != DONE]
-    print(f"\n  Largest single gap: FR-6 path planning — {len(blocked)} of 12 "
-          "requirements outstanding.")
-    print("  It also blocks FR-4.3, FR-4.5, FR-4.6 and FR-7.5, which describe")
-    print("  inspecting, profiling and exporting a path that does not yet exist.")
+    # Computed, not asserted. This paragraph named FR-6 as the largest gap long
+    # after FR-6 had been built, because it was hardcoded — a status report that
+    # can go stale is worse than none, since it is trusted.
+    by_group: dict[str, list] = {}
+    for rid, title, status, _note in REQS:
+        by_group.setdefault(rid.split(".")[0], []).append((rid, title, status))
+
+    ranked = sorted(
+        ((g, sum(1 for r in rows if r[2] == OPEN),
+          sum(1 for r in rows if r[2] == PART), len(rows))
+         for g, rows in by_group.items()),
+        key=lambda x: (-x[1], -x[2]))
+
+    print("\n  Largest remaining gaps:")
+    for gid, n_open, n_part, n_all in ranked[:3]:
+        if not (n_open or n_part):
+            continue
+        print(f"    {gid:<6} {NAMES[gid]:<28} {n_open} open, {n_part} partial "
+              f"of {n_all}")
+
+    still_open = [(rid, title) for rid, title, status, _ in REQS if status == OPEN]
+    if still_open:
+        print(f"\n  {len(still_open)} requirements still open:")
+        for rid, title in still_open[:12]:
+            print(f"    {rid:<9} {title}")
+        if len(still_open) > 12:
+            print(f"    … and {len(still_open) - 12} more")
     return 0
 
 

@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>LunarSerpent browser harness</title>
+<!--
+  Runs the application's own JavaScript in a real browser and writes the
+  results into the DOM, where a headless Chrome dump can read them.
+
+  Static analysis can tell you a function is defined. It cannot tell you that
+  `api.submitPlan` surfaces a 422's `detail` rather than swallowing it, or that
+  a module still parses once the browser actually loads it. Everything below
+  executes for real, against a live server.
+
+  Copied into frontend/ for the duration of a test run so that ES module
+  imports resolve from the same origin, then removed.
+-->
+<body>
+<div id="results">running</div>
+<script type="module">
+const out = [];
+const ok = (name, pass, detail = '') =>
+  out.push(`${pass ? 'PASS' : 'FAIL'}\t${name}\t${detail}`);
+
+// Anything thrown outside a try block would otherwise vanish silently and the
+// harness would report a cheerful partial pass.
+const errors = [];
+window.addEventListener('error', (e) => errors.push(e.message));
+window.addEventListener('unhandledrejection', (e) => errors.push(String(e.reason)));
+
+try {
+  const mod = await import('/js/api.js');
+  const { api, fmtCoord, fmtLen, fmtArea, fmtInt } = mod;
+  ok('api.js imports in a browser', !!api);
+
+  /* ── formatting helpers ─────────────────────────────────────────── */
+  ok('fmtCoord uses hemispheres', fmtCoord(-12.5, 200).includes('S'),
+     fmtCoord(-12.5, 200));
+  ok('fmtCoord wraps longitude east', fmtCoord(10, -160).includes('200'),
+     fmtCoord(10, -160));
+  ok('fmtLen switches to km', fmtLen(2500) === '2.50 km', fmtLen(2500));
+  ok('fmtLen keeps metres below 1 km', fmtLen(250) === '250.0 m', fmtLen(250));
+  ok('fmtLen tolerates null', fmtLen(null) === '—');
+  ok('fmtInt groups thousands', fmtInt(1296796).replace(/ /g, ',').includes(','),
+     fmtInt(1296796));
+  ok('fmtArea handles tiny areas', fmtArea(0.5).includes('m²'), fmtArea(0.5));
+
+  /* ── live API ───────────────────────────────────────────────────── */
+  const opts = await api.planOptions();
+  ok('planOptions returns seven algorithms', opts.algorithms.length === 7,
+     `${opts.algorithms.length}`);
+  ok('planOptions names rovers', opts.rovers.length >= 4, `${opts.rovers.length}`);
+
+  const prev = await api.aoiPreview(
+    { south: -89.50, north: -89.42, west: 218, east: 226 });
+  ok('aoiPreview succeeds', prev.ok === true);
+  ok('aoiPreview reports a cell size', prev.aoi.cell_m > 0, `${prev.aoi.cell_m} m`);
+  ok('aoiPreview declares capability',
+     typeof prev.aoi.capability.supports_traverse === 'boolean');
+  ok('a normal region carries no warnings', prev.aoi.warnings.length === 0,
+     JSON.stringify(prev.aoi.warnings));
+
+  /* ── error propagation ──────────────────────────────────────────── */
+  // A 422 carries the reason *and* the fix. Losing it to a bare status code
+  // would strand the user with "plan 422".
+  let msg = '';
+  try {
+    await api.submitPlan({
+      south: -89.5, north: -89.42, west: 218, east: 226,
+      start_lat: -89.47, start_lon: 220, goal_lat: -89.44, goal_lon: 224,
+      rover: 'no-such-rover',
+    });
+  } catch (e) { msg = e.message; }
+  ok('submitPlan surfaces the server reason, not just a status',
+     msg.includes('unknown rover'), msg.slice(0, 60));
+
+  /* ── full plan through the browser client ───────────────────────── */
+  const sub = await api.submitPlan({
+    south: -89.50, north: -89.42, west: 218, east: 226,
+    start_lat: -89.47, start_lon: 219, goal_lat: -89.44, goal_lon: 225,
+    algorithms: ['weighted_astar'],
+  });
+  ok('submitPlan returns a job', !!sub.job.id, sub.job.id);
+
+  const seen = [];
+  const job = await api.awaitJob(sub.job.id,
+    { onProgress: (j) => seen.push(j.state), intervalMs: 200 });
+  ok('awaitJob polls to completion', job.state === 'done', job.state);
+  ok('progress was observed while running', seen.length >= 1,
+     `${seen.length} polls`);
+
+  const r = job.result;
+  ok('result carries a route', r.route && r.route.lat.length > 2,
+     `${r.route.samples} samples`);
+  ok('route has matching lat/lon arrays',
+     r.route.lat.length === r.route.lon.length);
+  ok('profile is as long as the route',
+     r.route.profile.elevation_m.length === r.route.samples);
+  ok('distance increases monotonically',
+     r.route.profile.distance_m.every((v, i, a) => i === 0 || v >= a[i - 1]));
+  ok('a recommendation is justified',
+     r.recommended.algorithm && r.recommended.why.length > 30,
+     r.recommended.algorithm);
+  ok('certification is stated', ['traverse', 'regional-corridor'].includes(r.certification),
+     r.certification);
+  ok('endpoints report movement',
+     typeof r.endpoints.start.moved_m === 'number');
+} catch (e) {
+  ok('harness ran to completion', false, `${e}`);
+}
+
+ok('no uncaught errors or rejections', errors.length === 0, errors.join(' | '));
+document.getElementById('results').textContent = out.join('\n');
+</script>
+</body>

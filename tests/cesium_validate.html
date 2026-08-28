@@ -1,0 +1,79 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Cesium surface validation</title></head>
+<body style="margin:0;background:#05070a">
+<div id="cv" style="width:900px;height:600px"></div>
+<pre id="out">running…</pre>
+<script>
+/*
+ * Sample the ion 3D Tileset's own surface height at a set of coordinates.
+ *
+ * Cesium's Cartographic.height is measured from Ellipsoid.default, which this
+ * project sets to Ellipsoid.MOON — a sphere of exactly 1737400 m, the same
+ * datum LOLA elevations are quoted against. So the two numbers are directly
+ * comparable with no datum conversion, which is the whole reason this
+ * comparison is meaningful rather than an exercise in unit juggling.
+ *
+ * sampleHeightMostDetailed is the right call rather than sampleHeight: it
+ * loads the finest tile covering each position first. sampleHeight would
+ * silently answer from whatever coarse tile happened to be resident and the
+ * result would measure the camera, not the data.
+ */
+const OUT = document.getElementById('out');
+const done = (o) => { OUT.textContent = 'RESULT ' + JSON.stringify(o); document.title = 'done'; };
+
+async function main() {
+  const cfg = await (await fetch('/api/v1/meta/cesium')).json();
+  const V = cfg.version || '1.126';
+  window.CESIUM_BASE_URL = `https://cdn.jsdelivr.net/npm/cesium@${V}/Build/Cesium/`;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = window.CESIUM_BASE_URL + 'Cesium.js';
+    s.onload = res; s.onerror = () => rej(new Error('CDN load failed'));
+    document.head.appendChild(s);
+  });
+  const C = window.Cesium;
+  C.Ion.defaultAccessToken = cfg.token;
+  C.Ellipsoid.default = C.Ellipsoid.MOON;
+
+  const viewer = new C.Viewer('cv', {
+    baseLayer: false, baseLayerPicker: false, geocoder: false,
+    homeButton: false, sceneModePicker: false, navigationHelpButton: false,
+    animation: false, timeline: false, fullscreenButton: false,
+    infoBox: false, selectionIndicator: false,
+    terrainProvider: new C.EllipsoidTerrainProvider(),
+  });
+  const scene = viewer.scene;
+  try { scene.globe.show = false; } catch {}
+
+  const tileset = await C.Cesium3DTileset.fromIonAssetId(cfg.asset, {
+    maximumScreenSpaceError: 4,
+  });
+  scene.primitives.add(tileset);
+
+  // The sample set. Spread in longitude and latitude, poles excluded: the
+  // tileset's own coverage there is a separate question and would confound a
+  // vertical comparison with a coverage one.
+  const pts = [];
+  let seed = 20260823;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let i = 0; i < 240; i++) {
+    const lat = (rnd() * 140) - 70;
+    const lon = rnd() * 360;
+    pts.push({ lat, lon });
+  }
+  const carto = pts.map((p) =>
+    C.Cartographic.fromDegrees(p.lon > 180 ? p.lon - 360 : p.lon, p.lat));
+
+  const t0 = performance.now();
+  await scene.sampleHeightMostDetailed(carto, [], 4);
+  const secs = (performance.now() - t0) / 1000;
+
+  const rows = [];
+  for (let i = 0; i < pts.length; i++) {
+    const h = carto[i].height;
+    if (Number.isFinite(h)) rows.push({ lat: pts[i].lat, lon: pts[i].lon, h });
+  }
+  done({ ok: true, sampled: rows.length, requested: pts.length,
+         seconds: +secs.toFixed(1), points: rows });
+}
+main().catch((e) => done({ ok: false, error: String(e && e.message || e) }));
+</script></body></html>
