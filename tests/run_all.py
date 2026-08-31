@@ -34,6 +34,7 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("crater catalogue",        ["-m", "backend.data.catalog_robbins"], False),
     ("IAU nomenclature",        ["-m", "backend.data.nomenclature"],  False),
     ("per-region data catalogue", ["-m", "backend.data.trek_catalog"], False),
+    ("crater training tiles",   ["-m", "backend.ml.dataset"],          False),
     ("terrain derivatives",     ["-m", "backend.analysis.terrain"],   False),
     ("crater morphometry",      ["-m", "backend.analysis.morphometry"], False),
     ("terramechanics",          ["-m", "backend.analysis.terramechanics"], False),

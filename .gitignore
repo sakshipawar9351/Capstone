@@ -79,3 +79,8 @@ tmp/
 # Local credentials - never commit
 .env
 
+
+# Generated training corpus — reproducible from backend/ml/dataset.py, and
+# hundreds of megabytes of PNG. The manifest that defines it is versioned; the
+# pixels are not.
+data/ml/
