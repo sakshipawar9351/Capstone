@@ -73,29 +73,70 @@ print("smp", smp.__version__)
 
 CODE_MOUNT = r"""
 from google.colab import drive
-drive.mount('/content/drive')
+# force_remount because a plain mount is a no-op once mounted, and the Drive
+# listing is cached: a file uploaded after the first mount stays invisible.
+drive.mount('/content/drive', force_remount=True)
 
-import shutil, time
+import shutil, time, json, zipfile
 from pathlib import Path
 
 DRIVE = Path('/content/drive/MyDrive')
-SRC   = DRIVE / 'LunarSerpent_data' / 'craters_125mpp'      # upload here
-WORK  = Path('/content/craters')
+ZIP   = DRIVE / 'LunarSerpent_data' / 'craters_125mpp.zip'
+WORK  = Path('/content/craters_125mpp')
 
-# Copied to local disk before training. Drive is a network mount: reading a few
-# thousand images from it every epoch is dominated by latency, not compute, and
-# an epoch that should take two minutes takes twenty.
-assert SRC.exists(), f"not found: {SRC} - upload the dataset folder there"
-if not WORK.exists():
-    t0 = time.time()
-    shutil.copytree(SRC, WORK)
-    print(f"copied to local disk in {time.time()-t0:.0f}s")
+# One zip rather than 2,732 loose files.
+#
+# Copying the folder through the Drive FUSE mount aborts part way with
+# "Software caused connection abort" -- every small file is a separate round
+# trip and the mount does not survive thousands of them. A single sequential
+# read does, and takes about twenty seconds instead of failing after ten
+# minutes.
+#
+# It is also copied off Drive before training rather than read through it:
+# Drive is a network mount, so an epoch that should take two minutes takes
+# twenty when every image arrives over the wire.
 
-import json
+if not ZIP.exists():
+    raise FileNotFoundError(
+        f"Not found: {ZIP}\n\n"
+        "Either the upload has not finished syncing -- check the Drive tray\n"
+        "icon says 'Everything is up to date' -- or the file is elsewhere.\n"
+        f"Present in that folder: "
+        f"{[p.name for p in (DRIVE / 'LunarSerpent_data').glob('*')] if (DRIVE / 'LunarSerpent_data').exists() else 'folder missing'}"
+    )
+print(f"zip on Drive: {ZIP.stat().st_size/1e6:.0f} MB")
+
+# Anything already extracted is from an earlier attempt, and an earlier attempt
+# is exactly what left a 301-tile dataset looking complete.
+if WORK.exists():
+    print(f"removing previous extraction at {WORK}")
+    shutil.rmtree(WORK)
+
+t0 = time.time()
+with zipfile.ZipFile(ZIP) as z:
+    z.extractall('/content')
+print(f"extracted in {time.time()-t0:.0f}s")
+
 man = json.loads((WORK / 'manifest.json').read_text())
+expected = man['split_counts']
+got = {s: len(list((WORK / s / 'images').glob('*.png')))
+       for s in ('train', 'val', 'test')}
+if got != expected:
+    raise RuntimeError(f"manifest says {expected}, extracted {got}")
+
+# Every image needs its mask. A missing one reads as "no craters here", which
+# teaches the network that real craters are background -- and nothing later in
+# the pipeline would reveal it.
+for sp in ('train', 'val', 'test'):
+    miss = [q.name for q in (WORK / sp / 'images').glob('*.png')
+            if not (WORK / sp / 'masks' / q.name).exists()]
+    if miss:
+        raise RuntimeError(f"{len(miss)} {sp} images have no mask, e.g. {miss[:3]}")
+
 print(f"\n{man['tiles_written']} tiles, {man['craters_total']:,} craters")
-print(f"splits: {man['split_counts']}")
+print(f"splits: {got}")
 print(f"labels: {man['labels']}")
+print(f"WORK  : {WORK}")
 """
 
 CODE_DATA = r"""
@@ -106,6 +147,8 @@ from torch.utils.data import Dataset, DataLoader
 import albumentations as A
 
 CROP = 256          # the size the published work uses; 640 tiles are cropped to it
+IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], np.float32)[:, None, None]
+IMAGENET_STD  = np.array([0.229, 0.224, 0.225], np.float32)[:, None, None]
 SEED = 20260828
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 
@@ -143,10 +186,12 @@ class CraterTiles(Dataset):
         y = np.array(Image.open(self.msk / p.name).convert('L'))
         out = self.aug(image=x, mask=y)
         x, y = out['image'], out['mask']
-        # Three identical channels so an ImageNet-pretrained encoder applies.
-        # Its early filters are edges and gradients, which transfer to grey
-        # planetary imagery even though nothing in ImageNet is a crater.
+        # Three identical channels so an ImageNet-pretrained encoder applies,
+        # then normalised the way that encoder was trained. Feeding raw [0,1]
+        # instead is a distribution mismatch the first run paid for: the
+        # network sat predicting almost nothing for 36 epochs.
         x = np.repeat(x[None].astype(np.float32) / 255.0, 3, axis=0)
+        x = (x - IMAGENET_MEAN) / IMAGENET_STD
         y = (y > 127).astype(np.float32)[None]
         return torch.from_numpy(x), torch.from_numpy(y)
 
@@ -198,8 +243,16 @@ model = smp.Unet('resnet34', encoder_weights='imagenet',
 # measures overlap of the positive class alone and cannot be won that way. BCE
 # is kept at a small weight because Dice alone gives weak gradients early on,
 # when the prediction overlaps almost nothing.
+# Rim pixels are about 8 % of an image, so an unweighted BCE is minimised by
+# predicting "no rim" almost everywhere — which is exactly what the first run
+# did: precision 0.940 against recall 0.001 by epoch 1. It had learned what a
+# rim looks like and was simply too timid to say so. pos_weight raises the cost
+# of a miss to match, and Dice measures overlap of the positive class alone so
+# it cannot be won by silence.
+POS_WEIGHT = 8.0
 dice = smp.losses.DiceLoss(mode='binary')
-bce  = nn.BCEWithLogitsLoss()
+bce  = nn.BCEWithLogitsLoss(
+    pos_weight=torch.tensor([POS_WEIGHT], device=dev))
 
 def criterion(pred, true):
     return dice(pred, true) + 0.5 * bce(pred, true)
@@ -271,6 +324,34 @@ print(f"\nbest validation F1: {best:.4f}")
 """
 
 CODE_TEST = r"""
+# A single threshold reports one point on a curve and hides the shape. For a
+# hazard detector the operating point is a decision — a miss costs more than a
+# false alarm — so the whole trade is printed and the choice is made openly.
+@torch.no_grad()
+def sweep(loader, thresholds=(0.10, 0.20, 0.30, 0.40, 0.50, 0.60)):
+    model.eval()
+    stats = {t: [0.0, 0.0, 0.0] for t in thresholds}
+    for x, y in loader:
+        x, y = x.to(dev), y.to(dev)
+        pr = torch.sigmoid(model(x))
+        for t in thresholds:
+            p = (pr > t).float()
+            stats[t][0] += (p * y).sum().item()
+            stats[t][1] += (p * (1 - y)).sum().item()
+            stats[t][2] += ((1 - p) * y).sum().item()
+    print(f"{'thresh':>8}{'precision':>11}{'recall':>9}{'F1':>8}")
+    print("-" * 38)
+    for t, (tp, fp, fn) in stats.items():
+        pr_ = tp / max(tp + fp, 1); rc = tp / max(tp + fn, 1)
+        f1 = 2 * pr_ * rc / max(pr_ + rc, 1e-9)
+        print(f"{t:>8.2f}{pr_:>11.3f}{rc:>9.3f}{f1:>8.3f}")
+
+model.load_state_dict(torch.load(CKPT / 'best.pt', map_location=dev))
+print("HELD-OUT LONGITUDE BANDS")
+print()
+sweep(test_dl)
+print()
+
 # The held-out longitude bands. This is the only number that means anything:
 # the validation bands were used to pick the checkpoint, so they are no longer
 # unseen ground.

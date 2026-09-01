@@ -273,17 +273,36 @@ def build_tile(spec: TileSpec, *, layer: str = "kaguya_tc"
 # Labels
 # ---------------------------------------------------------------------------
 
+#: Widest a rim ring may be drawn, in pixels.
+#:
+#: Thickness proportional to radius with no ceiling is what broke the first
+#: training run. A 200 km crater has an 800 px radius here, so a 10 % ring is
+#: 80 px wide — a smooth band across a 640 px tile with no visible edge
+#: anywhere along it. Tiles holding a crater over 100 km came out 25.75 %
+#: "rim" against 1.06 % for tiles holding only small ones, and the network
+#: spent its capacity on swaths it could not possibly see. Loss moved 1.0306
+#: to 1.0214 across 36 epochs; held-out F1 was 0.109.
+#:
+#: A rim is an edge. An edge is a few pixels wide whatever the crater's size.
+MAX_RING_PX = 3
+
+#: Largest crater drawn, as a multiple of the tile's own width.
+#:
+#: A crater wider than the frame is not an object in the image, it is regional
+#: context: its arc crosses the tile as a gentle curve indistinguishable from
+#: any other slope. Labelling it teaches the network to mark ground on no
+#: visible evidence.
+MAX_DIAM_TILES = 1.0
+
+
 def crater_mask(spec: TileSpec, craters, *,
                 min_ring_px: int = 1) -> tuple[np.ndarray, list]:
-    """Rim rings for every catalogued crater intersecting the tile.
+    """Rim rings for every catalogued crater visible in the tile.
 
-    Ring thickness scales with radius rather than being fixed: a constant width
-    would be most of a small crater and a hairline on a large one, so the loss
-    would be dominated by whichever size happened to be common.
+    Two ceilings, both learned the hard way — see MAX_RING_PX above.
     """
     size = spec.size_px
     mask = np.zeros((size, size), dtype=np.uint8)
-    yy, xx = np.mgrid[0:size, 0:size]
     used = []
 
     for c in craters:
@@ -296,9 +315,23 @@ def crater_mask(spec: TileSpec, craters, *,
         # dropping them would leave visible arcs unlabelled.
         if cx < -r or cy < -r or cx > size + r or cy > size + r:
             continue
-        w = max(min_ring_px, int(round(r * 0.10)))
-        d = np.hypot(xx - cx, yy - cy)
-        mask[(d >= r - w) & (d <= r + w)] = 1
+        if 2 * r > size * MAX_DIAM_TILES:
+            continue                      # wider than the frame: not an object
+        w = int(np.clip(round(r * 0.10), min_ring_px, MAX_RING_PX))
+        # Only the annulus can be set, so only its bounding box is evaluated.
+        # A full-frame distance field per crater is 410,000 cells whatever the
+        # crater's size, and at ~90 craters a tile that dominated generation:
+        # 2.2 s a tile, most of it computing distances to pixels nowhere near
+        # the ring.
+        lo_x = max(int(np.floor(cx - r - w)), 0)
+        hi_x = min(int(np.ceil(cx + r + w)) + 1, size)
+        lo_y = max(int(np.floor(cy - r - w)), 0)
+        hi_y = min(int(np.ceil(cy + r + w)) + 1, size)
+        if hi_x <= lo_x or hi_y <= lo_y:
+            continue
+        sub_y, sub_x = np.ogrid[lo_y:hi_y, lo_x:hi_x]
+        d = np.hypot(sub_x - cx, sub_y - cy)
+        mask[lo_y:hi_y, lo_x:hi_x][(d >= r - w) & (d <= r + w)] = 1
         used.append({"id": str(c.id), "lat": float(c.lat),
                      "lon": float(c.lon), "diam_km": float(c.diameter_km),
                      "px": [round(cx, 2), round(cy, 2), round(r, 2)]})
@@ -422,7 +455,8 @@ MAX_GAP_FRACTION = 0.20
 
 
 def write_dataset(out_dir: Path = DATASET_DIR, *, limit: int | None = None,
-                  min_craters: int = 3, progress=print) -> dict:
+                  min_craters: int = 3, resume: bool = True,
+                  progress=print) -> dict:
     """Generate the training corpus and a manifest that can reproduce it.
 
     The manifest is the point. It records every tile's bounds, split and the
@@ -447,8 +481,29 @@ def write_dataset(out_dir: Path = DATASET_DIR, *, limit: int | None = None,
         (out_dir / split / "images").mkdir(parents=True, exist_ok=True)
         (out_dir / split / "masks").mkdir(parents=True, exist_ok=True)
 
-    records, skipped = [], {"gaps": 0, "sparse": 0, "error": 0}
+    records, skipped = [], {"gaps": 0, "sparse": 0, "error": 0, "done": 0}
     for i, spec in enumerate(tiles):
+        # Resume rather than restart. Generation takes tens of minutes and a
+        # killed run should cost the tile it was on, not all of them.
+        prior = next((out_dir / sp / "images" / f"{spec.key}.png"
+                      for sp in ("train", "val", "test")
+                      if (out_dir / sp / "images" / f"{spec.key}.png").exists()),
+                     None)
+        if prior is not None and resume:
+            craters = craters_for(spec, index)
+            _, used = crater_mask(spec, craters)
+            if len(used) >= min_craters:
+                records.append({
+                    "key": spec.key, "split": spec.split,
+                    "lat": round(spec.lat, 5), "lon": round(spec.lon, 5),
+                    "gsd_m": spec.gsd_m, "size_px": spec.size_px,
+                    "bounds": [round(v, 5) for v in spec.bounds],
+                    "valid_fraction": 1.0,
+                    "rim_fraction": round(float(_.mean()), 5),
+                    "craters": used,
+                })
+                skipped["done"] += 1
+                continue
         try:
             img, valid = build_tile(spec)
         except Exception:                                    # noqa: BLE001
