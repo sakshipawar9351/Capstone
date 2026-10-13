@@ -175,13 +175,10 @@ check("polar grid resolves traverse-scale decisions",
 
 note("Global coverage (474 m/px) supports regional planning only. "
      "Every rover-scale hazard is sub-pixel.")
-note("South-polar coverage (10 m/px) supports higher-resolution terrain analysis in its coverage area, but pixel spacing alone does not certify rover safety; "
-     "or establish uncertainty bounds for a route.")
+note("South-polar coverage (10 m/px) supports higher-resolution terrain analysis in its coverage area, but 10 m posting alone does not certify rover safety or provide uncertainty bounds for a route.")
 note("Cesium Moon Terrain publishes no vertical accuracy or reference frame. "
      "It is a viewing surface; all reported numbers come from LOLA.")
-note("The current repository tree contains no clearly named end-to-end boulder detector module. Image acquisition alone is not a validated detector; "
-     "do not claim quantitative boulder detection without labels and evaluation. "
-     "")
+note("The current repository tree contains no clearly named end-to-end boulder detector module. Image acquisition alone is not a validated detector; do not claim quantitative boulder detection without labels and evaluation.")
 note("No uncertainty is propagated through slope, cost or (future) paths.")
 note("Path-planning code and tests are present. A separate manuscript experiment is validated only when its exact terrain inputs, configuration, and raw run outputs are available.")
 
