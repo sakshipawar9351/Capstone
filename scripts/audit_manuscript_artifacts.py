@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,7 +35,7 @@ def files_under(path: Path) -> list[Path]:
     found: list[Path] = []
     for current, directories, filenames in os.walk(path):
         current_path = Path(current)
-        directories[:] = [name for name in directories if name not in EXCLUDED_DIRS and name not in {"raw", "cache", "tmp", "temp"}]
+        directories[:] = [name for name in directories if name not in EXCLUDED_DIRS and name not in {"cache", "tmp", "temp"}]
         for name in filenames:
             found.append(current_path / name)
     return found
@@ -151,7 +150,7 @@ def main() -> int:
 
     fusion_files = sorted(
         str(p) for p in filenames
-        if "fusion" in str(p).lower() and "baseline_terrain_only" not in str(p).lower()
+        if "fusion" in p.name.lower() and "baseline_terrain_only" not in p.name.lower()
     )
     evidence["fusion_result_files"] = fusion_files
     if not fusion_files:
