@@ -38,6 +38,7 @@ python -m pip install -r requirements.txt
 | `python run.py --docs` | Rebuild `docs/html/` before serving |
 | `python run.py --port 9000` | Serve on another port |
 | `python run.py --no-browser` | Do not open a browser |
+| `python scripts/audit_manuscript_artifacts.py` | Check whether checkpoints, detector provenance and crater-fusion result files needed by the paper are present; expected to report blockers until missing artifacts are supplied |
 
 The preflight is worth reading rather than skipping: it prints which of the
 candidate data roots each dataset resolved from, so a missing DEM is reported
