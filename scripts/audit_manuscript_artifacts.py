@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,11 +34,11 @@ def files_under(path: Path) -> list[Path]:
     if not path.exists():
         return []
     found: list[Path] = []
-    for candidate in path.rglob("*"):
-        if any(part in EXCLUDED_DIRS for part in candidate.parts):
-            continue
-        if candidate.is_file():
-            found.append(candidate)
+    for current, directories, filenames in os.walk(path):
+        current_path = Path(current)
+        directories[:] = [name for name in directories if name not in EXCLUDED_DIRS and name not in {"raw", "cache", "tmp", "temp"}]
+        for name in filenames:
+            found.append(current_path / name)
     return found
 
 
