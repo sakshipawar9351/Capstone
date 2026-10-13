@@ -3,9 +3,7 @@
 **A scientific decision-support system for lunar surface analysis and rover traverse planning.**
 
 LunarSerpent presents a 3-D interactive Moon globe as its interface — but the globe is the
-front door to an analysis engine, not a visualisation in itself. The system ingests
-authoritative lunar datasets, derives terrain products, detects and classifies surface
-features, and plans safe rover traverses between user-specified selenographic coordinates.
+front door to an analysis engine, not a visualisation in itself. The system ingests lunar datasets, derives terrain products, computes candidate traverse routes from modelled costs, and presents analytical layers on a 3-D lunar globe. Outputs are research decision-support, not a certification of physical rover safety.
 
 **The governing principle is scientific provability.** Every displayed number traces to a
 documented formula with a peer-reviewed source. Where a quantity cannot be determined with
@@ -79,10 +77,10 @@ follow the OS preference.
 | **Coordinates** | IAU Mean-Earth/Polar-Axis (DE421) frame, spherical datum R = 1737.4 km. All positioning by selenographic latitude/longitude; pixel indices exist only as the output of a verified transform |
 | **Topography** | LOLA `LDEM_16` (1895 m/px), read directly from PDS3 via `numpy.memmap`. Higher resolutions streamed by HTTP range request at zero storage cost |
 | **Slope** | Horn (1981) 3×3 operator with **latitude-corrected cell size** — without which polar slopes are underestimated by up to 5.8× |
-| **Craters** | Robbins (2019) catalogue (1 296 879 craters, complete ≥ 1 km) as ground truth; DEM-based curvature + Hough detection *below* that limit |
-| **Boulders** | Shadow-length photoclinometry, *h* = *L*·tan(*e*), on metre-scale imagery within a selected area of interest |
+| **Craters** | Robbins catalogue support and terrain-analysis utilities are present. A reproducible end-to-end detector is not established by the current public artifacts; the checked-in U-Net notebook describes a separate Kaguya optical experiment |
+| **Boulders** | Shadow-length photoclinometry is a proposed approach; quantitative boulder detection and validation are not established in this repository snapshot |
 | **Classification** | Pike (1974, 1977) morphometric scaling; class boundaries follow physical transitions, not round numbers |
-| **Path planning** | A\* with a **proved** admissible and consistent heuristic, plus cost-validated smoothing; benchmarked against 7 other algorithms |
+| **Path planning** | Seven planner implementations including A*, with algorithmic tests and an archived five-site terrain-only baseline; broader benchmark claims require matching run-level outputs |
 
 ---
 
@@ -99,8 +97,7 @@ These are disclosed rather than hidden, and surface in the UI where relevant:
   measured degradation index, stratigraphic epoch, and model age with explicit uncertainty.
 - **Cylindrical projections fail at the poles.** Above 85° latitude the system refuses
   cylindrical analysis and requires polar stereographic products.
-- **Synthetic training data has a domain gap.** Detector accuracy is reported on *both*
-  synthetic and real imagery.
+- **Detector metrics require provenance.** No detector-accuracy claim is treated as validated unless the exact weights, data/split manifest, predictions and metric outputs are archived.
 
 ---
 
@@ -117,8 +114,7 @@ Analysis       NumPy · SciPy · scikit-image · OpenCV · scikit-learn · netwo
 Data           numpy.memmap -> PDS3 .IMG · HTTP range -> PDS · WMTS -> NASA Moon Trek
 ```
 
-No build step. No admin rights. 9 runtime dependencies, all verified importable on the target
-machine. See [TECHNOLOGY.md](docs/TECHNOLOGY.md) for why each was chosen and what was rejected.
+No build step. No admin rights. The local runtime uses the pinned dependencies documented in `requirements.txt`; detector training and model evaluation are separate workflows and are not established by the local runtime alone. See [TECHNOLOGY.md](docs/TECHNOLOGY.md) for the environment constraints.
 
 ---
 
@@ -133,7 +129,7 @@ is negligible.
 | LOLA `LDEM_64` / `128` | On-demand detail | PDS HTTP range (verified 206) |
 | Robbins (2019) | 1.3 M crater catalogue | Drive mount → NumPy index |
 | Chandrayaan-2 OHRC | 0.25 m/px imagery for boulder detection | Drive mount |
-| Artificial Lunar Landscape | 16 500 labelled images for detector validation | Drive mount |
+| Artificial Lunar Landscape | Candidate labelled source identified for detector work; a validated result must cite the exact sample, split and evaluation outputs | Drive mount |
 | NASA Moon Trek WMTS | Basemap imagery | Streamed, LRU-cached |
 | IAU Gazetteer | Official feature names | HTTPS, cached |
 
