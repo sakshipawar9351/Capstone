@@ -32,6 +32,7 @@ import datetime as dt
 import hashlib
 import importlib.metadata
 import json
+import math
 import platform
 import statistics
 import subprocess
@@ -123,13 +124,22 @@ def build(name, s, n, w, e):
 
 
 def timed(grid, start, goal, algorithm, repeats=REPEATS, **kw):
-    """Median wall-clock over repeats; the path is identical by construction."""
+    """Return the final deterministic result, median time and every timing sample."""
     times, res = [], None
     for _ in range(repeats):
         t0 = time.perf_counter()
         res = plan(grid, start, goal, algorithm=algorithm, **kw)
         times.append((time.perf_counter() - t0) * 1e3)
-    return res, statistics.median(times)
+    return res, statistics.median(times), times
+
+
+def path_length_m(path, cell_m: float) -> float | None:
+    """Polyline length on the planner's row/column grid, including any-angle segments."""
+    if not path or len(path) < 2:
+        return 0.0 if path else None
+    return float(sum(math.hypot(float(b[0]) - float(a[0]),
+                                float(b[1]) - float(a[1])) * cell_m
+                     for a, b in zip(path, path[1:])))
 
 
 def main() -> int:
@@ -200,11 +210,11 @@ def main() -> int:
         for alg in ALL:
             if alg == "rrt_star":
                 continue
-            res, ms = timed(grid, start, goal, alg)
-            rows[alg] = (res, ms)
+            res, ms, time_samples = timed(grid, start, goal, alg)
+            rows[alg] = (res, ms, time_samples)
             if res.found and res.optimal and ref is None:
                 ref = res.cost
-        for alg, (res, ms) in rows.items():
+        for alg, (res, ms, time_samples) in rows.items():
             ratio = (res.cost / ref) if (res.found and ref) else float("nan")
             print(f"  {res.algorithm:<22}{res.cost:>12.1f}{ratio:>8.3f}"
                   f"{ms:>10.1f}{res.nodes_expanded:>11,}")
@@ -213,9 +223,10 @@ def main() -> int:
                 "found": bool(res.found), "optimal": bool(res.optimal),
                 "cost_s": float(res.cost) if res.found else None,
                 "ratio_to_reference": float(ratio) if np.isfinite(ratio) else None,
-                "runtime_ms_median": float(ms), "timing_repeats": REPEATS,
-                "nodes_expanded": int(res.nodes_expanded),
-                "waypoint_count": len(res.path) if res.path else 0
+                "runtime_ms_median": float(ms), "runtime_samples_ms": [float(x) for x in time_samples],
+                "timing_repeats": REPEATS, "nodes_expanded": int(res.nodes_expanded),
+                "path_length_m": path_length_m(res.path, win.cell_m),
+                "waypoint_count": len(res.path) if res.path is not None else 0
             })
 
         # RRT* separately: stochastic, so spread is the measurement.
@@ -278,9 +289,9 @@ def main() -> int:
         print(f"  {'epsilon':>8}{'cost ratio':>12}{'ms':>10}{'expanded':>11}"
               f"{'vs A* speed':>13}")
         print("  " + "-" * 54)
-        base, base_ms = timed(eps_grid, eps_start, eps_goal, "astar")
+        base, base_ms, base_samples = timed(eps_grid, eps_start, eps_goal, "astar")
         for eps in (1.0, 1.25, 1.5, 2.0, 2.5, 4.0, 8.0):
-            res, ms = timed(eps_grid, eps_start, eps_goal, "weighted_astar", weight=eps)
+            res, ms, time_samples = timed(eps_grid, eps_start, eps_goal, "weighted_astar", weight=eps)
             ratio = res.cost / eps_ref if res.found and eps_ref else float("nan")
             speedup = base_ms / max(ms, 1e-9)
             print(f"  {eps:>8.2f}{ratio:>12.4f}{ms:>10.1f}"
@@ -289,8 +300,10 @@ def main() -> int:
                 "scenario": eps_label, "epsilon": float(eps), "found": bool(res.found),
                 "cost_s": float(res.cost) if res.found else None,
                 "ratio_to_reference": float(ratio) if np.isfinite(ratio) else None,
-                "runtime_ms_median": float(ms), "timing_repeats": REPEATS,
+                "runtime_ms_median": float(ms), "runtime_samples_ms": [float(x) for x in time_samples],
+                "timing_repeats": REPEATS, "weight": float(eps),
                 "nodes_expanded": int(res.nodes_expanded),
+                "path_length_m": path_length_m(res.path, eps_grid.cell_m),
                 "speedup_vs_astar": float(speedup)
             })
         print(f"\\n  A* reference: {base.cost:.1f} s in {base_ms:.1f} ms, "
