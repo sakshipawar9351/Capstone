@@ -54,6 +54,12 @@ The archived `docs/results/baseline_terrain_only.json` contains a five-site run 
 - Verify figure/table lettering, readable axis labels, equations, reference ordering and two-column layout in the final PDF.
 - Clearly disclose that a software simulation/prototype does not certify a physical rover traverse.
 
+## Automated artifact gate
+
+Run `python scripts/audit_manuscript_artifacts.py` from the repository root. It searches the repository for checkpoints, evaluation/provenance files, and crater-fusion result artifacts, and checks whether the tracked U-Net notebook contains saved execution outputs and matches the LOLA-DEM modality described in the paper. It is expected to exit non-zero while blockers remain. If weights/results are stored outside the repository, pass their directory with `--artifact-root`; do not expose private credentials or upload restricted datasets.
+
+The script checks artifact presence and provenance clues only; it does not validate model quality, rerun path planning, prove spatial independence, or certify a scientific claim.
+
 ## Submission gate
 
 A manuscript is **not cleared for submission** until R1–R5 are closed or their unsupported claims are removed; the final paper is rebuilt; tests and experiments are run with logs; citations are checked; and all tables can be regenerated from archived outputs. A polished PDF alone is not sufficient.
