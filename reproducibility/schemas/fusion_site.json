@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "notes": "Example schema only. Replace all example values with frozen, source-backed outputs; never report this example as data.",
+  "sites": [
+    {
+      "site_id": "example_site",
+      "input_hashes": {
+        "dem_sha256": "REPLACE_WITH_SHA256",
+        "terrain_cost_sha256": "REPLACE_WITH_SHA256",
+        "detector_output_sha256": "REPLACE_WITH_SHA256"
+      },
+      "control": {
+        "config_hash": "REPLACE_WITH_SHA256",
+        "route": [[0.0, 0.0], [1.0, 1.0]],
+        "route_cost": 1.0
+      },
+      "treatment": {
+        "config_hash": "REPLACE_WITH_SHA256",
+        "route": [[0.0, 0.0], [1.0, 1.0]],
+        "route_cost": 1.0
+      }
+    }
+  ]
+}
