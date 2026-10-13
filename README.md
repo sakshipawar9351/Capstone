@@ -2,13 +2,9 @@
 
 **A scientific decision-support system for lunar surface analysis and rover traverse planning.**
 
-LunarSerpent presents a 3-D interactive Moon globe as its interface — but the globe is the
-front door to an analysis engine, not a visualisation in itself. The system ingests lunar datasets, derives terrain products, computes candidate traverse routes from modelled costs, and presents analytical layers on a 3-D lunar globe. Outputs are research decision-support, not a certification of physical rover safety.
+LunarSerpent provides a 3-D interactive Moon-globe interface for exploring lunar datasets and terrain-analysis outputs. The public repository contains terrain-derivative, terramechanics and planner components, plus research notebooks; however, the complete detector-to-cost-map-to-route experiment is not independently reproducible from the currently tracked artifacts. Route outputs are model-based decision-support, not a certification of physical rover safety.
 
-**The governing principle is scientific provability.** Every displayed number traces to a
-documented formula with a peer-reviewed source. Where a quantity cannot be determined with
-justified confidence, the system states its uncertainty or declines to report it — rather than
-producing a plausible-looking value.
+**The design goal is scientific traceability.** Equations, assumptions, data sources and limitations should be documented, and unsupported quantities should be reported as unavailable rather than inferred. Some research components remain experimental or depend on external data and model artifacts; code presence alone is not evidence of scientific validation.
 
 ---
 
