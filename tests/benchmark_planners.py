@@ -158,6 +158,12 @@ def main() -> int:
         "platform": platform.platform(),
         "numpy": package_version("numpy"),
         "source_commit": source_commit(),
+        "rover_profile": "viper",
+        "soil_model": "nominal",
+        "halo_cells": HALO,
+        "algorithms": list(ALL),
+        "deterministic_repeats": REPEATS,
+        "smoothing_max_span_cells": 200,
         "scenarios": [],
         "skipped_scenarios": [],
         "weighted_astar_sweep": [],
@@ -226,7 +232,8 @@ def main() -> int:
                 "runtime_ms_median": float(ms), "runtime_samples_ms": [float(x) for x in time_samples],
                 "timing_repeats": REPEATS, "nodes_expanded": int(res.nodes_expanded),
                 "path_length_m": path_length_m(res.path, win.cell_m),
-                "waypoint_count": len(res.path) if res.path is not None else 0
+                "waypoint_count": len(res.path) if res.path is not None else 0,
+                "path_rc": [[int(p[0]), int(p[1])] for p in res.path] if res.found else []
             })
 
         # RRT* separately: stochastic, so spread is the measurement.
@@ -239,7 +246,9 @@ def main() -> int:
             run_cost = float(r.cost) if r.found else None
             rrt_runs.append({"seed": seed, "found": bool(r.found), "cost_s": run_cost,
                              "runtime_ms": float(elapsed_ms),
-                             "nodes_expanded": int(r.nodes_expanded)})
+                             "nodes_expanded": int(r.nodes_expanded),
+                             "path_length_m": path_length_m(r.path, win.cell_m),
+                             "path_rc": [[int(p[0]), int(p[1])] for p in r.path] if r.found else []})
             if r.found:
                 costs.append(r.cost)
         case_record["rrt_star"] = {
