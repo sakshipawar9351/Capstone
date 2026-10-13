@@ -57,6 +57,7 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("catalogue join",          ["tests/test_catalogue_join.py"],     False),
     ("data resolution",         ["tests/test_data_resolution.py"],    False),
     ("documentation audit",     ["tests/audit_docs.py"],              False),
+    ("research reproducibility tools", ["reproducibility/scripts/smoke_test_kit.py"], False),
     # Static, fast, and previously never run by anything — an audit nobody
     # invokes catches nothing. It reads the HTML and JS for unwired controls,
     # dead element ids and renderer parity, which the browser suite cannot see.

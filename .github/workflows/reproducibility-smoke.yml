@@ -1,0 +1,24 @@
+name: Reproducibility smoke checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  research-artifact-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile repository audit and benchmark scripts
+        run: |
+          python -m compileall -q reproducibility/scripts
+          python -m py_compile tests/audit_docs.py tests/audit_science.py tests/benchmark_planners.py
+      - name: Run portable documentation audit
+        run: python tests/audit_docs.py
+      - name: Run synthetic validator tests
+        run: python reproducibility/scripts/smoke_test_kit.py

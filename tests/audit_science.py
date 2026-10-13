@@ -179,11 +179,12 @@ note("South-polar coverage (10 m/px) supports traverse-scale slope, and is "
      "the only part of the system that can speak to route safety.")
 note("Cesium Moon Terrain publishes no vertical accuracy or reference frame. "
      "It is a viewing surface; all reported numbers come from LOLA.")
-note("Boulder detection is not built. NAC scenes are downloaded, but polar "
-     "incidence ~89.7 deg makes shadow-derived heights unreliable "
-     "(0.1 deg error -> ~50% height error on a 1 m rock).")
+note("This audit does not validate boulder detections. NAC imagery availability alone "
+     "is not evidence of object-level accuracy; shadow-derived heights remain unreliable "
+     "at near-grazing solar incidence without an uncertainty analysis.")
 note("No uncertainty is propagated through slope, cost or (future) paths.")
-note("Path planning is not built — brief Part 6 remains open.")
+note("Path-planning code and tests exist, but this audit does not establish mission readiness. "
+     "Use frozen terrain inputs and archived run-level benchmarks before making performance claims.")
 
 # ===========================================================================
 print()

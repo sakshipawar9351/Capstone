@@ -143,16 +143,23 @@ Full provenance, resolutions, formats and citation obligations in
 
 ## Project status
 
-| Phase | Deliverable | Status |
-|---|---|---|
-| **P0** | Documentation baseline | ✅ **Complete** |
-| P1 | Data layer — selenographic core, PDS reader, catalogue index | ⬜ Pending |
-| P2 | Terrain analysis — slope, aspect, curvature, roughness, hazard, cost | ⬜ Pending |
-| P3 | Detection & classification | ⬜ Pending |
-| P4 | Path planning + benchmark harness | ⬜ Pending |
-| P5 | FastAPI service | ⬜ Pending |
-| P6 | Three.js globe UI | ⬜ Pending |
-| P7 | Validation — measured metrics appended to docs | ⬜ Pending |
+This table distinguishes **implementation presence** from **validated evidence**. A module or test file
+being present does not by itself mean its output is scientifically validated or that a manuscript's
+reported experiment has been reproduced.
+
+| Phase | Deliverable | Repository evidence | Status |
+|---|---|---|---|
+| **P0** | Documentation baseline | PRD, SRD, formula, dataset, technology and algorithm docs | Present |
+| P1 | Data layer | Selenographic, PDS, raster, catalogue and data-resolution modules/tests | Implemented; data availability depends on local data roots |
+| P2 | Terrain analysis | Terrain, hazard and terramechanics modules and focused tests | Implemented; scale and mobility assumptions remain limitations |
+| P3 | Detection and classification | Catalogue/topographic feature code and a U-Net training notebook | Partial. The tracked notebook is Kaguya optical-image based, unexecuted in Git, and is not evidence for the paper's separate LOLA-DEM experiment |
+| P4 | Path planning + benchmark | Planner modules, tests and archived terrain-only baseline JSON | Implemented; full paper benchmark logs still need to be archived/reproduced |
+| P5 | API/service | FastAPI application and API smoke/integration tests | Implemented; run the test suite in the target environment |
+| P6 | Interactive UI | Front-end source and browser harness/tests | Implemented; visual/browser validation is environment-dependent |
+| P7 | Scientific validation | Focused audits, tests and selected archived outputs | Partial. Model checkpoints, frozen held-out manifests/predictions, and five-site fusion artifacts needed to reproduce the paper are not present in this repository snapshot |
+
+**Research-paper reproducibility audit:** see [docs/RESEARCH_PAPER_REPRODUCIBILITY.md](docs/RESEARCH_PAPER_REPRODUCIBILITY.md).
+**Repeatable artifact checks and validators:** see [reproducibility/README.md](reproducibility/README.md).
 
 ---
 
