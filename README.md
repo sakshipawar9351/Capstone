@@ -143,18 +143,39 @@ Full provenance, resolutions, formats and citation obligations in
 
 ## Project status
 
-| Phase | Deliverable | Status |
+| Phase | Deliverable | Evidence-based status |
 |---|---|---|
-| **P0** | Documentation baseline | ✅ **Complete** |
-| P1 | Data layer — selenographic core, PDS reader, catalogue index | ⬜ Pending |
-| P2 | Terrain analysis — slope, aspect, curvature, roughness, hazard, cost | ⬜ Pending |
-| P3 | Detection & classification | ⬜ Pending |
-| P4 | Path planning + benchmark harness | ⬜ Pending |
-| P5 | FastAPI service | ⬜ Pending |
-| P6 | Three.js globe UI | ⬜ Pending |
-| P7 | Validation — measured metrics appended to docs | ⬜ Pending |
+| **P0** | Documentation baseline | ✅ Documentation present |
+| P1 | Data layer — selenographic core, PDS reader, catalogue index | ✅ Core modules present; execution depends on local data products |
+| P2 | Terrain analysis — slope, aspect, curvature, roughness, hazard, cost | ✅ Analysis modules and tests present; validation remains data-/scale-dependent |
+| P3 | Detection & classification | ⚠️ No single validated end-to-end detector is established by this repository snapshot; notebooks must be matched to the paper's dataset/modality |
+| P4 | Path planning + benchmark harness | ✅ Planner implementation, tests, and benchmark script present; paper-specific results still require run-level provenance |
+| P5 | FastAPI service | ✅ API modules and API tests present |
+| P6 | Three.js globe UI | ✅ Frontend modules and frontend audit present |
+| P7 | Validation — measured metrics appended to docs | ⚠️ Component checks exist; this does not establish reproducibility of every manuscript experiment |
+
+**Status interpretation:** module presence means implementation exists, not that the feature is scientifically validated or independently reproducible. Results that require external DEMs, trained weights, or site-specific configurations are validated only when the corresponding inputs and run logs are available.
 
 ---
+
+## Research-paper reproducibility note
+
+The repository contains multiple distinct strands of work. In particular,
+`notebooks/train_crater_unet_colab.ipynb` describes a U-Net/ResNet-34 experiment
+on Kaguya optical imagery at 125 m/px, with 640 px tiles and 256 px centre crops.
+It must **not** be treated as evidence for any paper result described as a
+LOLA-DEM/elevation-input experiment. Those are different modalities and
+experimental configurations.
+
+The archived `docs/results/baseline_terrain_only.json` records terrain-only
+planner runs. It is not, by itself, evidence for a crater-fusion treatment.
+A paper should quote detector or fusion metrics only when the matching data
+manifest, model/checkpoint identity, evaluation code, frozen site configuration,
+and raw outputs can be produced. If an artifact is unavailable, state that
+explicitly and remove or rerun the unsupported claim rather than infer a value.
+
+For the current audit checklist and exact closure criteria, see
+[`docs/RESEARCH_AUDIT_AND_SUBMISSION_GATE.md`](docs/RESEARCH_AUDIT_AND_SUBMISSION_GATE.md).
 
 ## Layout
 
