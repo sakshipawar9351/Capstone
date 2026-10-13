@@ -280,7 +280,9 @@ def slip_ratio(slope_deg, rover: RoverProfile,
     demanded = math.sin(th) + R_W * math.cos(th)
     z = sinkage(rover, soil, n_wheels)
 
-    # Descending: gravity assists, and braking rather than traction governs.
+    # Simplified downhill case: when gravity assistance exceeds resistance,
+    # no positive tractive demand is required. This model does NOT calculate
+    # braking force, wheel lock, or a safe descent-speed limit.
     if demanded <= 0:
         return SlipResult(0.0, demanded,
                           tractive_coefficient(0.05, rover, soil, n_wheels),
@@ -363,9 +365,13 @@ def effective_speed(slope_deg, rover: RoverProfile,
     odometry, if uncorrected, still reports 0.2 — which is how a traverse can
     silently fall behind schedule and how dead-reckoned position drifts.
 
-    Power is applied on top of that: climbing costs traction force against
-    gravity plus motion resistance, and where the demand exceeds available
-    power the speed is limited further.
+    Power is applied on top of that: the implemented power term uses
+    max(sin(theta), 0), so downhill gravity assistance is not credited when
+    computing the power-limited speed. Negative slopes can trigger the simple
+    zero-traction-demand branch in :func:`slip_ratio`, but this function is
+    NOT a direction-aware downhill braking or stability model. It does not
+    establish a safe descent speed. Papers must describe this as a simplified
+    slope-based speed proxy unless a separate validated descent model is used.
     """
     s = slip_ratio(slope_deg, rover, soil, n_wheels)
     if s.immobilised:
