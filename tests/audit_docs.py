@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-ROOT = Path(r"d:\Lunar_Serpent")
+ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 HTML = DOCS / "html"
 
