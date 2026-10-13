@@ -2,15 +2,9 @@
 
 **A scientific decision-support system for lunar surface analysis and rover traverse planning.**
 
-LunarSerpent presents a 3-D interactive Moon globe as its interface — but the globe is the
-front door to an analysis engine, not a visualisation in itself. The system ingests
-authoritative lunar datasets, derives terrain products, detects and classifies surface
-features, and plans safe rover traverses between user-specified selenographic coordinates.
+LunarSerpent provides a 3-D interactive Moon-globe interface for exploring lunar datasets and terrain-analysis outputs. The public repository contains terrain-derivative, terramechanics and planner components, plus research notebooks; however, the complete detector-to-cost-map-to-route experiment is not independently reproducible from the currently tracked artifacts. Route outputs are model-based decision-support, not a certification of physical rover safety.
 
-**The governing principle is scientific provability.** Every displayed number traces to a
-documented formula with a peer-reviewed source. Where a quantity cannot be determined with
-justified confidence, the system states its uncertainty or declines to report it — rather than
-producing a plausible-looking value.
+**The design goal is scientific traceability.** Equations, assumptions, data sources and limitations should be documented, and unsupported quantities should be reported as unavailable rather than inferred. Some research components remain experimental or depend on external data and model artifacts; code presence alone is not evidence of scientific validation.
 
 ---
 
@@ -38,6 +32,7 @@ python -m pip install -r requirements.txt
 | `python run.py --docs` | Rebuild `docs/html/` before serving |
 | `python run.py --port 9000` | Serve on another port |
 | `python run.py --no-browser` | Do not open a browser |
+| `python scripts/audit_manuscript_artifacts.py` | Check whether checkpoints, detector provenance and crater-fusion result files needed by the paper are present; expected to report blockers until missing artifacts are supplied |
 
 The preflight is worth reading rather than skipping: it prints which of the
 candidate data roots each dataset resolved from, so a missing DEM is reported
@@ -78,10 +73,10 @@ follow the OS preference.
 | **Coordinates** | IAU Mean-Earth/Polar-Axis (DE421) frame, spherical datum R = 1737.4 km. All positioning by selenographic latitude/longitude; pixel indices exist only as the output of a verified transform |
 | **Topography** | LOLA `LDEM_16` (1895 m/px), read directly from PDS3 via `numpy.memmap`. Higher resolutions streamed by HTTP range request at zero storage cost |
 | **Slope** | Horn (1981) 3×3 operator with **latitude-corrected cell size** — without which polar slopes are underestimated by up to 5.8× |
-| **Craters** | Robbins (2019) catalogue (1 296 879 craters, complete ≥ 1 km) as ground truth; DEM-based curvature + Hough detection *below* that limit |
-| **Boulders** | Shadow-length photoclinometry, *h* = *L*·tan(*e*), on metre-scale imagery within a selected area of interest |
+| **Craters** | Robbins catalogue support and terrain-analysis utilities are present. A reproducible end-to-end detector is not established by the current public artifacts; the checked-in U-Net notebook describes a separate Kaguya optical experiment |
+| **Boulders** | Shadow-length photoclinometry is a proposed approach; quantitative boulder detection and validation are not established in this repository snapshot |
 | **Classification** | Pike (1974, 1977) morphometric scaling; class boundaries follow physical transitions, not round numbers |
-| **Path planning** | A\* with a **proved** admissible and consistent heuristic, plus cost-validated smoothing; benchmarked against 7 other algorithms |
+| **Path planning** | Seven planner implementations including A*, with algorithmic tests and an archived five-site terrain-only baseline; broader benchmark claims require matching run-level outputs |
 
 ---
 
@@ -98,8 +93,7 @@ These are disclosed rather than hidden, and surface in the UI where relevant:
   measured degradation index, stratigraphic epoch, and model age with explicit uncertainty.
 - **Cylindrical projections fail at the poles.** Above 85° latitude the system refuses
   cylindrical analysis and requires polar stereographic products.
-- **Synthetic training data has a domain gap.** Detector accuracy is reported on *both*
-  synthetic and real imagery.
+- **Detector metrics require provenance.** No detector-accuracy claim is treated as validated unless the exact weights, data/split manifest, predictions and metric outputs are archived.
 
 ---
 
@@ -116,8 +110,7 @@ Analysis       NumPy · SciPy · scikit-image · OpenCV · scikit-learn · netwo
 Data           numpy.memmap -> PDS3 .IMG · HTTP range -> PDS · WMTS -> NASA Moon Trek
 ```
 
-No build step. No admin rights. 9 runtime dependencies, all verified importable on the target
-machine. See [TECHNOLOGY.md](docs/TECHNOLOGY.md) for why each was chosen and what was rejected.
+No build step. No admin rights. The local runtime uses the pinned dependencies documented in `requirements.txt`; detector training and model evaluation are separate workflows and are not established by the local runtime alone. See [TECHNOLOGY.md](docs/TECHNOLOGY.md) for the environment constraints.
 
 ---
 
@@ -132,7 +125,7 @@ is negligible.
 | LOLA `LDEM_64` / `128` | On-demand detail | PDS HTTP range (verified 206) |
 | Robbins (2019) | 1.3 M crater catalogue | Drive mount → NumPy index |
 | Chandrayaan-2 OHRC | 0.25 m/px imagery for boulder detection | Drive mount |
-| Artificial Lunar Landscape | 16 500 labelled images for detector validation | Drive mount |
+| Artificial Lunar Landscape | Candidate labelled source identified for detector work; a validated result must cite the exact sample, split and evaluation outputs | Drive mount |
 | NASA Moon Trek WMTS | Basemap imagery | Streamed, LRU-cached |
 | IAU Gazetteer | Official feature names | HTTPS, cached |
 
@@ -143,18 +136,39 @@ Full provenance, resolutions, formats and citation obligations in
 
 ## Project status
 
-| Phase | Deliverable | Status |
+| Phase | Deliverable | Evidence-based status |
 |---|---|---|
-| **P0** | Documentation baseline | ✅ **Complete** |
-| P1 | Data layer — selenographic core, PDS reader, catalogue index | ⬜ Pending |
-| P2 | Terrain analysis — slope, aspect, curvature, roughness, hazard, cost | ⬜ Pending |
-| P3 | Detection & classification | ⬜ Pending |
-| P4 | Path planning + benchmark harness | ⬜ Pending |
-| P5 | FastAPI service | ⬜ Pending |
-| P6 | Three.js globe UI | ⬜ Pending |
-| P7 | Validation — measured metrics appended to docs | ⬜ Pending |
+| **P0** | Documentation baseline | ✅ Documentation present |
+| P1 | Data layer — selenographic core, PDS reader, catalogue index | ✅ Core modules present; execution depends on local data products |
+| P2 | Terrain analysis — slope, aspect, curvature, roughness, hazard, cost | ✅ Analysis modules and tests present; validation remains data-/scale-dependent |
+| P3 | Detection & classification | ⚠️ No single validated end-to-end detector is established by this repository snapshot; notebooks must be matched to the paper's dataset/modality |
+| P4 | Path planning + benchmark harness | ✅ Planner implementation, tests, and benchmark script present; paper-specific results still require run-level provenance |
+| P5 | FastAPI service | ✅ API modules and API tests present |
+| P6 | Three.js globe UI | ✅ Frontend modules and frontend audit present |
+| P7 | Validation — measured metrics appended to docs | ⚠️ Component checks exist; this does not establish reproducibility of every manuscript experiment |
+
+**Status interpretation:** module presence means implementation exists, not that the feature is scientifically validated or independently reproducible. Results that require external DEMs, trained weights, or site-specific configurations are validated only when the corresponding inputs and run logs are available.
 
 ---
+
+## Research-paper reproducibility note
+
+The repository contains multiple distinct strands of work. In particular,
+`notebooks/train_crater_unet_colab.ipynb` describes a U-Net/ResNet-34 experiment
+on Kaguya optical imagery at 125 m/px, with 640 px tiles and 256 px centre crops.
+It must **not** be treated as evidence for any paper result described as a
+LOLA-DEM/elevation-input experiment. Those are different modalities and
+experimental configurations.
+
+The archived `docs/results/baseline_terrain_only.json` records terrain-only
+planner runs. It is not, by itself, evidence for a crater-fusion treatment.
+A paper should quote detector or fusion metrics only when the matching data
+manifest, model/checkpoint identity, evaluation code, frozen site configuration,
+and raw outputs can be produced. If an artifact is unavailable, state that
+explicitly and remove or rerun the unsupported claim rather than infer a value.
+
+For the current audit checklist and exact closure criteria, see
+[`docs/RESEARCH_AUDIT_AND_SUBMISSION_GATE.md`](docs/RESEARCH_AUDIT_AND_SUBMISSION_GATE.md).
 
 ## Layout
 
