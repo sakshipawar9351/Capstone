@@ -88,7 +88,7 @@ print(f"  {'PASS' if n_html >= 9 else 'FAIL'}  docs/html/ contains {n_html} page
 
 print()
 print("=" * 78)
-print("4. IMPLEMENTATION STATUS  (Phase 1-4 — not yet started)")
+print("4. IMPLEMENTATION INVENTORY  (file presence is not validation evidence)")
 print("=" * 78)
 code_dirs = ["backend", "backend/core", "backend/data", "backend/analysis",
              "backend/planning", "backend/api", "frontend", "frontend/js",
@@ -117,4 +117,4 @@ if issues:
     for i in issues:
         print(f"    - {i}")
 else:
-    print("  NO ISSUES. Phase 0 deliverables complete and verified.")
+    print("  NO STATIC DOCUMENTATION ISSUES FOUND. This is not a scientific-readiness verdict.")
